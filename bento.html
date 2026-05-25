@@ -1287,6 +1287,7 @@ function selectNum(n){
   document.getElementById('num-picker-input').value=n;
 }
 function applyNumPicker(){
+  blurAll();
   const v=parseInt(document.getElementById('num-picker-input').value);
   if(!isNaN(v)&&v>=0&&_pickerTargetId){
     counts[_pickerTargetId]=v;
@@ -1296,6 +1297,7 @@ function applyNumPicker(){
   closeNumPicker();
 }
 function closeNumPicker(){
+  blurAll();
   document.getElementById('num-picker-modal').classList.add('hidden');
   _pickerTargetId=null;
 }
@@ -1892,8 +1894,14 @@ function onKakeChange(){
   const isKake=document.getElementById('cm-kake').value==='true';
   document.getElementById('cm-invoice-section').style.display=isKake?'block':'none';
 }
-function closeCustModal(e){if(e&&e.target!==document.getElementById('cust-modal'))return;document.getElementById('cust-modal').classList.add('hidden');}
+function blurAll(){
+  if(document.activeElement && document.activeElement.blur){
+    document.activeElement.blur();
+  }
+}
+function closeCustModal(e){if(e&&e.target!==document.getElementById('cust-modal'))return;blurAll();document.getElementById('cust-modal').classList.add('hidden');}
 function saveCust(){
+  blurAll();
   const editId=document.getElementById('cm-edit-id').value;
   const name=document.getElementById('cm-name').value.trim();
   if(!name){toast('お客様名を入力してください');return;}
@@ -2012,6 +2020,7 @@ function openPinkStaffModal(){
   setTimeout(()=>document.getElementById('psm-name').focus(),100);
 }
 function closePinkStaffModal(e){
+  blurAll();
   if(e&&e.target!==document.getElementById('pink-staff-modal'))return;
   document.getElementById('pink-staff-modal').classList.add('hidden');
 }
@@ -2095,8 +2104,9 @@ function openStaffModal(id){
     document.getElementById('sm-del-wrap').classList.add('hidden');
   }
 }
-function closeStaffModal(e){if(e&&e.target!==document.getElementById('staff-modal'))return;document.getElementById('staff-modal').classList.add('hidden');}
+function closeStaffModal(e){if(e&&e.target!==document.getElementById('staff-modal'))return;blurAll();document.getElementById('staff-modal').classList.add('hidden');}
 function saveStaff(){
+  blurAll();
   const editId=document.getElementById('sm-edit-id').value;
   const name=document.getElementById('sm-name').value.trim();
   if(!name){toast('名前を入力してください');return;}
@@ -2816,6 +2826,7 @@ function openYoyakuMemoDatePicker(){
   requestAnimationFrame(()=>{ sheet.style.transform='translateY(0)'; });
 }
 function closeMemoDatePicker(){
+  blurAll();
   const sheet=document.getElementById('memo-date-picker-sheet');
   if(sheet){ sheet.style.transform='translateY(100%)'; setTimeout(()=>sheet.remove(),260); }
 }
@@ -2860,10 +2871,12 @@ function openYoyakuMemo(dateKey){
   setTimeout(()=>document.getElementById('yoyaku-memo-input').focus(),100);
 }
 function closeYoyakuMemo(){
+  blurAll();
   document.getElementById('yoyaku-memo-modal').classList.add('hidden');
   _memoDateKey=null;
 }
 function saveYoyakuMemo(){
+  blurAll();
   const custId=document.getElementById('yoyaku-customer')?.value||'';
   const memo=document.getElementById('yoyaku-memo-input').value.trim();
   if(!_memoDateKey||!custId){closeYoyakuMemo();return;}
@@ -3182,6 +3195,7 @@ function renderMonthlyReport(){
 }
 
 function saveYoyaku(){
+  blurAll();
   const custId=document.getElementById('yoyaku-customer')?.value;
   if(!custId){toast('お客様を選択してください');return;}
   let registered=0;
