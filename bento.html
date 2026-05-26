@@ -420,8 +420,19 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
   </div>
 </div>
 
-<!-- CALENDAR -->
-<div class="cal-dropdown hidden" id="cal-dropdown">
+<!-- 請求書プレビューモーダル -->
+<div id="invoice-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:800;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:92%;max-width:420px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
+      <div style="font-size:14px;font-weight:800;">📄 請求書プレビュー</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="printInvoice()" style="padding:6px 14px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🖨 印刷</button>
+        <button onclick="closeInvoiceModal()" style="padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
+      </div>
+    </div>
+    <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;flex:1;"></div>
+  </div>
+</div>
   <div class="cal-month-row">
     <button class="cal-nav" onclick="shiftMonth(-1)">‹</button>
     <div class="cal-month-label" id="cal-month-label"></div>
@@ -2458,9 +2469,8 @@ function renderSales(){
             <div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
             <div style="font-size:12px;font-weight:700;color:var(--muted);margin:0 8px;flex-shrink:0;">${counts[m.id]}食</div>
             <div style="font-size:13px;font-weight:800;color:var(--ao);flex-shrink:0;margin-right:8px;">${(counts[m.id]*UNIT_PRICE).toLocaleString()}円</div>
-            ${m.email?`<button onclick="sendInvoice('${m.id}')"
-              style="flex-shrink:0;padding:3px 8px;border-radius:12px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📄 請求</button>`
-              :`<span style="font-size:9px;color:var(--muted);flex-shrink:0;">未登録</span>`}
+            <button onclick="sendInvoice('${m.id}')"
+              style="flex-shrink:0;padding:3px 8px;border-radius:12px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📄 請求</button>
           </div>
         `).join('')}
       </div>
@@ -3370,8 +3380,119 @@ function saveYoyaku(){
 
 function sendInvoice(id){
   const m=MASTER.find(x=>x.id===id);
-  if(!m)return;
-  toast(`📄 ${m.name}への請求書送信はスプレッドシート連携後に有効になります`);
+  if(!m) return;
+  const count=counts[m.id]||0;
+  const total=count*UNIT_PRICE;
+  const today=new Date();
+  const yyyy=today.getFullYear();
+  const mm=String(today.getMonth()+1).padStart(2,'0');
+  const dd=String(today.getDate()).padStart(2,'0');
+  const dateStr=`${yyyy}年${mm}月${dd}日`;
+  // 請求月（前月 or 当月）
+  const billMonth=`${yyyy}年${mm}月`;
+  // 締め日設定
+  const closing=m.closing||'末日';
+  // 支払期日（翌月末など）
+  const nextMonth=new Date(today.getFullYear(),today.getMonth()+1,0);
+  const dueDateStr=`${nextMonth.getFullYear()}年${nextMonth.getMonth()+1}月${nextMonth.getDate()}日`;
+
+  const billName=m.billname||m.name;
+  const invoiceNo=`${yyyy}${mm}-${m.id}`;
+
+  const html=`
+    <div id="invoice-print-area" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;">
+      <!-- ヘッダー -->
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:22px;font-weight:900;letter-spacing:.1em;margin-bottom:4px;">請　求　書</div>
+        <div style="font-size:11px;color:#666;">No. ${invoiceNo}</div>
+      </div>
+
+      <!-- 宛先と発行日 -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${billName} 御中</div>
+          <div style="font-size:11px;color:#666;">締め日：${closing}</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#666;line-height:1.8;">
+          <div>発行日：${dateStr}</div>
+          <div>お支払期限：${dueDateStr}</div>
+        </div>
+      </div>
+
+      <!-- 請求金額 -->
+      <div style="background:#f0f4ff;border:2px solid #1A6FD4;border-radius:10px;padding:14px 18px;margin-bottom:20px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">ご請求金額（税込）</div>
+        <div style="font-size:28px;font-weight:900;color:#1A6FD4;">¥ ${total.toLocaleString()}<span style="font-size:14px;">円</span></div>
+      </div>
+
+      <!-- 明細 -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:12px;">
+        <thead>
+          <tr style="background:#f5f5f5;border-bottom:2px solid #ddd;">
+            <th style="padding:8px;text-align:left;font-weight:700;">品目</th>
+            <th style="padding:8px;text-align:center;font-weight:700;">数量</th>
+            <th style="padding:8px;text-align:right;font-weight:700;">単価</th>
+            <th style="padding:8px;text-align:right;font-weight:700;">金額</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:10px 8px;">${billMonth}分　弁当</td>
+            <td style="padding:10px 8px;text-align:center;">${count}食</td>
+            <td style="padding:10px 8px;text-align:right;">¥${UNIT_PRICE.toLocaleString()}</td>
+            <td style="padding:10px 8px;text-align:right;font-weight:700;">¥${total.toLocaleString()}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #ddd;background:#fafafa;">
+            <td colspan="3" style="padding:8px;text-align:right;font-weight:700;">合計（税込）</td>
+            <td style="padding:8px;text-align:right;font-weight:900;font-size:14px;">¥${total.toLocaleString()}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- 振込先 -->
+      <div style="border:1px solid #ddd;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:11px;">
+        <div style="font-weight:800;margin-bottom:6px;">【お振込先】</div>
+        <div style="color:#444;line-height:1.8;">
+          銀行名・支店名・口座番号はスプレッドシート連携後に自動入力されます
+        </div>
+      </div>
+
+      <!-- 発行元 -->
+      <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">株式会社コンプリメント</div>
+        <div>${currentShop}店</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('invoice-preview-body').innerHTML=html;
+  document.getElementById('invoice-modal').style.display='flex';
+}
+function closeInvoiceModal(){
+  document.getElementById('invoice-modal').style.display='none';
+}
+function printInvoice(){
+  const body=document.getElementById('invoice-print-area')?.innerHTML||'';
+  const overlay=document.createElement('div');
+  overlay.id='invoice-print-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:1000;background:#fff;overflow-y:auto;padding:24px;';
+  overlay.innerHTML=`
+    <div id="invoice-print-content">${body}</div>
+    <style>
+      @media print{
+        body > *:not(#invoice-print-overlay){ display:none!important; }
+        #invoice-print-overlay{ position:static!important;overflow:visible!important;padding:0!important; }
+        @page{ margin:15mm; }
+      }
+    </style>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>overlay.remove(), 1000);
+  }, 300);
 }
 
 function gotoTab(tab){
