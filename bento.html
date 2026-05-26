@@ -66,7 +66,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .cal-day.today,.cal-day.selected{color:#fff!important;}
 
 /* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);}
 .bnav-btn{padding:10px 2px 8px;border:none;background:none;cursor:pointer;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;font-family:inherit;letter-spacing:.02em;transition:color .1s;}
 .bnav-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;}
 .bnav-btn.on{color:var(--ao);}
@@ -408,9 +408,11 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
         </button>
         <div id="hdr-menu" style="display:none;position:absolute;top:38px;right:0;background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:500;overflow:hidden;">
           <div style="padding:6px 0;">
-            <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
+            <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 配達メンバー</button>
             <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-            <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 スタッフ管理</button>
+            <button onclick="gotoTab('delivery');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚚 配達</button>
+            <div style="height:1px;background:var(--border);margin:0 12px;"></div>
+            <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
             <div style="height:1px;background:var(--border);margin:0 12px;"></div>
             <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
           </div>
@@ -489,7 +491,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     顧客
   </button>
-  <button class="bnav-btn" id="nav-delivery" onclick="gotoTab('delivery')">
+  <button class="bnav-btn" id="nav-delivery" onclick="gotoTab('delivery')" style="display:none;">
     <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     配達
   </button>
@@ -1320,16 +1322,9 @@ function closeNumPicker(){
   _pickerTargetId=null;
 }
 
-let _longPressTimer=null;
-let _longPressId=null;
-let _longPressEl=null;
 const COURSE_COLORS_MAP={ao:'#1A6FD4',midori:'#1F8C35',orenji:'#C45C00',pinku:'#B82E65',iero:'#C8A800',shop:'#555550'};
 const COURSE_LABELS_MAP={ao:'青',midori:'緑',orenji:'オレンジ',pinku:'ピンク',iero:'黄色',shop:'店頭'};
 
-function endLongPress(){
-  if(_longPressTimer){clearTimeout(_longPressTimer);_longPressTimer=null;}
-  if(_longPressEl){_longPressEl.classList.remove('lifting');_longPressEl=null;}
-}
 function showCourseMenu(id,name){
   const m=MASTER.find(x=>x.id===id);
   if(!m)return;
@@ -2576,11 +2571,6 @@ function confirmRemoveExpense(i){
     renderSales();
   });
 }
-function removeExpense(i){
-  salesData.expenses.splice(i,1);
-  saveToLocal();
-  renderSales();
-}
 function updateExpense(i,key,val){
   if(!salesData.expenses) salesData.expenses=[];
   salesData.expenses[i][key]=val;
@@ -2606,11 +2596,6 @@ function onYenBlur(e){
 function onYenFocus(e){
   const raw=e.target.value.replace(/,/g,'');
   e.target.value=raw==='0'?'':raw;
-}
-function getYenValue(id){
-  const el=document.getElementById(id);
-  if(!el)return 0;
-  return parseInt(el.value.replace(/,/g,''))||0;
 }
 function calcCoinTotal(coins){
   return Object.entries(COIN_UNITS).reduce((s,[k,u])=>s+(parseInt(coins[k])||0)*u,0);
@@ -2653,14 +2638,6 @@ function updateAfterDeposit(){
 let bulkOrders={}; // {dateKey: {custId: count}}
 let bulkMemos={}; // {dateKey: {custId: memo}}
 
-function openBulkOrderModal(){
-    document.getElementById('bulk-cust-search').value='';
-  document.getElementById('bulk-customer').value='';
-  document.getElementById('bulk-cust-list').style.display='none';
-  document.getElementById('bulk-cust-selected').style.display='none';
-  setTimeout(()=>renderBulkWeekGrid(),50);
-  document.getElementById('bulk-order-modal').classList.remove('hidden');
-}
 function closeBulkOrderModal(){
   document.getElementById('bulk-order-modal').classList.add('hidden');
 }
@@ -2669,13 +2646,11 @@ function fmtDate(d){
 }
 
 
-let bulkCustComposing=false;
 function onBulkCustSearch(e){
-  if(bulkCustComposing) return;
+  if(e.isComposing) return;
   renderBulkCustList(e.target.value);
 }
 function onBulkCustSearchEnd(e){
-  bulkCustComposing=false;
   renderBulkCustList(e.target.value);
 }
 function renderBulkCustList(q){
@@ -2712,13 +2687,11 @@ function clearBulkCust(){
   document.getElementById('bulk-cust-search').value='';
   updateBulkPreview();
 }
-function scrollYoyakuToWeek(w){ highlightYoyakuWeek(w); }
 // ── 予約メモ ──
 let _memoDateKey=null;
 let _memoTimer=null;
 
 // セルのダブルタップ検出
-var _lastTap={key:'',time:0};
 var _currentYoyakuCustId='';
 var _currentYoyakuCustName='';
 
@@ -2928,27 +2901,6 @@ function clearYoyakuCust(){
   _currentYoyakuCustId='';
   _currentYoyakuCustName='';
   renderYoyaku();
-}
-function handleCellTap(dateKey,e){
-  const now=Date.now();
-  if(_lastTap.key===dateKey&&now-_lastTap.time<400){
-    // ダブルタップ
-    e.preventDefault();
-    openYoyakuMemo(dateKey);
-    _lastTap={key:'',time:0};
-  } else {
-    _lastTap={key:dateKey,time:now};
-  }
-}
-
-function startYoyakuLongPress(dateKey,e){
-  _memoTimer=setTimeout(()=>{
-    if(navigator.vibrate) navigator.vibrate(30);
-    openYoyakuMemo(dateKey);
-  },600);
-}
-function cancelYoyakuLongPress(){
-  if(_memoTimer){clearTimeout(_memoTimer);_memoTimer=null;}
 }
 function openYoyakuMemo(dateKey){
   _memoDateKey=dateKey;
@@ -3711,7 +3663,6 @@ function applyRole(){
     document.getElementById('nav-customer').classList.remove('hidden');
     document.getElementById('nav-yoyaku').classList.remove('hidden');
     document.getElementById('nav-summary').classList.remove('hidden');
-    document.getElementById('nav-delivery').classList.remove('hidden');
     document.getElementById('nav-sales').classList.remove('hidden');
     gotoTab('input');
   } else {
