@@ -67,7 +67,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .cal-day.today,.cal-day.selected{color:#fff!important;}
 
 /* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#fff;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);}
 .bnav-btn{padding:10px 2px 8px;border:none;background:none;cursor:pointer;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;font-family:inherit;letter-spacing:.02em;transition:color .1s;}
 .bnav-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;}
 .bnav-btn.on{color:var(--ao);}
@@ -339,7 +339,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 
   <div class="login-card hidden" id="lc-admin">
     <div class="login-card-title">管理者パスワード</div>
-    <input class="pw-input" id="pw-input" type="password" placeholder="パスワードを入力" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key==='Enter')checkPw()">
+    <input class="pw-input" id="pw-input" type="password" placeholder="パスワードを入力" inputmode="numeric" pattern="[0-9]*" maxlength="4" onkeydown="if(event.key==='Enter')checkPw()" oninput="if(this.value.length===4)checkPw()">
     <button class="pw-submit" onclick="checkPw()">ログイン</button>
     <div class="pw-error hidden" id="pw-error">パスワードが違います</div>
     <button class="back-btn" onclick="showRoleSelect()">← 戻る</button>
