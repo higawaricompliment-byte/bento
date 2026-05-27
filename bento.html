@@ -29,6 +29,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
   .cal-dropdown{max-width:480px;left:50%;transform:translateX(-50%);}
   .main{max-width:480px;width:480px;margin:0 auto;}
   .prog-bar{max-width:480px;left:50%;transform:translateX(-50%);}
+  #delivery-prog-bar{max-width:480px;left:50%;transform:translateX(-50%);}
   .ftotal{max-width:480px;left:50%;transform:translateX(-50%);}
   .modal-overlay{max-width:480px;left:50%;transform:translateX(-50%);}
   .course-menu{max-width:480px;left:50%;transform:translateX(-50%);}
@@ -73,8 +74,8 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .bnav-btn.on svg{stroke:var(--ao);}
 
 /* ── MAIN ── */
-.main{padding-top:76px;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
-.main.cal-open{padding-top:310px;}
+.main{padding-top:0;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
+.main.cal-open{}
 
 /* ── FILTER CHIPS ── */
 .frow{display:flex;gap:6px;padding:8px 14px 8px;overflow-x:auto;background:var(--bg);border-bottom:1px solid var(--border);border-top:1px solid var(--border);scrollbar-width:none;-webkit-overflow-scrolling:touch;white-space:nowrap;}
@@ -131,7 +132,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .ftotal-right{font-size:12px;color:var(--muted);}
 
 /* ── DELIVERY VIEW ── */
-.dview{padding:10px 12px 90px;}
+.dview{padding:10px 12px 10px;}
 .dcard{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:5px;display:flex;align-items:center;overflow:hidden;box-shadow:var(--shadow);transition:opacity .2s;}
 .dcard.done{opacity:.3;}
 .dcard.done .dcard-name{text-decoration:line-through;}
@@ -153,7 +154,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .staff-select{flex:1;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);background:var(--bg);font-size:13px;font-weight:700;font-family:inherit;color:var(--text);appearance:none;cursor:pointer;}
 
 /* ── PROGRESS BAR ── */
-.prog-bar{position:fixed;bottom:calc(56px + env(safe-area-inset-bottom,0px));left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:7px 16px 6px;z-index:100;box-shadow:0 -1px 0 var(--border);}
+.prog-bar{background:var(--surface);border-top:1px solid var(--border);padding:7px 16px 6px;}
 .prog-meta{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;font-weight:600;align-items:center;}
 .prog-lbl{color:var(--muted);}
 .prog-cnt{font-weight:700;color:var(--text);}
@@ -370,11 +371,9 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
       </button>
     </div>
 
-    <button class="back-btn" onclick="showRoleSelect()">← 戻る</button>
+    <button class="back-btn" onclick="backFromDriverSelect()">← 戻る</button>
   </div>
 </div>
-
-<!-- HEADER -->
 <div class="hdr">
   <div class="hdr-top">
     <!-- 左：店舗名 -->
@@ -406,17 +405,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
           <span style="display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;"></span>
           <span style="display:block;width:10px;height:2px;background:var(--muted);border-radius:2px;align-self:flex-start;margin-left:10px;"></span>
         </button>
-        <div id="hdr-menu" style="display:none;position:absolute;top:38px;right:0;background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:500;overflow:hidden;">
-          <div style="padding:6px 0;">
-            <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 配達メンバー</button>
-            <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-            <button onclick="gotoTab('delivery');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚚 配達</button>
-            <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-            <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
-            <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-            <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
-          </div>
-        </div>
+        <div id="hdr-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:500;overflow:hidden;"></div>
       </div>
     </div>
   </div>
@@ -474,6 +463,10 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 </div>
 
 <!-- BOTTOM NAV -->
+<div id="delivery-prog-bar" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--surface);border-bottom:1px solid var(--border);padding:5px 16px 6px;z-index:190;">
+  <div class="prog-meta"><span class="prog-lbl">配達進捗</span><span id="delivery-prog-text">0 / 0件完了</span></div>
+  <div class="ptrack"><div class="pfill" id="delivery-prog-fill" style="width:0%"></div></div>
+</div>
 <div class="bnav">
   <button class="bnav-btn on" id="nav-input" onclick="gotoTab('input')">
     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -926,6 +919,8 @@ function MASTER_DEFAULT(){
 let MASTER = MASTER_DEFAULT();
 
 const counts={};
+let bulkOrders={}; // initCountsより前に定義必須
+let bulkMemos={};
 function getDefaultCount(m, dow){
   if(m.weekCounts && Array.isArray(m.weekCounts)){
     const v = m.weekCounts[dow];
@@ -935,7 +930,14 @@ function getDefaultCount(m, dow){
 }
 function initCounts(date){
   const dow = date.getDay();
-  MASTER.forEach(m=>{ counts[m.id] = getDefaultCount(m, dow); });
+  const dateKey = fmtDate(date);
+  MASTER.forEach(m=>{
+    if(bulkOrders[dateKey]&&bulkOrders[dateKey][m.id]!==undefined){
+      counts[m.id] = bulkOrders[dateKey][m.id];
+    } else {
+      counts[m.id] = getDefaultCount(m, dow);
+    }
+  });
   updateHdrTotal();
 }
 initCounts(new Date());
@@ -948,6 +950,9 @@ let nextId=1000;
 let currentTab='input';
 
 const TODAY=new Date(); TODAY.setHours(0,0,0,0);
+function fmtDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 let selectedDate=new Date(TODAY);
 let calViewYear=TODAY.getFullYear(),calViewMonth=TODAY.getMonth(),calOpen=false;
 
@@ -993,6 +998,8 @@ function updateDateBar(){
   sub.style.color=isToday?'var(--ao)':'var(--orenji)';
   document.getElementById('cal-btn-label').textContent=isToday?'日付選択':`${selectedDate.getMonth()+1}/${selectedDate.getDate()}`;
   document.getElementById('cal-toggle-btn').classList.toggle('active',!isToday);
+  // ヘッダー高さが変わる可能性があるので再計算
+  requestAnimationFrame(adjustMainPadding);
 }
 function shiftDay(d){
   selectedDate.setDate(selectedDate.getDate()+d);
@@ -1008,12 +1015,32 @@ function shiftDay(d){
   renderCurrentTab();
   if(calOpen)renderCal();
 }
+function adjustMainPadding(){
+  const hdr=document.querySelector('.hdr');
+  const main=document.getElementById('main');
+  if(hdr&&main){
+    const h=hdr.offsetHeight;
+    main.style.paddingTop=h+'px';
+    // 配達進捗バーをヘッダー直下に配置
+    const prog=document.getElementById('delivery-prog-bar');
+    if(prog) prog.style.top=h+'px';
+  }
+}
+
 function toggleCal(){
   calOpen=!calOpen;
   const cal=document.getElementById('cal-dropdown');
   const main=document.getElementById('main');
   if(cal) cal.classList.toggle('hidden',!calOpen);
-  if(main) main.classList.toggle('cal-open',calOpen);
+  if(main){
+    if(calOpen){
+      const calH=document.querySelector('.cal-dropdown')?.offsetHeight||240;
+      const hdrH=document.querySelector('.hdr')?.offsetHeight||96;
+      main.style.paddingTop=(hdrH+calH)+'px';
+    } else {
+      adjustMainPadding();
+    }
+  }
   if(calOpen) renderCal();
 }
 function renderCal(){
@@ -1224,12 +1251,11 @@ function _updateCardValue(id){
 function renderInput(){
   // 検索バーが既にあればスキップ（DOM再構築しない）
   if(!document.getElementById('input-search-input')){
-    const shell=`<div style="position:sticky;top:0;z-index:10;background:var(--surface);">
+    const shell=`<div style="background:var(--surface);">
       <div style="padding:10px 14px 6px;border-bottom:1px solid var(--border);">
         <div style="position:relative;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="input-search-input" placeholder="顧客名で検索..."
-            onfocus="document.getElementById('tab-input').scrollTop=0;"
             style="width:100%;padding:11px 36px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;color:var(--text);outline:none;font-weight:500;background:var(--bg);">
           <button id="input-search-clear" onclick="clearInputSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;font-size:17px;color:var(--muted);cursor:pointer;padding:0;">×</button>
         </div>
@@ -1456,9 +1482,27 @@ function renderDelivery(){
 
 
   html+=`<div class="dview">`;
+
+  // 色別合計バー
+  if(!isPinkDriver){
+    const courseOrder=['ao','midori','orenji','iero','pinku'];
+    const colorBar=courseOrder.map(c=>{
+      const total=active.filter(m=>m.course===c).reduce((s,m)=>s+(counts[m.id]||0),0);
+      if(total===0) return '';
+      return `<div style="display:flex;align-items:center;gap:3px;white-space:nowrap;">
+        <div style="width:8px;height:8px;border-radius:50%;background:${COURSE_COLORS_MAP[c]};flex-shrink:0;"></div>
+        <span style="font-size:11px;font-weight:800;color:${COURSE_COLORS_MAP[c]};">${total}食</span>
+      </div>`;
+    }).filter(Boolean).join('');
+    if(colorBar){
+      html+=`<div style="display:flex;flex-wrap:wrap;gap:8px;padding:6px 10px 8px;background:var(--surface);border-bottom:1px solid var(--border);">${colorBar}</div>`;
+    }
+  }
+
   if(!active.length){
     html+=`<div class="empty-msg">該当する配達先がありません</div>`;
   } else {
+    html+=`<div>`;
     active.forEach(m=>{
       const isDone=done.has(m.id);
       const isReceipt=m.receipt;
@@ -1466,18 +1510,12 @@ function renderDelivery(){
       const hasMemo=m.memo&&m.memo.trim();
       const hasDailyMemo=bulkMemos[fmtDate(selectedDate)]&&bulkMemos[fmtDate(selectedDate)][m.id];
       let cardStyle='';
-      if(isDone){
-        cardStyle='';
-      } else if(isReceipt&&hasTime){
-        cardStyle='background:#FFF0F0;border-left:4px solid #E53E3E;';
-      } else if(isReceipt){
-        cardStyle='background:#FFF5F5;border-left:4px solid #E53E3E;';
-      } else if(hasTime){
-        cardStyle='background:#FFF8E6;border-left:4px solid #E8A020;';
-      } else if(hasDailyMemo){
-        cardStyle='background:#FFFBEA;border-left:4px solid #E8C840;';
+      if(!isDone){
+        if(isReceipt&&hasTime) cardStyle='background:#FFF0F0;border-left:4px solid #E53E3E;';
+        else if(isReceipt) cardStyle='background:#FFF5F5;border-left:4px solid #E53E3E;';
+        else if(hasTime) cardStyle='background:#FFF8E6;border-left:4px solid #E8A020;';
+        else if(hasDailyMemo) cardStyle='background:#FFFBEA;border-left:4px solid #E8C840;';
       }
-
       const orderNum=deliveryOrder[m.id]||'';
       html+=`<div class="dcard${isDone?' done':''}" style="${cardStyle}display:grid;grid-template-columns:${showDeliveryOrder?'44px ':''} 3px 1fr auto;">
         ${showDeliveryOrder?`<div style="display:flex;align-items:center;justify-content:center;padding:0 4px;">
@@ -1497,8 +1535,7 @@ function renderDelivery(){
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span class="dcard-name" style="flex:1;font-size:13px;">${m.name}</span>
-            ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener"
-              style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
+            ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
           </div>
           <div class="dcard-badges" style="margin-top:3px;">${badges(m)}${staffBadge(m)}</div>
           ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${m.memo}</div>`:''}
@@ -1511,12 +1548,25 @@ function renderDelivery(){
         </div>
       </div>`;
     });
+    html+=`</div>`;
   }
-  html+=`</div><div class="prog-bar">
-    <div class="prog-meta"><span class="prog-lbl">配達進捗</span><span>${doneCount} / ${total}件完了</span></div>
-    <div class="ptrack"><div class="pfill" style="width:${pct}%"></div></div>
-  </div>`;
+  html+=`</div>`;
   document.getElementById('tab-delivery').innerHTML=html;
+
+  // 進捗バーを固定要素で更新
+  const progBar=document.getElementById('delivery-prog-bar');
+  const progText=document.getElementById('delivery-prog-text');
+  const progFill=document.getElementById('delivery-prog-fill');
+  if(progBar){
+    progBar.style.display='block';
+    if(progText) progText.textContent=`${doneCount} / ${total}件完了`;
+    if(progFill) progFill.style.width=`${pct}%`;
+  }
+
+  // tab-deliveryのpadding-topを進捗バー分追加
+  const tabDel=document.getElementById('tab-delivery');
+  if(tabDel) tabDel.style.paddingTop='44px';
+  if(tabDel) tabDel.style.paddingBottom='';
 }
 function toggleDeliveryOrder(){
   showDeliveryOrder=!showDeliveryOrder;
@@ -2635,17 +2685,11 @@ function updateAfterDeposit(){
 
 // ── 一括予約 ──
  // デフォルト月〜金
-let bulkOrders={}; // {dateKey: {custId: count}}
-let bulkMemos={}; // {dateKey: {custId: memo}}
+// bulkOrders・bulkMemosは起動時に上部で定義済み
 
 function closeBulkOrderModal(){
   document.getElementById('bulk-order-modal').classList.add('hidden');
 }
-function fmtDate(d){
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-
 function onBulkCustSearch(e){
   if(e.isComposing) return;
   renderBulkCustList(e.target.value);
@@ -2747,12 +2791,24 @@ function selectYoyakuCust(id, name){
     </div>`;
   }
   // グリッドのセルを顧客の予約データで更新（全再描画せずDOMを直接更新）
+  const m=MASTER.find(x=>x.id===id);
   document.querySelectorAll('[id^="yoyaku-cell-"]').forEach(el=>{
     if(el.disabled) return;
     const key=el.dataset.key;
-    const val=bulkOrders[key]?bulkOrders[key][id]:'';
-    const hasVal=val!==undefined&&val!==''&&val!==null;
-    el.value=hasVal?val:'';
+    let val=bulkOrders[key]?bulkOrders[key][id]:undefined;
+    // 予約未登録の場合はdefaultCount/weekCountsを初期値として表示
+    if((val===undefined||val===''||val===null) && m){
+      const dt=new Date(key);
+      const dow=dt.getDay(); // 0=日,1=月,...,6=土
+      if(m.weekCounts&&Array.isArray(m.weekCounts)&&m.weekCounts[dow]!==null&&m.weekCounts[dow]!==undefined&&m.weekCounts[dow]!==''){
+        val=Number(m.weekCounts[dow]);
+      } else {
+        val=m.defaultCount||0;
+      }
+    }
+    const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
+    el.value=val||'';
+    el.placeholder=val||'-';
     el.style.borderColor=hasVal?'var(--ao)':'var(--border-dark)';
     el.style.background=hasVal?'var(--ao-bg)':'var(--bg)';
     el.style.color=hasVal?'var(--ao)':'var(--text)';
@@ -3037,8 +3093,19 @@ function renderYoyaku(){
     weekDates.forEach(function(dt,i){
       const key=fmtDate(dt);
       const isPast=dt<today;
-      const val=custId&&bulkOrders[key]?bulkOrders[key][custId]:'';
-      const hasVal=val!==undefined&&val!==''&&val!==null;
+      let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
+      if((val===undefined||val===''||val===null)&&custId){
+        const cm=MASTER.find(x=>x.id===custId);
+        if(cm){
+          const dow2=dt.getDay();
+          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
+            val=Number(cm.weekCounts[dow2]);
+          } else {
+            val=cm.defaultCount||0;
+          }
+        }
+      }
+      const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
       html+=' data-key="'+key+'" data-col="'+i+'"';
@@ -3093,8 +3160,19 @@ function renderYoyaku(){
     html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:4px;">';
     exWeekDates.forEach(function(dt,i){
       const key=fmtDate(dt);
-      const val=custId&&bulkOrders[key]?bulkOrders[key][custId]:'';
-      const hasVal=val!==undefined&&val!==''&&val!==null;
+      let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
+      if((val===undefined||val===''||val===null)&&custId){
+        const cm=MASTER.find(x=>x.id===custId);
+        if(cm){
+          const dow2=dt.getDay();
+          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
+            val=Number(cm.weekCounts[dow2]);
+          } else {
+            val=cm.defaultCount||0;
+          }
+        }
+      }
+      const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
       html+=' data-key="'+key+'" data-col="'+i+'"';
@@ -3455,6 +3533,14 @@ function gotoTab(tab){
     const nb=document.getElementById('nav-'+t);
     if(nb) nb.classList.toggle('on',t===tab);
   });
+  // 配達進捗バーの表示制御
+  const progBar=document.getElementById('delivery-prog-bar');
+  if(progBar) progBar.style.display=tab==='delivery'?'block':'none';
+  // 配達以外のタブではpaddingTopをリセット
+  if(tab!=='delivery'){
+    const tabDel=document.getElementById('tab-delivery');
+    if(tabDel) tabDel.style.paddingTop='';
+  }
   // inputタブに戻る際はDOM再構築（イベント再バインドのため）
   if(tab==='input' && prevTab!=='input'){
     document.getElementById('tab-input').innerHTML='';
@@ -3463,6 +3549,11 @@ function gotoTab(tab){
 }
 
 updateDateBar();
+// ヘッダー高さを動的に設定（複数タイミングで確実に反映）
+setTimeout(adjustMainPadding, 0);
+setTimeout(adjustMainPadding, 100);
+setTimeout(adjustMainPadding, 300);
+window.addEventListener('resize', adjustMainPadding);
 
 const LS_ROLE = 'bentoRole';
 const LS_COURSE = 'bentoCourse';
@@ -3564,9 +3655,44 @@ function showAdminLogin(){
   document.getElementById('pw-error').classList.add('hidden');
   setTimeout(()=>document.getElementById('pw-input').focus(),100);
 }
+let _driverSelectFrom='login'; // 'login' or 'modal'
+
+function _resetDriverCard(){
+  document.getElementById('lc-driver').innerHTML=`
+    <div class="login-card-title">担当コースを選択</div>
+    <div class="course-grid" id="driver-course-grid">
+      <button class="course-sel-btn csb-ao" id="dcb-ao" onclick="toggleDriverCourse('ao')" style="opacity:0.4;">● 青</button>
+      <button class="course-sel-btn csb-midori" id="dcb-midori" onclick="toggleDriverCourse('midori')" style="opacity:0.4;">● 緑</button>
+      <button class="course-sel-btn csb-orenji" id="dcb-orenji" onclick="toggleDriverCourse('orenji')" style="opacity:0.4;">● オレンジ</button>
+      <button class="course-sel-btn csb-iero" id="dcb-iero" onclick="toggleDriverCourse('iero')" style="opacity:0.4;">● 黄色</button>
+    </div>
+    <button onclick="loginDriver('all')" style="width:100%;padding:9px;border-radius:var(--radius-sm);background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;border:1px solid var(--border-dark);cursor:pointer;font-family:inherit;margin-top:6px;">すべてのコースを表示</button>
+    <button onclick="loginDriverMulti()" id="driver-enter-btn" style="width:100%;padding:13px;border-radius:var(--radius-sm);background:var(--text);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:6px;opacity:0.4;" disabled>選択して開始</button>
+    <div style="margin:16px -4px 0;padding:16px 4px 0;border-top:2px solid var(--pinku-bg);">
+      <button onclick="loginDriver('pinku')" style="width:100%;padding:16px;border-radius:var(--radius-sm);background:var(--pinku);color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(184,46,101,.3);">● ピンクコース</button>
+    </div>
+    <button class="back-btn" onclick="backFromDriverSelect()">← 戻る</button>
+  `;
+}
+
 function showDriverLogin(){
-  document.getElementById('lc-role').classList.add('hidden');
+  _driverSelectFrom='login';
+  _resetDriverCard();
+  ['lc-shop','lc-role','lc-admin'].forEach(id=>{
+    document.getElementById(id).classList.add('hidden');
+  });
   document.getElementById('lc-driver').classList.remove('hidden');
+}
+function backFromDriverSelect(){
+  ['lc-shop','lc-role','lc-admin','lc-driver'].forEach(id=>{
+    document.getElementById(id).classList.add('hidden');
+  });
+  if(_driverSelectFrom==='modal'){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('logout-modal').classList.remove('hidden');
+  } else {
+    document.getElementById('lc-role').classList.remove('hidden');
+  }
 }
 function checkPw(){
   const v = document.getElementById('pw-input').value;
@@ -3645,7 +3771,7 @@ function showPinkMemberSelect(){
   });
   html+='<button class="course-sel-btn csb-all" onclick="loginDriverPink(\'\')">全員表示</button>';
   html+='</div>';
-  html+='<button class="back-btn" onclick="showDriverLogin()">← 戻る</button>';
+  html+='<button class="back-btn" onclick="_resetDriverCard()">← 戻る</button>';
   card.innerHTML=html;
 }
 
@@ -3709,16 +3835,38 @@ function switchToAdmin(){
   setTimeout(()=>document.getElementById('pw-input').focus(),100);
 }
 function switchToDriverSelect(){
+  _driverSelectFrom='modal';
+  _resetDriverCard();
   closeLogoutModal();
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('lc-shop').classList.add('hidden');
-  document.getElementById('lc-role').classList.add('hidden');
-  document.getElementById('lc-admin').classList.add('hidden');
+  ['lc-shop','lc-role','lc-admin','lc-driver'].forEach(id=>{
+    document.getElementById(id).classList.add('hidden');
+  });
   document.getElementById('lc-driver').classList.remove('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
 }
 function toggleHdrMenu(){
   const m=document.getElementById('hdr-menu');
-  m.style.display=m.style.display==='none'?'block':'none';
+  if(m.style.display==='block'){
+    m.style.display='none';
+    return;
+  }
+  // 配達タブ中は切替のみ表示
+  if(currentTab==='delivery'){
+    m.innerHTML=`<div style="padding:6px 0;">
+      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
+    </div>`;
+  } else {
+    m.innerHTML=`<div style="padding:6px 0;">
+      <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 配達メンバー</button>
+      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
+      <button onclick="gotoTab('delivery');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚚 配達</button>
+      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
+      <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
+      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
+      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
+    </div>`;
+  }
+  m.style.display='block';
 }
 function closeHdrMenu(){
   document.getElementById('hdr-menu').style.display='none';
