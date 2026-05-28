@@ -2605,7 +2605,8 @@ function doPrint(){
     </style>
   `;
   document.body.appendChild(overlay);
-  setTimeout(()=>{ window.print(); }, 300);
+  // 自動印刷しない（iOSで禁止されているため）
+  // 印刷ボタンを押してもらう
 }
 
 function addExpense(){
@@ -3517,12 +3518,10 @@ function printInvoice(){
         @page{ margin:15mm; }
       }
     </style>
+    <button onclick="window.print();this.closest('#invoice-print-overlay').remove();" style="position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:10px;background:#17171A;color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;z-index:1001;">🖨 印刷</button>
+    <button onclick="this.closest('#invoice-print-overlay').remove();" style="position:fixed;bottom:20px;left:20px;padding:12px 20px;border-radius:10px;background:#f0efe9;color:#444;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;z-index:1001;">✕ 閉じる</button>
   `;
   document.body.appendChild(overlay);
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>overlay.remove(), 1000);
-  }, 300);
 }
 
 function gotoTab(tab){
