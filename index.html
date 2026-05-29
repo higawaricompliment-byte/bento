@@ -67,14 +67,14 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .cal-day.today,.cal-day.selected{color:#fff!important;}
 
 /* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#fff;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#ffffff;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -2px 12px rgba(0,0,0,.08);}
 .bnav-btn{padding:10px 2px 8px;border:none;background:none;cursor:pointer;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;font-family:inherit;letter-spacing:.02em;transition:color .1s;}
 .bnav-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;}
 .bnav-btn.on{color:var(--ao);}
 .bnav-btn.on svg{stroke:var(--ao);}
 
 /* ── MAIN ── */
-.main{padding-top:0;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
+.main{padding-top:0;padding-bottom:calc(72px + env(safe-area-inset-bottom, 0px));height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
 .main.cal-open{}
 
 /* ── FILTER CHIPS ── */
@@ -885,37 +885,37 @@ const MASTER_DEFAULTS = {
   '西宮': [
     {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:0,receipt:false,kake:false,memo:'11:30まで 2階左',staffId:''},
+    {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a4',course:'ao',name:'谷矢製餡',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a5',course:'ao',name:'前田食品（株）',defaultCount:0,receipt:false,kake:true,memo:'月水金7食／火木5食',staffId:'',weekCounts:[0,7,5,7,5,7,0]},
-    {id:'a6',course:'ao',name:'鹿島建設（兵庫医大）',defaultCount:0,receipt:false,kake:true,memo:'2階',staffId:''},
+    {id:'a5',course:'ao',name:'前田食品（株）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'',weekCounts:[0,7,5,7,5,7,0]},
+    {id:'a6',course:'ao',name:'鹿島建設（兵庫医大）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
     {id:'a7',course:'ao',name:'コーナンメディカル',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
     {id:'a8',course:'ao',name:'新川東川作業所センター',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a9',course:'ao',name:'長岡実業株式会社',defaultCount:0,receipt:false,kake:true,memo:'3階',staffId:''},
-    {id:'m1',course:'midori',name:'松秀幼稚園',defaultCount:0,receipt:true,kake:false,memo:'到着時インターホン',staffId:'',deliveryTime:'11:30'},
-    {id:'m2',course:'midori',name:'こども未来センター',defaultCount:0,receipt:false,kake:false,memo:'袋必要',staffId:''},
-    {id:'m3',course:'midori',name:'西宮my助産院',defaultCount:0,receipt:false,kake:false,memo:'高木西町11-1',staffId:''},
+    {id:'a9',course:'ao',name:'長岡実業株式会社',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m1',course:'midori',name:'松秀幼稚園',defaultCount:0,receipt:true,kake:false,memo:'',staffId:'',deliveryTime:'11:30'},
+    {id:'m2',course:'midori',name:'こども未来センター',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'m3',course:'midori',name:'西宮my助産院',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'m4',course:'midori',name:'東光寺',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
-    {id:'m5',course:'midori',name:'（株）山下金物',defaultCount:0,receipt:false,kake:true,memo:'毎3',staffId:''},
-    {id:'m6',course:'midori',name:'（株）阪神青写真工業所',defaultCount:0,receipt:false,kake:true,memo:'月火水金',staffId:''},
+    {id:'m5',course:'midori',name:'（株）山下金物',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m6',course:'midori',name:'（株）阪神青写真工業所',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
     {id:'m7',course:'midori',name:'仁明会クリニック（現金）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'m8',course:'midori',name:'仁明会クリニック（掛）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
     {id:'m9',course:'midori',name:'尼崎信用金庫門戸支店',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'o1',course:'orenji',name:'尼崎信用金庫甲子園口店',defaultCount:0,receipt:true,kake:false,memo:'毎7',staffId:''},
+    {id:'o1',course:'orenji',name:'尼崎信用金庫甲子園口店',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
     {id:'o2',course:'orenji',name:'奥田株式会社311号室',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
     {id:'o3',course:'orenji',name:'甲子園口リハビリデイサービス',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'o4',course:'orenji',name:'三好病院',defaultCount:0,receipt:false,kake:true,memo:'⚠11:30まで 毎6',staffId:''},
-    {id:'o5',course:'orenji',name:'三恭歯研 1階',defaultCount:0,receipt:false,kake:true,memo:'毎3',staffId:''},
-    {id:'o6',course:'orenji',name:'パティシエトシヒロタダノ',defaultCount:0,receipt:false,kake:false,memo:'現金',staffId:''},
+    {id:'o4',course:'orenji',name:'三好病院',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'o5',course:'orenji',name:'三恭歯研 1階',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'o6',course:'orenji',name:'パティシエトシヒロタダノ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'p1',course:'pinku',name:'ベンツ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
     {id:'p2',course:'pinku',name:'放課後デイサービスつばさ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
-    {id:'p3',course:'pinku',name:'すずかけ労働センター',defaultCount:0,receipt:false,kake:true,memo:'毎25',staffId:'ps1'},
-    {id:'p4',course:'pinku',name:'上甲子園すずかけ作業所',defaultCount:0,receipt:false,kake:true,memo:'ひがわり弁当真っすぐ',staffId:'ps1'},
-    {id:'p5',course:'pinku',name:'尼崎信用金庫今津店',defaultCount:0,receipt:false,kake:true,memo:'毎7',staffId:'ps2'},
+    {id:'p3',course:'pinku',name:'すずかけ労働センター',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps1'},
+    {id:'p4',course:'pinku',name:'上甲子園すずかけ作業所',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps1'},
+    {id:'p5',course:'pinku',name:'尼崎信用金庫今津店',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
     {id:'p6',course:'pinku',name:'松浦興業（株）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'p7',course:'pinku',name:'一般法人KIZUNAの友',defaultCount:0,receipt:false,kake:false,memo:'⚠10:00〜11:30',staffId:'ps1'},
+    {id:'p7',course:'pinku',name:'一般法人KIZUNAの友',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
     {id:'p8',course:'pinku',name:'きんでん',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'y1',course:'iero',name:'大村様',defaultCount:0,receipt:false,kake:false,memo:'毎1',staffId:''},
+    {id:'y1',course:'iero',name:'大村様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'y2',course:'iero',name:'杉本様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'y3',course:'iero',name:'山崎様307',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'y4',course:'iero',name:'たかだ様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
@@ -2642,7 +2642,7 @@ function doPrint(){
           ${items.map(m=>`<tr>
             <td style="border:1px solid #ddd;padding:5px 8px;font-size:11px;">${escHtml(m.name)}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;">${counts[m.id]||0}</td>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${m.memo||''}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${escHtml(m.memo||"")}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.kake?'●':''}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.receipt?'●':''}</td>
           </tr>`).join('')}
@@ -3692,8 +3692,19 @@ window.addEventListener('resize', adjustMainPadding);
 const LS_ROLE = 'bentoRole';
 const LS_COURSE = 'bentoCourse';
 const LS_SHOP = 'bentoShop';
-const ADMIN_PW = '1111';
-
+// パスワードはSHA-256ハッシュで照合（元のPW: 管理者にお問い合わせください）
+const ADMIN_PW_HASH = '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c';
+async function checkPw(){
+  const v = document.getElementById('pw-input').value;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(hash === ADMIN_PW_HASH){
+    loginAdmin();
+  } else {
+    document.getElementById('pw-error').classList.remove('hidden');
+    document.getElementById('pw-input').value='';
+  }
+}
 // 店舗別キーを生成（currentShopが確定してから呼ぶ）
 function lsKey(base){ return base + '_' + currentShop; }
 
@@ -3842,15 +3853,6 @@ function backFromDriverSelect(){
     _openModal('logout-modal');
   } else {
     document.getElementById('lc-role').classList.remove('hidden');
-  }
-}
-function checkPw(){
-  const v = document.getElementById('pw-input').value;
-  if(v === ADMIN_PW){
-    loginAdmin();
-  } else {
-    document.getElementById('pw-error').classList.remove('hidden');
-    document.getElementById('pw-input').value='';
   }
 }
 function loginAdmin(){
