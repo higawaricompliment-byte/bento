@@ -155,14 +155,14 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 
 /* ── PROGRESS BAR ── */
 .prog-bar{background:var(--surface);border-top:1px solid var(--border);padding:7px 16px 6px;}
-.prog-meta{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;font-weight:600;align-items:center;}
+.prog-meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;font-weight:700;align-items:center;}
 .prog-lbl{color:var(--muted);}
-.prog-cnt{font-weight:700;color:var(--text);}
-.ptrack{height:4px;background:var(--bg);border-radius:3px;overflow:hidden;}
-.pfill{height:100%;background:linear-gradient(90deg,#1A9E72,#34C888);border-radius:3px;transition:width .3s;}
+.prog-cnt{font-weight:800;color:var(--text);}
+.ptrack{height:8px;background:var(--bg);border-radius:6px;overflow:hidden;}
+.pfill{height:100%;background:linear-gradient(90deg,#1A9E72,#34C888);border-radius:6px;transition:width .4s;}
 
 /* ── CUSTOMER VIEW ── */
-.cview{padding:10px 12px 20px;}
+.cview{padding:10px 12px 80px;}
 .add-btn{width:100%;padding:14px;border-radius:var(--radius);background:var(--text);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.02em;}
 .add-btn svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.5;}
 .cust-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:5px;display:flex;align-items:center;overflow:hidden;box-shadow:var(--shadow);}
@@ -181,7 +181,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .search-clear{border:none;background:none;font-size:17px;color:var(--muted);cursor:pointer;padding:0 2px;line-height:1;}
 
 /* ── STAFF VIEW ── */
-.stview{padding:10px 12px 20px;}
+.stview{padding:10px 12px 80px;}
 .sec-title{font-size:13px;font-weight:700;padding:8px 2px 8px;display:flex;align-items:center;justify-content:space-between;color:var(--text);}
 .add-btn-sm{padding:6px 14px;border-radius:20px;border:none;background:var(--text);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
 .staff-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:5px;padding:12px 14px;box-shadow:var(--shadow);}
@@ -194,7 +194,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .week-assign-select{flex:1;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);background:var(--bg);font-size:13px;font-weight:700;font-family:inherit;color:var(--text);appearance:none;}
 
 /* ── SUMMARY VIEW ── */
-.sview{padding:10px 12px 20px;}
+.sview{padding:10px 12px 80px;}
 .sstat{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
 .sbox{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px;box-shadow:var(--shadow);}
 .sbox-num{font-size:30px;font-weight:900;line-height:1;color:var(--text);}
@@ -247,8 +247,11 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .back-btn{width:100%;margin-top:10px;padding:10px;border:none;background:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;}
 
 /* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(2px);}
-.modal{background:var(--surface);border-radius:22px 22px 0 0;padding:22px 18px 36px;width:100%;max-height:88vh;overflow-y:auto;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(2px);overscroll-behavior:none;}
+.modal{background:var(--surface);border-radius:22px 22px 0 0;padding:22px 18px 36px;width:100%;max-height:88vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+/* モーダル表示中はmainのスクロールを止める */
+body.modal-open #main{overflow:hidden;pointer-events:none;}
+body.modal-open .hdr,body.modal-open .bnav{pointer-events:none;}
 .modal-title{font-size:17px;font-weight:900;margin-bottom:18px;letter-spacing:-.3px;}
 .form-row{margin-bottom:12px;}
 .form-lbl{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:.03em;}
@@ -318,7 +321,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
   <div class="login-card hidden" id="lc-role">
     <div class="login-card-title" id="lc-role-title">役割を選択</div>
 
-    <button class="role-btn admin" onclick="showAdminLogin()" style="margin-bottom:12px;padding:20px 16px;">
+    <button class="role-btn admin" onclick="showAdminLogin()" style="margin-bottom:10px;padding:18px 16px;">
       <svg viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <div style="text-align:left;">
         <div style="font-size:15px;font-weight:900;">管理者（職員）</div>
@@ -326,11 +329,19 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
       </div>
     </button>
 
-    <button class="role-btn driver" onclick="showDriverLogin()" style="padding:20px 16px;">
+    <button class="role-btn driver" onclick="loginAsDriver()" style="margin-bottom:10px;padding:18px 16px;">
       <svg viewBox="0 0 24 24" style="width:24px;height:24px;"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       <div style="text-align:left;">
-        <div style="font-size:15px;font-weight:900;">配達員・利用者</div>
-        <div style="font-size:11px;opacity:.6;font-weight:500;margin-top:2px;">配達リスト・完了チェック</div>
+        <div style="font-size:15px;font-weight:900;">配達員</div>
+        <div style="font-size:11px;opacity:.6;font-weight:500;margin-top:2px;">青・緑・オレンジ・黄色コース</div>
+      </div>
+    </button>
+
+    <button class="role-btn" onclick="loginAsUser()" style="padding:18px 16px;border:2px solid var(--pinku);background:var(--pinku-bg);color:var(--pinku-dk);">
+      <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:var(--pinku-dk);"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <div style="text-align:left;">
+        <div style="font-size:15px;font-weight:900;">利用者</div>
+        <div style="font-size:11px;opacity:.6;font-weight:500;margin-top:2px;">ピンクコース</div>
       </div>
     </button>
 
@@ -463,8 +474,11 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 </div>
 
 <!-- BOTTOM NAV -->
-<div id="delivery-prog-bar" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--surface);border-bottom:1px solid var(--border);padding:5px 16px 6px;z-index:190;">
-  <div class="prog-meta"><span class="prog-lbl">配達進捗</span><span id="delivery-prog-text">0 / 0件完了</span></div>
+<div id="delivery-prog-bar" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--surface);border-bottom:2px solid var(--border);padding:7px 16px 8px;z-index:190;">
+  <div class="prog-meta">
+    <span class="prog-lbl">📦 配達進捗</span>
+    <span id="delivery-prog-text" style="font-size:14px;font-weight:900;color:var(--text);">0 / 0件完了</span>
+  </div>
   <div class="ptrack"><div class="pfill" id="delivery-prog-fill" style="width:0%"></div></div>
 </div>
 <div class="bnav">
@@ -506,11 +520,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
         oninput="onCmNameInput()">
     </div>
     <div class="form-row" style="margin-top:-6px;">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <div class="form-lbl" style="flex-shrink:0;">よみがな</div>
-        <button type="button" id="cm-yomi-gen-btn" onclick="genYomi()"
-          style="font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--border-dark);background:var(--bg);color:var(--muted);cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;">自動生成</button>
-      </div>
+      <div class="form-lbl">よみがな</div>
       <input class="form-input" id="cm-yomi" type="text" placeholder="例：まつひでようちえん"
         style="margin-top:4px;">
     </div>
@@ -824,9 +834,13 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
           <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           管理者（職員）
         </button>
-        <button class="role-btn driver" onclick="switchToDriverSelect()" style="margin:0;">
+        <button class="role-btn driver" onclick="closeLogoutModal();loginAsDriver();" style="margin:0;">
           <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-          配達員・利用者
+          配達員
+        </button>
+        <button class="role-btn" onclick="closeLogoutModal();loginAsUser('modal');" style="margin:0;border:2px solid var(--pinku);background:var(--pinku-bg);color:var(--pinku-dk);">
+          <svg viewBox="0 0 24 24" style="stroke:var(--pinku-dk);"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          利用者
         </button>
       </div>
       <button style="width:100%;padding:10px;border:none;background:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500;text-decoration:underline;" onclick="doLogout()">別の店舗に切り替える</button>
@@ -867,43 +881,43 @@ let pinkTodayStaff='';
 // 店舗別デフォルト顧客データ
 const MASTER_DEFAULTS = {
   '西宮': [
-    {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:9,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:4,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:0,receipt:false,kake:false,memo:'11:30まで 2階左',staffId:''},
-    {id:'a4',course:'ao',name:'谷矢製餡',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a5',course:'ao',name:'前田食品（株）',defaultCount:7,receipt:false,kake:true,memo:'月水金7食／火木5食',staffId:'',weekCounts:[0,7,5,7,5,7,0]},
-    {id:'a6',course:'ao',name:'鹿島建設（兵庫医大）',defaultCount:3,receipt:false,kake:true,memo:'2階',staffId:''},
-    {id:'a7',course:'ao',name:'コーナンメディカル',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a8',course:'ao',name:'新川東川作業所センター',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a9',course:'ao',name:'長岡実業株式会社',defaultCount:14,receipt:false,kake:true,memo:'3階',staffId:''},
-    {id:'m1',course:'midori',name:'松秀幼稚園',defaultCount:27,receipt:true,kake:false,memo:'到着時インターホン',staffId:'',deliveryTime:'11:30'},
-    {id:'m2',course:'midori',name:'こども未来センター',defaultCount:3,receipt:false,kake:false,memo:'袋必要',staffId:''},
-    {id:'m3',course:'midori',name:'西宮my助産院',defaultCount:3,receipt:false,kake:false,memo:'高木西町11-1',staffId:''},
+    {id:'a4',course:'ao',name:'谷矢製餡',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a5',course:'ao',name:'前田食品（株）',defaultCount:0,receipt:false,kake:true,memo:'月水金7食／火木5食',staffId:'',weekCounts:[0,7,5,7,5,7,0]},
+    {id:'a6',course:'ao',name:'鹿島建設（兵庫医大）',defaultCount:0,receipt:false,kake:true,memo:'2階',staffId:''},
+    {id:'a7',course:'ao',name:'コーナンメディカル',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a8',course:'ao',name:'新川東川作業所センター',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a9',course:'ao',name:'長岡実業株式会社',defaultCount:0,receipt:false,kake:true,memo:'3階',staffId:''},
+    {id:'m1',course:'midori',name:'松秀幼稚園',defaultCount:0,receipt:true,kake:false,memo:'到着時インターホン',staffId:'',deliveryTime:'11:30'},
+    {id:'m2',course:'midori',name:'こども未来センター',defaultCount:0,receipt:false,kake:false,memo:'袋必要',staffId:''},
+    {id:'m3',course:'midori',name:'西宮my助産院',defaultCount:0,receipt:false,kake:false,memo:'高木西町11-1',staffId:''},
     {id:'m4',course:'midori',name:'東光寺',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
-    {id:'m5',course:'midori',name:'（株）山下金物',defaultCount:3,receipt:false,kake:true,memo:'毎3',staffId:''},
-    {id:'m6',course:'midori',name:'（株）阪神青写真工業所',defaultCount:4,receipt:false,kake:true,memo:'月火水金',staffId:''},
-    {id:'m7',course:'midori',name:'仁明会クリニック（現金）',defaultCount:5,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'m8',course:'midori',name:'仁明会クリニック（掛）',defaultCount:18,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'m9',course:'midori',name:'尼崎信用金庫門戸支店',defaultCount:5,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'o1',course:'orenji',name:'尼崎信用金庫甲子園口店',defaultCount:4,receipt:true,kake:false,memo:'毎7',staffId:''},
-    {id:'o2',course:'orenji',name:'奥田株式会社311号室',defaultCount:3,receipt:true,kake:false,memo:'',staffId:''},
-    {id:'o3',course:'orenji',name:'甲子園口リハビリデイサービス',defaultCount:3,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'o4',course:'orenji',name:'三好病院',defaultCount:5,receipt:false,kake:true,memo:'⚠11:30まで 毎6',staffId:''},
-    {id:'o5',course:'orenji',name:'三恭歯研 1階',defaultCount:3,receipt:false,kake:true,memo:'毎3',staffId:''},
-    {id:'o6',course:'orenji',name:'パティシエトシヒロタダノ',defaultCount:2,receipt:false,kake:false,memo:'現金',staffId:''},
-    {id:'p1',course:'pinku',name:'ベンツ',defaultCount:6,receipt:false,kake:false,memo:'',staffId:'ps1'},
-    {id:'p2',course:'pinku',name:'放課後デイサービスつばさ',defaultCount:3,receipt:false,kake:false,memo:'',staffId:'ps1'},
-    {id:'p3',course:'pinku',name:'すずかけ労働センター',defaultCount:20,receipt:false,kake:true,memo:'毎25',staffId:'ps1'},
-    {id:'p4',course:'pinku',name:'上甲子園すずかけ作業所',defaultCount:18,receipt:false,kake:true,memo:'ひがわり弁当真っすぐ',staffId:'ps1'},
-    {id:'p5',course:'pinku',name:'尼崎信用金庫今津店',defaultCount:7,receipt:false,kake:true,memo:'毎7',staffId:'ps2'},
-    {id:'p6',course:'pinku',name:'松浦興業（株）',defaultCount:3,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'p7',course:'pinku',name:'一般法人KIZUNAの友',defaultCount:7,receipt:false,kake:false,memo:'⚠10:00〜11:30',staffId:'ps1'},
-    {id:'p8',course:'pinku',name:'きんでん',defaultCount:5,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'y1',course:'iero',name:'大村様',defaultCount:1,receipt:false,kake:false,memo:'毎1',staffId:''},
-    {id:'y2',course:'iero',name:'杉本様',defaultCount:1,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y3',course:'iero',name:'山崎様307',defaultCount:2,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y4',course:'iero',name:'たかだ様',defaultCount:2,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y5',course:'iero',name:'すずかけ第2作業所',defaultCount:2,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m5',course:'midori',name:'（株）山下金物',defaultCount:0,receipt:false,kake:true,memo:'毎3',staffId:''},
+    {id:'m6',course:'midori',name:'（株）阪神青写真工業所',defaultCount:0,receipt:false,kake:true,memo:'月火水金',staffId:''},
+    {id:'m7',course:'midori',name:'仁明会クリニック（現金）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'m8',course:'midori',name:'仁明会クリニック（掛）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m9',course:'midori',name:'尼崎信用金庫門戸支店',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'o1',course:'orenji',name:'尼崎信用金庫甲子園口店',defaultCount:0,receipt:true,kake:false,memo:'毎7',staffId:''},
+    {id:'o2',course:'orenji',name:'奥田株式会社311号室',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
+    {id:'o3',course:'orenji',name:'甲子園口リハビリデイサービス',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'o4',course:'orenji',name:'三好病院',defaultCount:0,receipt:false,kake:true,memo:'⚠11:30まで 毎6',staffId:''},
+    {id:'o5',course:'orenji',name:'三恭歯研 1階',defaultCount:0,receipt:false,kake:true,memo:'毎3',staffId:''},
+    {id:'o6',course:'orenji',name:'パティシエトシヒロタダノ',defaultCount:0,receipt:false,kake:false,memo:'現金',staffId:''},
+    {id:'p1',course:'pinku',name:'ベンツ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
+    {id:'p2',course:'pinku',name:'放課後デイサービスつばさ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
+    {id:'p3',course:'pinku',name:'すずかけ労働センター',defaultCount:0,receipt:false,kake:true,memo:'毎25',staffId:'ps1'},
+    {id:'p4',course:'pinku',name:'上甲子園すずかけ作業所',defaultCount:0,receipt:false,kake:true,memo:'ひがわり弁当真っすぐ',staffId:'ps1'},
+    {id:'p5',course:'pinku',name:'尼崎信用金庫今津店',defaultCount:0,receipt:false,kake:true,memo:'毎7',staffId:'ps2'},
+    {id:'p6',course:'pinku',name:'松浦興業（株）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
+    {id:'p7',course:'pinku',name:'一般法人KIZUNAの友',defaultCount:0,receipt:false,kake:false,memo:'⚠10:00〜11:30',staffId:'ps1'},
+    {id:'p8',course:'pinku',name:'きんでん',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
+    {id:'y1',course:'iero',name:'大村様',defaultCount:0,receipt:false,kake:false,memo:'毎1',staffId:''},
+    {id:'y2',course:'iero',name:'杉本様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y3',course:'iero',name:'山崎様307',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y4',course:'iero',name:'たかだ様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y5',course:'iero',name:'すずかけ第2作業所',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
   ],
   '杭瀬': [],
   '立花': [],
@@ -974,13 +988,35 @@ function tick(){
 }
 tick();setInterval(tick,15000);
 
-document.addEventListener('focusout', function(){
-  setTimeout(function(){
-    window.scrollTo({top: 0, behavior: 'instant'});
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, 100);
-});
+// ── モーダル開閉ヘルパー（スクロールロック管理）──
+let _modalCount=0;
+function _openModal(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.remove('hidden');
+  if(id!=='invoice-modal') el.style.display='';
+  _modalCount++;
+  document.body.classList.add('modal-open');
+}
+function _closeModal(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.add('hidden');
+  _modalCount=Math.max(0,_modalCount-1);
+  if(_modalCount===0) document.body.classList.remove('modal-open');
+}
+function _closeAllModals(){
+  ['cust-modal','staff-modal','del-confirm-modal','num-picker-modal',
+   'bulk-order-modal','yoyaku-detail-modal','yoyaku-memo-modal',
+   'monthly-report-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.classList.add('hidden'); if(id==='invoice-modal') el.style.display='none'; }
+  });
+  _modalCount=0;
+  document.body.classList.remove('modal-open');
+}
+
+// focusout時のscroll強制リセットを削除（タブ切替後のスクロールバグ対策）
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('input, select').forEach(function(el){
     if(parseFloat(getComputedStyle(el).fontSize) < 16){
@@ -1011,6 +1047,8 @@ function shiftDay(d){
     const area=document.getElementById('input-list-area');
     if(area) delete area.dataset.built;
     document.getElementById('tab-input').innerHTML='';
+    const main=document.getElementById('main');
+    if(main) main.scrollTop=0;
   }
   renderCurrentTab();
   if(calOpen)renderCal();
@@ -1264,6 +1302,9 @@ function renderInput(){
     </div>
     <div id="input-list-area"></div>`;
     document.getElementById('tab-input').innerHTML=shell;
+    // 初回描画時にscrollTopをリセット
+    const main=document.getElementById('main');
+    if(main) main.scrollTop=0;
     // イベントをJSで直接バインド（inline onイベントを使わない）
     _bindInputSearch();
   }
@@ -1327,7 +1368,7 @@ function openNumPicker(id,name,currentVal){
     html+=`<button class="num-btn" onclick="selectNum(${i})">${i}</button>`;
   }
   grid.innerHTML=html;
-  document.getElementById('num-picker-modal').classList.remove('hidden');
+  _openModal('num-picker-modal');
 }
 function selectNum(n){
   document.getElementById('num-picker-input').value=n;
@@ -1344,7 +1385,7 @@ function applyNumPicker(){
 }
 function closeNumPicker(){
   blurAll();
-  document.getElementById('num-picker-modal').classList.add('hidden');
+  _closeModal('num-picker-modal');
   _pickerTargetId=null;
 }
 
@@ -1435,27 +1476,10 @@ function renderDelivery(){
       return `<button class="chip ${cls}" onclick="setDF('${c.f}')">${c.label}</button>`;
     }).join('');
     html+=`<div class="frow" style="justify-content:space-between;align-items:center;">
-      <div style="display:flex;gap:6px;overflow-x:auto;">${dChips}</div>
-
+      <div style="display:flex;gap:6px;overflow-x:auto;flex:1;">${dChips}</div>
+      ${!isPinkDriver?`<button onclick="toggleDeliveryOrder()" style="flex-shrink:0;margin-left:6px;padding:7px 12px;border-radius:20px;border:1.5px solid ${showDeliveryOrder?'var(--ao)':'var(--border-dark)'};background:${showDeliveryOrder?'var(--ao)':'var(--bg)'};color:${showDeliveryOrder?'#fff':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${showDeliveryOrder?'🔢 ON':'🔢 順番'}</button>`:''}
     </div>`;
   }
-  if(!isPinkDriver){
-    html+=`<div class="staff-bar">
-    <span class="staff-bar-label">担当者</span>
-    <select class="staff-select" onchange="setDStaff(this.value)" style="font-size:16px;">
-      <option value="all"${dStaff==='all'?' selected':''}>全員</option>
-      ${dFilter==='pinku'
-        ? PINK_STAFF.map(s=>`<option value="${s.id}"${dStaff===s.id?' selected':''}>${s.name}</option>`).join('')
-        : dFilter==='all'
-          ? [...STAFF,...PINK_STAFF].map(s=>`<option value="${s.id}"${dStaff===s.id?' selected':''}>${s.name}</option>`).join('')
-          : STAFF.map(s=>`<option value="${s.id}"${dStaff===s.id?' selected':''}>${s.name}</option>`).join('')
-      }
-    </select>
-    <button onclick="toggleDeliveryOrder()" style="flex-shrink:0;padding:7px 12px;border-radius:20px;border:1.5px solid ${showDeliveryOrder?'var(--ao)':'var(--border-dark)'};background:${showDeliveryOrder?'var(--ao)':'var(--bg)'};color:${showDeliveryOrder?'#fff':'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
-      ${showDeliveryOrder?'🔢 ON':'🔢 順番'}
-    </button>
-  </div>`;
-  } // end if(!isPinkDriver)
 
   let active=MASTER.filter(m=>{
     if(counts[m.id]<=0)return false;
@@ -1728,7 +1752,7 @@ function renderCustList(){
             <div class="cust-body">
               <div class="cust-name">${hl(m.name)}</div>
               <div class="cust-meta">
-                <span>デフォルト${m.defaultCount}食</span>
+                <span>デフォルト0食</span>
                 ${m.weekCounts&&m.weekCounts.some(v=>v!==null&&v!==undefined&&v!=='') ? `<span style="color:var(--ao);font-weight:700;">曜日別設定あり</span>` : ''}
                 ${m.kake?'<span class="badge-k">掛</span>':''}
                 ${m.receipt?'<span class="badge-r">領収</span>':''}
@@ -1748,7 +1772,7 @@ function renderCustList(){
             <div class="cust-body">
               <div class="cust-name">${hl(m.name)}</div>
               <div class="cust-meta">
-                <span>デフォルト${m.defaultCount}食</span>
+                <span>デフォルト0食</span>
                 ${m.kake?'<span class="badge-k">掛</span>':''}
                 ${m.receipt?'<span class="badge-r">領収</span>':''}
                 ${m.memo?`<span>${hl(m.memo)}</span>`:''}
@@ -1810,7 +1834,7 @@ function renderCustStaffArea(){
     staffHtml+='<button class="cust-btn" style="color:#C0392B;" data-sid="'+s.id+'" data-sname="'+s.name+'" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>';
     staffHtml+='</div>';
   });
-  staffHtml+='</div></div></div>';
+  staffHtml+='</div></div><div style="height:60px;"></div></div>';
   document.getElementById('cust-staff-area').innerHTML=staffHtml;
 }
 
@@ -1822,7 +1846,7 @@ function fixInputFontSize(container){
   });
 }
 function openCustModal(id){
-  document.getElementById('cust-modal').classList.remove('hidden');
+  _openModal('cust-modal');
   setTimeout(()=>fixInputFontSize(document.getElementById('cust-modal')),50);
   document.getElementById('cm-staff').innerHTML=makeStaffOptions();
   custDelReady=false;
@@ -1833,7 +1857,7 @@ function openCustModal(id){
     document.getElementById('cm-name').value=m.name;
     document.getElementById('cm-yomi').value=m.yomi||'';
     document.getElementById('cm-course').value=m.course;
-    document.getElementById('cm-count').value=m.defaultCount;
+    document.getElementById('cm-count').value=0;
     document.getElementById('cm-receipt').value=String(m.receipt);
     document.getElementById('cm-kake').value=String(m.kake);
     document.getElementById('cm-memo').value=m.memo;
@@ -1847,7 +1871,7 @@ function openCustModal(id){
     const wc=m.weekCounts||[null,null,null,null,null,null,null];
     for(let i=1;i<=5;i++){
       const el=document.getElementById('cm-w'+i);
-      if(el) el.value=(wc[i]!==null&&wc[i]!==undefined&&wc[i]!=='')?wc[i]:'';
+      if(el) el.value='';
     }
     document.getElementById('cm-del-wrap').classList.remove('hidden');
     document.getElementById('cm-del-confirm').style.display='none';
@@ -1962,7 +1986,7 @@ function blurAll(){
     document.activeElement.blur();
   }
 }
-function closeCustModal(e){if(e&&e.target!==document.getElementById('cust-modal'))return;blurAll();document.getElementById('cust-modal').classList.add('hidden');}
+function closeCustModal(e){if(e&&e.target!==document.getElementById('cust-modal'))return;blurAll();_closeModal('cust-modal');}
 function saveCust(){
   blurAll();
   const editId=document.getElementById('cm-edit-id').value;
@@ -1998,7 +2022,7 @@ function saveCust(){
   // inputタブのDOM再構築フラグをリセット
   const _area=document.getElementById('input-list-area');
   if(_area) delete _area.dataset.built;
-  document.getElementById('cust-modal').classList.add('hidden');
+  _closeModal('cust-modal');
   renderCustomer();
 }
 let custDelReady=false;
@@ -2019,7 +2043,7 @@ function deleteCustStep(){
   saveToLocal();
   const _da=document.getElementById('input-list-area');
   if(_da) delete _da.dataset.built;
-  document.getElementById('cust-modal').classList.add('hidden');
+  _closeModal('cust-modal');
   renderCustomer();toast('削除しました');
 }
 
@@ -2073,26 +2097,26 @@ function renderStaff(){
     </div>`;
   });
 
-  html+=`</div></div></div>`;
+  html+=`</div></div><div style="height:60px;"></div></div>`;
   document.getElementById('tab-staff').innerHTML=html;
 }
 
 function openPinkStaffModal(){
-  document.getElementById('pink-staff-modal').classList.remove('hidden');
+  _openModal('pink-staff-modal');
   document.getElementById('psm-name').value='';
   setTimeout(()=>document.getElementById('psm-name').focus(),100);
 }
 function closePinkStaffModal(e){
   blurAll();
   if(e&&e.target!==document.getElementById('pink-staff-modal'))return;
-  document.getElementById('pink-staff-modal').classList.add('hidden');
+  _closeModal('pink-staff-modal');
 }
 function savePinkStaff(){
   const name=document.getElementById('psm-name').value.trim();
   if(!name){toast('名前を入力してください');return;}
   PINK_STAFF.push({id:'ps'+nextId++,name});
   saveToLocal();
-  document.getElementById('pink-staff-modal').classList.add('hidden');
+  _closeModal('pink-staff-modal');
   renderStaff();
   renderCustStaffArea();
   toast('追加しました');
@@ -2112,10 +2136,10 @@ function showDelConfirm(title, sub, action){
   _delAction=action;
   document.getElementById('del-confirm-title').textContent=title;
   document.getElementById('del-confirm-sub').textContent=sub;
-  document.getElementById('del-confirm-modal').classList.remove('hidden');
+  _openModal('del-confirm-modal');
 }
 function closeDelConfirm(){
-  document.getElementById('del-confirm-modal').classList.add('hidden');
+  _closeModal('del-confirm-modal');
   _delAction=null;
 }
 function execDelete(){
@@ -2144,11 +2168,11 @@ function setCourseAssign(course,staffId){
 }
 function setPinkMemberStaff(custId,staffId){
   const m=MASTER.find(x=>x.id===custId);
-  if(m){ m.staffId=staffId; toast('担当を変更しました'); }
+  if(m){ m.staffId=staffId; saveToLocal(); renderSummary(); toast('担当を変更しました'); }
 }
 
 function openStaffModal(id){
-  document.getElementById('staff-modal').classList.remove('hidden');
+  _openModal('staff-modal');
   setTimeout(()=>fixInputFontSize(document.getElementById('staff-modal')),50);
   staffDelReady=false;
   if(id){
@@ -2167,7 +2191,7 @@ function openStaffModal(id){
     document.getElementById('sm-del-wrap').classList.add('hidden');
   }
 }
-function closeStaffModal(e){if(e&&e.target!==document.getElementById('staff-modal'))return;blurAll();document.getElementById('staff-modal').classList.add('hidden');}
+function closeStaffModal(e){if(e&&e.target!==document.getElementById('staff-modal'))return;blurAll();_closeModal('staff-modal');}
 function saveStaff(){
   blurAll();
   const editId=document.getElementById('sm-edit-id').value;
@@ -2176,7 +2200,7 @@ function saveStaff(){
   if(editId){const s=STAFF.find(x=>x.id===editId);if(s)s.name=name;toast('更新しました');}
   else{STAFF.push({id:'s'+nextId++,name});toast('追加しました');}
   saveToLocal();
-  document.getElementById('staff-modal').classList.add('hidden');
+  _closeModal('staff-modal');
   renderStaff();
   renderCustStaffArea();
   renderCustList();
@@ -2198,7 +2222,7 @@ function deleteStaffStep(){
   Object.keys(COURSE_ASSIGN).forEach(c=>{if(COURSE_ASSIGN[c]===id)COURSE_ASSIGN[c]='';});
   staffDelReady=false;
   saveToLocal();
-  document.getElementById('staff-modal').classList.add('hidden');
+  _closeModal('staff-modal');
   renderStaff();
   renderCustStaffArea();
   toast('削除しました');
@@ -2302,17 +2326,23 @@ function renderSummary(){
   document.getElementById('tab-summary').innerHTML=html;
 }
 function scrollToSummaryBlock(c){
-  const el=document.getElementById('sr-'+c)?.closest('.sblock')||document.querySelector(`[id="sr-${c}"]`)?.parentElement?.parentElement;
-  // sblockを直接IDで特定
+  const main=document.getElementById('main');
   const blocks=document.querySelectorAll('.sblock');
   blocks.forEach(b=>{
     if(b.querySelector(`#sr-${c}`)){
-      b.scrollIntoView({behavior:'smooth',block:'start'});
-      // 開いてなければ開く
+      // 開いてなければ先に開く
       if(summaryCollapsed[c]){
         summaryCollapsed[c]=false;
         const rows=document.getElementById('sr-'+c);
         if(rows) rows.style.display='block';
+      }
+      // ヘッダー高さ分オフセットしてスクロール
+      if(main){
+        const hdrH=document.querySelector('.hdr')?.offsetHeight||80;
+        const blockTop=b.getBoundingClientRect().top;
+        const mainTop=main.getBoundingClientRect().top;
+        const target=main.scrollTop+(blockTop-mainTop)-hdrH-8;
+        main.scrollTo({top:target,behavior:'smooth'});
       }
     }
   });
@@ -2436,11 +2466,69 @@ function renderSales(){
       </div>
     </div>
 
-    <!-- STEP 3: 銀行入金 -->
+    <!-- STEP 3: 支出記録 -->
+    <div class="sblock" style="margin-bottom:8px;">
+      <div style="padding:14px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--ao);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+            <span style="font-size:14px;font-weight:800;">支出記録</span>
+          </div>
+          <button onclick="addExpense()" style="padding:5px 12px;border-radius:20px;border:none;background:var(--text);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 追加</button>
+        </div>
+        <div id="expense-list">
+          ${(salesData.expenses||[]).length===0
+            ? `<div style="text-align:center;padding:10px 0;font-size:13px;color:var(--muted);">支出なし</div>`
+            : (salesData.expenses||[]).map((e,i)=>`
+            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <!-- 勘定科目 -->
+                <select onchange="updateExpenseCategory(${i},this.value)"
+                  style="flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);">
+                  <option value="消耗品" ${e.category==='消耗品'?'selected':''}>消耗品</option>
+                  <option value="食材費" ${e.category==='食材費'?'selected':''}>食材費</option>
+                  <option value="交通費" ${e.category==='交通費'?'selected':''}>交通費</option>
+                  <option value="通信費" ${e.category==='通信費'?'selected':''}>通信費</option>
+                  <option value="雑費"   ${e.category==='雑費'?'selected':''}>雑費</option>
+                  <option value="その他" ${e.category==='その他'||!e.category?'selected':''}>その他</option>
+                </select>
+                <!-- 金額 -->
+                <div style="position:relative;width:108px;flex-shrink:0;">
+                  <input type="text" inputmode="numeric" value="${e.amount?Number(e.amount).toLocaleString():''}" placeholder="金額"
+                    onfocus="onYenFocus(event)"
+                    onblur="onYenBlur(event);updateExpense(${i},'amount',this.value.replace(/,/g,''))"
+                    oninput="updateExpense(${i},'amount',this.value.replace(/,/g,''))"
+                    style="width:100%;padding:8px 26px 8px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:15px;font-weight:700;font-family:inherit;background:#fff;text-align:right;">
+                  <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);">円</span>
+                </div>
+                <button onclick="confirmRemoveExpense(${i})" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border-dark);background:#fff;cursor:pointer;font-size:13px;color:#C0392B;flex-shrink:0;">✕</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <!-- お店名 -->
+                <input type="text" value="${e.shop||''}" placeholder="お店（例：セブンイレブン）"
+                  oninput="updateExpense(${i},'shop',this.value)"
+                  style="width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);box-sizing:border-box;">
+                <!-- 品目 -->
+                <input type="text" value="${e.item||''}" placeholder="品目（例：コピー用紙）"
+                  oninput="updateExpense(${i},'item',this.value)"
+                  style="width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);box-sizing:border-box;">
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${(salesData.expenses||[]).length>0?`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);margin-top:4px;">
+          <span style="font-size:13px;font-weight:700;color:#C0392B;">支出合計</span>
+          <span id="expense-total" style="font-size:18px;font-weight:900;color:#C0392B;">${expTotal.toLocaleString()}円</span>
+        </div>`:'<span style="display:none;">0</span>'}
+      </div>
+    </div>
+
+    <!-- STEP 4: 銀行入金 -->
     <div class="sblock" style="margin-bottom:8px;">
       <div style="padding:14px 16px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-          <div style="width:22px;height:22px;border-radius:50%;background:var(--ao);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--ao);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
           <span style="font-size:14px;font-weight:800;">銀行に入金する</span>
         </div>
         <div style="position:relative;margin-bottom:12px;">
@@ -2458,44 +2546,6 @@ function renderSales(){
           </div>
           <div id="after-deposit" style="font-size:22px;font-weight:900;color:var(--ao);">${afterDeposit.toLocaleString()}円</div>
         </div>
-      </div>
-    </div>
-
-    <!-- 支出記録 -->
-    <div class="sblock" style="margin-bottom:8px;">
-      <div style="padding:14px 16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div style="font-size:14px;font-weight:800;">支出記録</div>
-          <button onclick="addExpense()" style="padding:5px 12px;border-radius:20px;border:none;background:var(--text);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 追加</button>
-        </div>
-        <div id="expense-list">
-          ${(salesData.expenses||[]).length===0
-            ? `<div style="text-align:center;padding:10px 0;font-size:13px;color:var(--muted);">支出なし</div>`
-            : (salesData.expenses||[]).map((e,i)=>`
-            <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;display:flex;gap:8px;align-items:center;">
-              <select onchange="updateExpenseCategory(${i},this.value)"
-                style="flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:14px;font-family:inherit;background:#fff;">
-                <option value="消耗品" ${e.category==='消耗品'?'selected':''}>消耗品</option>
-                <option value="食材費" ${e.category==='食材費'?'selected':''}>食材費</option>
-                <option value="その他" ${e.category==='その他'||!e.category?'selected':''}>その他</option>
-              </select>
-              <div style="position:relative;width:110px;flex-shrink:0;">
-                <input type="text" inputmode="numeric" value="${e.amount?Number(e.amount).toLocaleString():''}" placeholder="金額"
-                  onfocus="onYenFocus(event)"
-                  onblur="onYenBlur(event);updateExpense(${i},'amount',this.value.replace(/,/g,''))"
-                  oninput="updateExpense(${i},'amount',this.value.replace(/,/g,''))"
-                  style="width:100%;padding:8px 28px 8px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:15px;font-weight:700;font-family:inherit;background:#fff;text-align:right;">
-                <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);">円</span>
-              </div>
-              <button onclick="confirmRemoveExpense(${i})" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border-dark);background:#fff;cursor:pointer;font-size:14px;color:#C0392B;flex-shrink:0;">✕</button>
-            </div>
-          `).join('')}
-        </div>
-        ${(salesData.expenses||[]).length>0?`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);margin-top:4px;">
-          <span style="font-size:13px;font-weight:700;color:#C0392B;">支出合計</span>
-          <span id="expense-total" style="font-size:18px;font-weight:900;color:#C0392B;">${expTotal.toLocaleString()}円</span>
-        </div>`:'<span style="display:none;">0</span>'}
       </div>
     </div>
 
@@ -2529,11 +2579,11 @@ function renderSales(){
 }
 
 function openPrintModal(){
-  document.getElementById('print-modal').classList.remove('hidden');
+  _openModal('print-modal');
 }
 function closePrintModal(e){
   if(e&&e.target!==document.getElementById('print-modal'))return;
-  document.getElementById('print-modal').classList.add('hidden');
+  _closeModal('print-modal');
 }
 function toggleAllPrint(checked){
   ['ao','midori','orenji','pinku','iero','shop'].forEach(c=>{
@@ -2543,7 +2593,7 @@ function toggleAllPrint(checked){
 function doPrint(){
   const selected=COURSE_ORDER.filter(c=>document.getElementById('prt-'+c)?.checked);
   if(selected.length===0){toast('コースを選択してください');return;}
-  document.getElementById('print-modal').classList.add('hidden');
+  _closeModal('print-modal');
 
   const dateLabel=document.getElementById('date-bar-label').textContent;
   const courseColors={ao:'#1A6FD4',midori:'#1F8C35',orenji:'#C45C00',pinku:'#B82E65',iero:'#C8A800',shop:'#555550'};
@@ -2611,7 +2661,7 @@ function doPrint(){
 
 function addExpense(){
   if(!salesData.expenses) salesData.expenses=[];
-  salesData.expenses.push({category:'消耗品',name:'',amount:''});
+  salesData.expenses.push({category:'消耗品',shop:'',item:'',amount:''});
   saveToLocal();
   renderSales();
 }
@@ -2633,9 +2683,7 @@ function updateExpense(i,key,val){
 function updateExpenseCategory(i,val){
   if(!salesData.expenses) salesData.expenses=[];
   salesData.expenses[i].category=val;
-  salesData.expenses[i].name='';
   saveToLocal();
-  renderSales();
 }
 
 const COIN_UNITS={m10000:10000,m5000:5000,m1000:1000,m500:500,m100:100,m50:50,m10:10,m5:5,m1:1};
@@ -2689,7 +2737,7 @@ function updateAfterDeposit(){
 // bulkOrders・bulkMemosは起動時に上部で定義済み
 
 function closeBulkOrderModal(){
-  document.getElementById('bulk-order-modal').classList.add('hidden');
+  _closeModal('bulk-order-modal');
 }
 function onBulkCustSearch(e){
   if(e.isComposing) return;
@@ -2829,6 +2877,10 @@ function selectYoyakuCust(id, name){
       <button onclick="openYoyakuMemoDatePicker()" style="width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--bg);color:var(--muted);font-size:13px;font-weight:700;border:1.5px solid var(--border-dark);cursor:pointer;font-family:inherit;margin-bottom:8px;">📝 メモを追加・編集</button>
       <button onclick="saveYoyaku()" style="width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--text);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;">登録する</button>
     `;
+    // メモボタン追加分のpadding-bottomを確保
+    const tabYoyaku=document.getElementById('tab-yoyaku');
+    const wrapper=tabYoyaku?.querySelector('div');
+    if(wrapper) wrapper.style.paddingBottom='240px';
   }
 }
 function openYoyakuMemoDatePicker(){
@@ -2970,12 +3022,12 @@ function openYoyakuMemo(dateKey){
   const existing=bulkMemos[dateKey]?bulkMemos[dateKey][custId]||'':'';
   document.getElementById('yoyaku-memo-input').value=existing;
   document.getElementById('yoyaku-memo-del-btn').style.display=existing?'block':'none';
-  document.getElementById('yoyaku-memo-modal').classList.remove('hidden');
+  _openModal('yoyaku-memo-modal');
   setTimeout(()=>document.getElementById('yoyaku-memo-input').focus(),100);
 }
 function closeYoyakuMemo(){
   blurAll();
-  document.getElementById('yoyaku-memo-modal').classList.add('hidden');
+  _closeModal('yoyaku-memo-modal');
   _memoDateKey=null;
 }
 function saveYoyakuMemo(){
@@ -3500,8 +3552,10 @@ function sendInvoice(id){
 
   document.getElementById('invoice-preview-body').innerHTML=html;
   document.getElementById('invoice-modal').style.display='flex';
+  _openModal('invoice-modal');
 }
 function closeInvoiceModal(){
+  _closeModal('invoice-modal');
   document.getElementById('invoice-modal').style.display='none';
 }
 function printInvoice(){
@@ -3543,6 +3597,13 @@ function gotoTab(tab){
   // inputタブに戻る際はDOM再構築（イベント再バインドのため）
   if(tab==='input' && prevTab!=='input'){
     document.getElementById('tab-input').innerHTML='';
+  }
+  // タブ切替時にスクロールを先頭にリセット
+  const main=document.getElementById('main');
+  if(main) main.scrollTop=0;
+  // 浮いているフォーカスを外す（キーボードを確実に閉じる）
+  if(document.activeElement && document.activeElement!==document.body){
+    document.activeElement.blur();
   }
   renderCurrentTab();
 }
@@ -3667,13 +3728,29 @@ function _resetDriverCard(){
     </div>
     <button onclick="loginDriver('all')" style="width:100%;padding:9px;border-radius:var(--radius-sm);background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;border:1px solid var(--border-dark);cursor:pointer;font-family:inherit;margin-top:6px;">すべてのコースを表示</button>
     <button onclick="loginDriverMulti()" id="driver-enter-btn" style="width:100%;padding:13px;border-radius:var(--radius-sm);background:var(--text);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:6px;opacity:0.4;" disabled>選択して開始</button>
-    <div style="margin:16px -4px 0;padding:16px 4px 0;border-top:2px solid var(--pinku-bg);">
-      <button onclick="loginDriver('pinku')" style="width:100%;padding:16px;border-radius:var(--radius-sm);background:var(--pinku);color:#fff;font-size:15px;font-weight:900;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(184,46,101,.3);">● ピンクコース</button>
-    </div>
     <button class="back-btn" onclick="backFromDriverSelect()">← 戻る</button>
   `;
 }
 
+function loginAsDriver(){
+  _driverSelectFrom='login';
+  currentRole='driver';
+  currentDriverCourse='all';
+  currentDriverPinkStaff='';
+  try{ localStorage.setItem(LS_ROLE,'driver'); localStorage.setItem(LS_COURSE,'all'); }catch(e){}
+  document.getElementById('login-screen').classList.add('hidden');
+  gotoTab('delivery');
+}
+function loginAsUser(from){
+  _driverSelectFrom=from||'login';
+  currentRole='driver';
+  currentDriverCourse='pinku';
+  document.getElementById('login-screen').classList.remove('hidden');
+  ['lc-shop','lc-role','lc-admin','lc-driver'].forEach(id=>{
+    document.getElementById(id).classList.add('hidden');
+  });
+  showPinkMemberSelect();
+}
 function showDriverLogin(){
   _driverSelectFrom='login';
   _resetDriverCard();
@@ -3763,15 +3840,24 @@ function loginDriverMulti(){
 function showPinkMemberSelect(){
   if(PINK_STAFF.length===0){applyRole();return;}
   const card=document.getElementById('lc-driver');
+  card.classList.remove('hidden');
   let html='<div class="login-card-title">担当を選択</div>';
   html+='<div class="course-grid">';
   PINK_STAFF.forEach(s=>{
     html+='<button class="course-sel-btn csb-pinku" style="opacity:1;" data-pid="'+s.id+'" onclick="loginDriverPink(this.dataset.pid)">● '+s.name+'</button>';
   });
-  html+='<button class="course-sel-btn csb-all" onclick="loginDriverPink(\'\')">全員表示</button>';
-  html+='</div>';
-  html+='<button class="back-btn" onclick="_resetDriverCard()">← 戻る</button>';
+  html+='<button class="back-btn" onclick="backFromPinkSelect()">← 戻る</button>';
   card.innerHTML=html;
+}
+function backFromPinkSelect(){
+  // 利用者から来た場合は役割選択へ、切替モーダルから来た場合はモーダルへ
+  document.getElementById('lc-driver').classList.add('hidden');
+  if(_driverSelectFrom==='modal'){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('logout-modal').classList.remove('hidden');
+  } else {
+    document.getElementById('lc-role').classList.remove('hidden');
+  }
 }
 
 function loginDriverPink(staffId){
@@ -3872,7 +3958,7 @@ function closeHdrMenu(){
 }
 function openMonthlyReport(){
   closeHdrMenu();
-  document.getElementById('monthly-report-modal').classList.remove('hidden');
+  _openModal('monthly-report-modal');
   renderMonthlyReport();
 }
 function copyReportMail(btn){
@@ -3882,7 +3968,7 @@ function copyReportMail(btn){
   });
 }
 function closeMonthlyReport(){
-  document.getElementById('monthly-report-modal').classList.add('hidden');
+  _closeModal('monthly-report-modal');
 }
 // 画面タップでメニューを閉じる
 document.addEventListener('touchstart',function(e){
@@ -3896,7 +3982,7 @@ document.addEventListener('touchstart',function(e){
 
 function showSettingMenu(){
   document.getElementById('logout-modal-shop-name').textContent=currentShop+'店';
-  document.getElementById('logout-modal').classList.remove('hidden');
+  _openModal('logout-modal');
 }
 function doLogout(){
   try{
@@ -3907,7 +3993,7 @@ function doLogout(){
   location.reload();
 }
 function closeLogoutModal(){
-  document.getElementById('logout-modal').classList.add('hidden');
+  _closeModal('logout-modal');
 }
 
 document.addEventListener('touchstart', function(e){
@@ -3936,6 +4022,10 @@ loadFromLocal();
 let _yomiBatchChanged=false;
 MASTER.forEach(m=>{ if(!m.yomi){ m.yomi=kanjiToHira(m.name); _yomiBatchChanged=true; } });
 if(_yomiBatchChanged) saveToLocal();
+// defaultCountを常に0に強制リセット
+MASTER.forEach(m=>{ m.defaultCount=0; });
+saveToLocal();
+
 
 if(savedRole === 'admin'){
   currentRole = 'admin';
