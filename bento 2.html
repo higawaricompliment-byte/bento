@@ -837,6 +837,22 @@ body.modal-open #main{overflow:hidden;}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── セキュリティ：XSS対策ユーティリティ ──
+function escHtml(str){
+  if(str==null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+// onclick等の属性値内でシングルクォートをエスケープ
+function escAttr(str){
+  if(str==null) return '';
+  return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
 const COURSE_META={
   ao:{label:'青',color:'var(--ao)'},
   midori:{label:'緑',color:'var(--midori)'},
@@ -992,7 +1008,7 @@ function _closeModal(id){
   if(_modalCount===0) document.body.classList.remove('modal-open');
 }
 function _closeAllModals(){
-  ['cust-modal','staff-modal','del-confirm-modal','num-picker-modal',
+  ['cust-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
    'bulk-order-modal','yoyaku-detail-modal','yoyaku-memo-modal',
    'monthly-report-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
     const el=document.getElementById(id);
@@ -1118,7 +1134,7 @@ function makeChips(f,setter){
 function makeStaffOptions(selected='',includeAll=false){
   let html=includeAll?`<option value="all"${selected==='all'?' selected':''}>全員</option>`:'';
   html+=`<option value=""${!selected||selected===''?' selected':''}>未設定</option>`;
-  STAFF.forEach(s=>{html+=`<option value="${s.id}"${selected===s.id?' selected':''}>${s.name}</option>`;});
+  STAFF.forEach(s=>{html+=`<option value="${s.id}"${selected===s.id?' selected':''}>${escHtml(s.name)}</option>`;});
   return html;
 }
 
@@ -1217,7 +1233,7 @@ function _buildInputListDOM(area){
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:10px;height:10px;border-radius:50%;background:${COURSE_COLORS_MAP[c]};flex-shrink:0;"></div>
           <span style="font-size:13px;font-weight:800;">${meta.label}コース</span>
-          ${assignedName?`<span style="font-size:11px;color:var(--muted);font-weight:500;">${assignedName}</span>`:''}
+          ${assignedName?`<span style="font-size:11px;color:var(--muted);font-weight:500;">${escHtml(assignedName)}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="igroup-total" id="igroup-total-${c}" style="font-size:18px;font-weight:900;color:${COURSE_COLORS_MAP[c]};"></span>
@@ -1226,7 +1242,6 @@ function _buildInputListDOM(area){
       </div>
       <div id="igroup-rows-${c}" style="border-top:1px solid var(--border);">`;
     members.forEach(m=>{
-      const safeName=m.name.replace(/'/g,"\\'");
       const todayCourse=m.todayCourse||m.course;
       const isChanged=m.todayCourse&&m.todayCourse!==m.course;
       html+=`<div class="icard" id="icard-${m.id}"
@@ -1234,19 +1249,19 @@ function _buildInputListDOM(area){
         <div class="icard-bar bar-${todayCourse}"></div>
         <div class="icard-name">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span>${m.name}</span>
+            <span>${escHtml(m.name)}</span>
             ${isChanged?`<span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;background:${COURSE_COLORS_MAP[todayCourse]};color:#fff;">${COURSE_LABELS_MAP[todayCourse]}</span>`:''}
           </div>
-          ${m.memo?`<div class="icard-sub">${m.memo}</div>`:''}
+          ${m.memo?`<div class="icard-sub">${escHtml(m.memo||"")}</div>`:''}
         </div>
-        <button onclick="showCourseMenu('${m.id}','${safeName}')"
+        <button data-cid="${m.id}" onclick="showCourseMenu(this.dataset.cid,MASTER.find(x=>x.id===this.dataset.cid)?.name||'')"
           style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1;letter-spacing:-1px;">⋯</button>
         <div class="icard-ctrl">
           <button class="spin" onclick="spin('${m.id}',-1)">−</button>
           <input class="icard-input" type="number" min="0" max="999"
             value="" placeholder="0"
             oninput="setC('${m.id}',this.value)"
-            onclick="openNumPicker('${m.id}','${safeName}',counts['${m.id}']||0)"
+            data-cid="${m.id}" onclick="openNumPicker(this.dataset.cid,MASTER.find(x=>x.id===this.dataset.cid)?.name||'',counts[this.dataset.cid]||0)"
             readonly
             id="inp-${m.id}"
             style="cursor:pointer;">
@@ -1396,7 +1411,7 @@ function showCourseMenu(id,name){
   });
   menu.innerHTML=`<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:12px 8px calc(24px + env(safe-area-inset-bottom,0px));width:100%;">
     <div style="width:36px;height:4px;background:var(--border-dark);border-radius:2px;margin:0 auto 14px;"></div>
-    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${name}のコースを変更</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${escHtml(name)}のコースを変更</div>
     ${html}
     <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
     <div class="course-menu-item" style="color:var(--muted);justify-content:center;font-size:15px;" onclick="closeCourseMenu()">キャンセル</div>
@@ -1547,15 +1562,15 @@ function renderDelivery(){
             ${hasTime&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E8A020;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">⏰ ${m.deliveryTime}まで</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
-            <span class="dcard-name" style="flex:1;font-size:13px;">${m.name}</span>
+            <span class="dcard-name" style="flex:1;font-size:13px;">${escHtml(m.name)}</span>
             ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
           </div>
           <div class="dcard-badges" style="margin-top:3px;">${badges(m)}${staffBadge(m)}</div>
-          ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${m.memo}</div>`:''}
+          ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${escHtml(m.memo||"")}</div>`:''}
           ${getDailyMemo(m.id)}
         </div>
         <div class="dcard-right" style="padding:6px 8px;grid-column:${showDeliveryOrder?4:3}">
-          <div class="dcard-count" style="font-size:18px;">${counts[m.id]}</div>
+          <div class="dcard-count" style="font-size:18px;">${counts[m.id]||0}</div>
           <div class="dcard-unit">食</div>
           <button class="chk${isDone?' on':''}" onclick="toggleDone('${m.id}')">✓</button>
         </div>
@@ -1610,7 +1625,7 @@ function getDailyMemo(custId){
   const selKey=fmtDate(selectedDate);
   const pm=bulkMemos[selKey]&&bulkMemos[selKey][custId]?bulkMemos[selKey][custId]:'';
   if(!pm) return '';
-  return `<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${pm}</div>`;
+  return `<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${escHtml(pm)}</div>`;
 }
 function setDeliveryOrder(id,v){
   const n=parseInt(v);
@@ -1703,10 +1718,11 @@ function renderCustList(){
   filtered.forEach(m=>{if(!groups[m.course])groups[m.course]=[];groups[m.course].push(m);});
 
   const hl=txt=>{
-    if(!q) return txt;
-    return normalizeKana(txt).includes(normalizeKana(q))
-      ? `<mark style="background:#FFF3B0;border-radius:2px;">${txt}</mark>`
-      : txt;
+    const safe=escHtml(txt||'');
+    if(!q) return safe;
+    return normalizeKana(txt||'').includes(normalizeKana(q))
+      ? `<mark style="background:#FFF3B0;border-radius:2px;">${safe}</mark>`
+      : safe;
   };
 
   let html=`<div class="cview">
@@ -1715,7 +1731,7 @@ function renderCustList(){
     </button>`;
 
   if(filtered.length===0){
-    html+=`<div class="empty-msg">${q?`「${q}」に一致する顧客が見つかりません`:'顧客がいません'}</div>`;
+    html+=`<div class="empty-msg">${q?`「${escHtml(q)}」に一致する顧客が見つかりません`:'顧客がいません'}</div>`;
   } else {
     COURSE_ORDER.forEach(c=>{
       if(!groups[c])return;
@@ -1741,7 +1757,7 @@ function renderCustList(){
             <div class="cust-body">
               <div class="cust-name">${hl(m.name)}</div>
               <div class="cust-meta">
-                <span>デフォルト0食</span>
+                <span>デフォルト${m.defaultCount||0}食</span>
                 ${m.weekCounts&&m.weekCounts.some(v=>v!==null&&v!==undefined&&v!=='') ? `<span style="color:var(--ao);font-weight:700;">曜日別設定あり</span>` : ''}
                 ${m.kake?'<span class="badge-k">掛</span>':''}
                 ${m.receipt?'<span class="badge-r">領収</span>':''}
@@ -1761,7 +1777,7 @@ function renderCustList(){
             <div class="cust-body">
               <div class="cust-name">${hl(m.name)}</div>
               <div class="cust-meta">
-                <span>デフォルト0食</span>
+                <span>デフォルト${m.defaultCount||0}食</span>
                 ${m.kake?'<span class="badge-k">掛</span>':''}
                 ${m.receipt?'<span class="badge-r">領収</span>':''}
                 ${m.memo?`<span>${hl(m.memo)}</span>`:''}
@@ -2038,6 +2054,13 @@ function deleteCustStep(){
   const idx=MASTER.findIndex(m=>m.id===id);
   if(idx!==-1)MASTER.splice(idx,1);
   delete counts[id];done.delete(id);
+  // bulkOrders / bulkMemos からも削除顧客のデータを除去
+  Object.keys(bulkOrders).forEach(dateKey=>{
+    if(bulkOrders[dateKey]) delete bulkOrders[dateKey][id];
+  });
+  Object.keys(bulkMemos).forEach(dateKey=>{
+    if(bulkMemos[dateKey]) delete bulkMemos[dateKey][id];
+  });
   custDelReady=false;
   saveToLocal();
   const _da=document.getElementById('input-list-area');
@@ -2057,7 +2080,7 @@ function renderStaff(){
       <span class="week-course-tag ctag-${c} ctag">${meta.label}</span>
       <select class="week-assign-select" onchange="setCourseAssign('${c}',this.value)">
         <option value="">未設定</option>
-        ${STAFF.map(s=>`<option value="${s.id}"${COURSE_ASSIGN[c]===s.id?' selected':''}>${s.name}</option>`).join('')}
+        ${STAFF.map(s=>`<option value="${s.id}"${COURSE_ASSIGN[c]===s.id?' selected':''}>${escHtml(s.name)}</option>`).join('')}
       </select>
     </div>`;
   });
@@ -2074,8 +2097,8 @@ function renderStaff(){
   } else {
     PINK_STAFF.forEach((s,i)=>{
       html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${i>0?'border-top:1px solid var(--border);':''}">
-        <span style="font-size:14px;font-weight:700;color:var(--text);">${s.name}</span>
-        <button class="cust-btn" style="color:#C0392B;background:#fff;" onclick="confirmDeletePinkStaff('${s.id}','${s.name}')">✕</button>
+        <span style="font-size:14px;font-weight:700;color:var(--text);">${escHtml(s.name)}</span>
+        <button class="cust-btn" style="color:#C0392B;background:#fff;" data-pid="${escHtml(s.id)}" data-pname="${escHtml(s.name)}" onclick="confirmDeletePinkStaff(this.dataset.pid,this.dataset.pname)">✕</button>
       </div>`;
     });
   }
@@ -2091,7 +2114,7 @@ function renderStaff(){
 
   STAFF.forEach((s,i)=>{
     html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${i>0?'border-top:1px solid var(--border);':''}background:var(--surface);">
-      <span style="font-size:14px;font-weight:700;">${s.name}</span>
+      <span style="font-size:14px;font-weight:700;">${escHtml(s.name)}</span>
       <button class="cust-btn" style="color:#C0392B;" data-sid="${s.id}" data-sname="${s.name.replace(/"/g,'&quot;')}" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>
     </div>`;
   });
@@ -2286,20 +2309,20 @@ function renderSummary(){
         const sname=sid==='__none__'?'未設定':staffName(sid);
         const groupTotal=staffGroups[sid].reduce((s,m)=>s+(counts[m.id]||0),0);
         html+=`<div style="background:var(--pinku-bg);padding:6px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
-          <span style="font-size:11px;font-weight:800;color:var(--pinku-dk);">${sname}</span>
+          <span style="font-size:11px;font-weight:800;color:var(--pinku-dk);">${escHtml(sname)}</span>
           <span style="font-size:12px;font-weight:700;color:var(--pinku);">${groupTotal}食</span>
         </div>`;
         staffGroups[sid].filter(m=>counts[m.id]>0).forEach(m=>{
           const v=counts[m.id]||0;
           html+=`<div class="srow">
-            <div class="srow-name">${m.name}</div>
+            <div class="srow-name">${escHtml(m.name)}</div>
             <div class="srow-badges">
               ${m.kake?'<span class="badge-k">掛</span>':''}
               ${m.receipt?'<span class="badge-r">領収</span>':''}
               <select onchange="setPinkMemberStaff('${m.id}',this.value)"
                 style="font-size:13px;font-weight:700;padding:6px 10px;border-radius:20px;border:1.5px solid var(--pinku);background:var(--pinku-bg);color:var(--pinku-dk);font-family:inherit;appearance:none;cursor:pointer;">
                 <option value="">未設定</option>
-                ${PINK_STAFF.map(s=>`<option value="${s.id}"${m.staffId===s.id?' selected':''}>${s.name}</option>`).join('')}
+                ${PINK_STAFF.map(s=>`<option value="${s.id}"${m.staffId===s.id?' selected':''}>${escHtml(s.name)}</option>`).join('')}
               </select>
             </div>
             <div class="srow-cnt">${v}</div>
@@ -2310,7 +2333,7 @@ function renderSummary(){
       items.filter(m=>counts[m.id]>0).forEach(m=>{
         const v=counts[m.id]||0;
         html+=`<div class="srow">
-          <div class="srow-name">${m.name}</div>
+          <div class="srow-name">${escHtml(m.name)}</div>
           <div class="srow-badges">
             ${m.kake?'<span class="badge-k">掛</span>':''}
             ${m.receipt?'<span class="badge-r">領収</span>':''}
@@ -2560,8 +2583,8 @@ function renderSales(){
         ${kakeItems.length===0?`<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted);">該当なし</div>`:''}
         ${kakeItems.map(m=>`
           <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);">
-            <div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
-            <div style="font-size:12px;font-weight:700;color:var(--muted);margin:0 8px;flex-shrink:0;">${counts[m.id]}食</div>
+            <div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.name)}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin:0 8px;flex-shrink:0;">${counts[m.id]||0}食</div>
             <div style="font-size:13px;font-weight:800;color:var(--ao);flex-shrink:0;margin-right:8px;">${(counts[m.id]*UNIT_PRICE).toLocaleString()}円</div>
             <button onclick="sendInvoice('${m.id}')"
               style="flex-shrink:0;padding:3px 8px;border-radius:12px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📄 請求</button>
@@ -2617,8 +2640,8 @@ function doPrint(){
         </tr></thead>
         <tbody>
           ${items.map(m=>`<tr>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:11px;">${m.name}</td>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;">${counts[m.id]}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:11px;">${escHtml(m.name)}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;">${counts[m.id]||0}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${m.memo||''}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.kake?'●':''}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.receipt?'●':''}</td>
@@ -2825,21 +2848,23 @@ function renderBulkCustList(q){
     return;
   }
   list.innerHTML=matched.map(m=>`
-    <div onclick="selectBulkCust('${m.id}','${m.name.replace(/'/g,"\'")}')"
+    <div data-bid="${escHtml(m.id)}" onclick="selectBulkCust(this.dataset.bid)"
       style="padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
       <div style="width:8px;height:8px;border-radius:50%;background:${COURSE_COLORS_MAP[m.course]};flex-shrink:0;"></div>
-      ${m.name}
+      ${escHtml(m.name)}
     </div>
   `).join('');
   list.style.display='block';
 }
-function selectBulkCust(id,name){
+function selectBulkCust(id){
+  const m=MASTER.find(x=>x.id===id);
+  if(!m) return;
   document.getElementById('bulk-customer').value=id;
   document.getElementById('bulk-cust-search').value='';
   document.getElementById('bulk-cust-list').style.display='none';
   const sel=document.getElementById('bulk-cust-selected');
   sel.style.display='flex';
-  sel.innerHTML=`<span>${name}</span><button onclick="clearBulkCust()" style="border:none;background:none;color:var(--ao);font-size:12px;cursor:pointer;font-weight:700;">変更</button>`;
+  sel.innerHTML=`<span>${escHtml(m.name)}</span><button onclick="clearBulkCust()" style="border:none;background:none;color:var(--ao);font-size:12px;cursor:pointer;font-weight:700;">変更</button>`;
   renderBulkWeekGrid();
 }
 function clearBulkCust(){
@@ -2860,7 +2885,8 @@ let _yoyakuCustComposing=false;
 function onYoyakuCustSearchStart(){ _yoyakuCustComposing=true; }
 function onYoyakuCustSearchEnd(e){
   _yoyakuCustComposing=false;
-  renderYoyakuCustList(e.target.value);
+  // 少し遅延して再描画（タップイベントと競合しないよう）
+  setTimeout(()=>renderYoyakuCustList(e.target.value), 50);
 }
 function onYoyakuCustSearch(e){
   if(_yoyakuCustComposing) return;
@@ -2878,15 +2904,20 @@ function renderYoyakuCustList(q){
     return;
   }
   list.innerHTML=matched.map(m=>`
-    <div onclick="selectYoyakuCust('${m.id}','${m.name.replace(/'/g,"\\'")}')"
+    <div
+      data-yid="${escHtml(m.id)}"
+      onmousedown="event.preventDefault();selectYoyakuCust(this.dataset.yid)"
+      ontouchstart="event.preventDefault();selectYoyakuCust(this.dataset.yid)"
       style="padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
       <div style="width:8px;height:8px;border-radius:50%;background:${COURSE_COLORS_MAP[m.course]};flex-shrink:0;"></div>
-      ${m.name}
+      ${escHtml(m.name)}
     </div>
   `).join('');
   list.style.display='block';
 }
-function selectYoyakuCust(id, name){
+function selectYoyakuCust(id){
+  const m=MASTER.find(x=>x.id===id);
+  const name=m?m.name:'';
   _currentYoyakuCustId=id;
   _currentYoyakuCustName=name;
   const searchEl=document.getElementById('yoyaku-cust-search');
@@ -2902,27 +2933,18 @@ function selectYoyakuCust(id, name){
       <div style="width:8px;height:36px;border-radius:4px;background:var(--ao);flex-shrink:0;"></div>
       <div style="flex:1;">
         <div style="font-size:10px;font-weight:700;color:var(--ao);margin-bottom:2px;">選択中のお客様</div>
-        <div style="font-size:16px;font-weight:900;color:var(--text);">${name}</div>
+        <div style="font-size:16px;font-weight:900;color:var(--text);">${escHtml(name)}</div>
       </div>
       <button onclick="clearYoyakuCust()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid var(--border-dark);background:#fff;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">変更</button>
     </div>`;
   }
   // グリッドのセルを顧客の予約データで更新（全再描画せずDOMを直接更新）
-  const m=MASTER.find(x=>x.id===id);
+  // ※ m は関数冒頭で宣言済み
   document.querySelectorAll('[id^="yoyaku-cell-"]').forEach(el=>{
     if(el.disabled) return;
     const key=el.dataset.key;
     let val=bulkOrders[key]?bulkOrders[key][id]:undefined;
-    // 予約未登録の場合はdefaultCount/weekCountsを初期値として表示
-    if((val===undefined||val===''||val===null) && m){
-      const dt=new Date(key);
-      const dow=dt.getDay(); // 0=日,1=月,...,6=土
-      if(m.weekCounts&&Array.isArray(m.weekCounts)&&m.weekCounts[dow]!==null&&m.weekCounts[dow]!==undefined&&m.weekCounts[dow]!==''){
-        val=Number(m.weekCounts[dow]);
-      } else {
-        val=m.defaultCount||0;
-      }
-    }
+    // 予約登録済みの値のみ表示（デフォルト食数は自動入力しない）
     const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
     el.value=val||'';
     el.placeholder=val||'-';
@@ -2935,7 +2957,7 @@ function selectYoyakuCust(id, name){
     const key=el.id.replace('yoyaku-memo-row-','');
     const memo=bulkMemos[key]?bulkMemos[key][id]||'':'';
     if(memo){
-      el.outerHTML=`<div id="yoyaku-memo-row-${key}" data-mkey="${key}" onclick="openYoyakuMemo('${key}')" style="font-size:9px;color:var(--ao);font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:2px 1px;line-height:1.4;background:var(--ao-bg);border-radius:4px;">📝 ${memo}</div>`;
+      el.outerHTML=`<div id="yoyaku-memo-row-${key}" data-mkey="${key}" onclick="openYoyakuMemo('${key}')" style="font-size:9px;color:var(--ao);font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:2px 1px;line-height:1.4;background:var(--ao-bg);border-radius:4px;">📝 ${escHtml(memo)}</div>`;
     }
   });
   // 保存エリアにメモボタンを表示
@@ -3215,17 +3237,6 @@ function renderYoyaku(){
       const key=fmtDate(dt);
       const isPast=dt<today;
       let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
-      if((val===undefined||val===''||val===null)&&custId){
-        const cm=MASTER.find(x=>x.id===custId);
-        if(cm){
-          const dow2=dt.getDay();
-          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
-            val=Number(cm.weekCounts[dow2]);
-          } else {
-            val=cm.defaultCount||0;
-          }
-        }
-      }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
@@ -3282,17 +3293,6 @@ function renderYoyaku(){
     exWeekDates.forEach(function(dt,i){
       const key=fmtDate(dt);
       let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
-      if((val===undefined||val===''||val===null)&&custId){
-        const cm=MASTER.find(x=>x.id===custId);
-        if(cm){
-          const dow2=dt.getDay();
-          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
-            val=Number(cm.weekCounts[dow2]);
-          } else {
-            val=cm.defaultCount||0;
-          }
-        }
-      }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
@@ -3334,7 +3334,7 @@ function renderYoyaku(){
     const _name=_currentYoyakuCustName;
     clearTimeout(window._yoyakuCustReapplyTimer);
     window._yoyakuCustReapplyTimer=setTimeout(()=>{
-      if(_currentYoyakuCustId===_id) selectYoyakuCust(_id, _name);
+      if(_currentYoyakuCustId===_id) selectYoyakuCust(_id);
     }, 0);
   }
 }
@@ -3491,7 +3491,8 @@ function renderMonthlyReport(){
     const d=v-s.target;
     return '　'+s.name+'：'+v+'食／日（目標比 '+(d>=0?'+':'')+d+'）';
   }).join('\n');
-  const mailStr='お疲れさまです。\n4月の平均食数の報告です。\n\n【4月 平均食数】\n'+mailLines+'\n\n目標食数\n　西宮・杭瀬：220食／日\n　立花：170食／日\n\nよろしくお願いいたします。';
+  const _latestMonth=SHOPS[0].months[SHOPS[0].months.length-1].m;
+  const mailStr='お疲れさまです。\n'+_latestMonth+'の平均食数の報告です。\n\n【'+_latestMonth+' 平均食数】\n'+mailLines+'\n\n目標食数\n　西宮・杭瀬：220食／日\n　立花：170食／日\n\nよろしくお願いいたします。';
 
   html+='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
   html+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">✉️ 報告メール</div>';
@@ -3510,10 +3511,15 @@ function saveYoyaku(){
   if(!custId){toast('お客様を選択してください');return;}
   let registered=0;
   document.querySelectorAll('[id^="yoyaku-cell-"]').forEach(el=>{
-    if(el.disabled||el.value==='')return;
-    const n=parseInt(el.value);
-    if(isNaN(n))return;
+    if(el.disabled) return;
     const dateKey=el.id.replace('yoyaku-cell-','');
+    if(el.value===''){
+      // 空欄の場合は既存登録を削除
+      if(bulkOrders[dateKey]) delete bulkOrders[dateKey][custId];
+      return;
+    }
+    const n=parseInt(el.value);
+    if(isNaN(n)||n<0) return;
     if(!bulkOrders[dateKey]) bulkOrders[dateKey]={};
     bulkOrders[dateKey][custId]=n;
     registered++;
@@ -3561,8 +3567,8 @@ function sendInvoice(id){
       <!-- 宛先と発行日 -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
         <div>
-          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${billName} 御中</div>
-          <div style="font-size:11px;color:#666;">締め日：${closing}</div>
+          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${escHtml(billName)} 御中</div>
+          <div style="font-size:11px;color:#666;">締め日：${escHtml(closing)}</div>
         </div>
         <div style="text-align:right;font-size:11px;color:#666;line-height:1.8;">
           <div>発行日：${dateStr}</div>
@@ -4011,8 +4017,6 @@ function toggleHdrMenu(){
     m.innerHTML=`<div style="padding:6px 0;">
       <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 配達メンバー</button>
       <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="gotoTab('delivery');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚚 配達</button>
-      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
       <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
       <div style="height:1px;background:var(--border);margin:0 12px;"></div>
       <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
@@ -4061,7 +4065,7 @@ function doLogout(){
   try{
     localStorage.removeItem(LS_ROLE);
     localStorage.removeItem(LS_COURSE);
-    localStorage.removeItem('bentoShop');
+    localStorage.removeItem(LS_SHOP);
   }catch(e){}
   location.reload();
 }
@@ -4086,6 +4090,14 @@ loadFromLocal();
 let _yomiBatchChanged=false;
 MASTER.forEach(m=>{ if(!m.yomi){ m.yomi=kanjiToHira(m.name); _yomiBatchChanged=true; } });
 if(_yomiBatchChanged) saveToLocal();
+// nextIdをMASTER/STAFF/PINK_STAFFの既存IDの最大値+1に設定（衝突防止）
+(function(){
+  const allIds=[...MASTER,...STAFF,...PINK_STAFF].map(x=>x.id||'');
+  allIds.forEach(id=>{
+    const n=parseInt(String(id).replace(/\D/g,''));
+    if(!isNaN(n)&&n>=nextId) nextId=n+1;
+  });
+})();
 
 
 if(savedRole === 'admin'){
