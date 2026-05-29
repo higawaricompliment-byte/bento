@@ -2944,7 +2944,16 @@ function selectYoyakuCust(id){
     if(el.disabled) return;
     const key=el.dataset.key;
     let val=bulkOrders[key]?bulkOrders[key][id]:undefined;
-    // 予約登録済みの値のみ表示（デフォルト食数は自動入力しない）
+    // bulkOrders未登録の場合はdefaultCount/weekCountsを初期値として表示
+    if((val===undefined||val===''||val===null)&&m){
+      const dt=new Date(key);
+      const dow=dt.getDay();
+      if(m.weekCounts&&Array.isArray(m.weekCounts)&&m.weekCounts[dow]!==null&&m.weekCounts[dow]!==undefined&&m.weekCounts[dow]!==''){
+        val=Number(m.weekCounts[dow]);
+      } else if(m.defaultCount){
+        val=m.defaultCount;
+      }
+    }
     const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
     el.value=val||'';
     el.placeholder=val||'-';
@@ -3237,6 +3246,17 @@ function renderYoyaku(){
       const key=fmtDate(dt);
       const isPast=dt<today;
       let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
+      if((val===undefined||val===''||val===null)&&custId){
+        const cm=MASTER.find(x=>x.id===custId);
+        if(cm){
+          const dow2=dt.getDay();
+          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
+            val=Number(cm.weekCounts[dow2]);
+          } else if(cm.defaultCount){
+            val=cm.defaultCount;
+          }
+        }
+      }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
@@ -3293,6 +3313,17 @@ function renderYoyaku(){
     exWeekDates.forEach(function(dt,i){
       const key=fmtDate(dt);
       let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
+      if((val===undefined||val===''||val===null)&&custId){
+        const cm=MASTER.find(x=>x.id===custId);
+        if(cm){
+          const dow2=dt.getDay();
+          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
+            val=Number(cm.weekCounts[dow2]);
+          } else if(cm.defaultCount){
+            val=cm.defaultCount;
+          }
+        }
+      }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
