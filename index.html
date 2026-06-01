@@ -275,6 +275,17 @@ body.modal-open #main{overflow:hidden;}
 .empty-msg{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;line-height:1.8;font-weight:500;}
 .hidden{display:none!important;}
 
+/* 写真プレビュー */
+.photo-preview{width:100%;height:140px;object-fit:cover;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);display:block;margin-top:6px;}
+.photo-placeholder{width:100%;height:100px;border-radius:var(--radius-sm);border:2px dashed var(--border-dark);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;cursor:pointer;background:var(--bg);margin-top:6px;color:var(--muted);font-size:12px;font-weight:700;}
+
+/* 配達メモボタン */
+.memo-inline-btn{border:none;background:none;padding:2px 6px;font-size:11px;color:var(--ao);cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;}
+
+/* 一見さんカード */
+.ichigen-card{background:var(--surface);border-radius:var(--radius);border:2px dashed var(--border-dark);margin-bottom:5px;display:flex;align-items:center;overflow:hidden;box-shadow:var(--shadow);}
+.ichigen-add-btn{width:100%;padding:12px 16px;border-radius:var(--radius);border:2px dashed var(--border-dark);background:var(--surface);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;}
+
 /* 数字ピッカー */
 .num-picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
 .num-btn{padding:10px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);background:var(--bg);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;transition:all .1s;color:var(--text);}
@@ -468,19 +479,19 @@ body.modal-open #main{overflow:hidden;}
   <div class="ptrack"><div class="pfill" id="delivery-prog-fill" style="width:0%"></div></div>
 </div>
 <div class="bnav">
-  <button class="bnav-btn on" id="nav-input" onclick="gotoTab('input')">
+  <button class="bnav-btn on" id="nav-input" onclick="gotoTab('input')" style="display:none;">
     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     本日注文
   </button>
-  <button class="bnav-btn" id="nav-summary" onclick="gotoTab('summary')">
+  <button class="bnav-btn" id="nav-summary" onclick="gotoTab('summary')" style="display:none;">
     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     集計
   </button>
-  <button class="bnav-btn" id="nav-yoyaku" onclick="gotoTab('yoyaku')">
+  <button class="bnav-btn" id="nav-yoyaku" onclick="gotoTab('yoyaku')" style="display:none;">
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
     予約
   </button>
-  <button class="bnav-btn" id="nav-customer" onclick="gotoTab('customer')">
+  <button class="bnav-btn" id="nav-customer" onclick="gotoTab('customer')" style="display:none;">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     顧客
   </button>
@@ -488,7 +499,7 @@ body.modal-open #main{overflow:hidden;}
     <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     配達
   </button>
-  <button class="bnav-btn" id="nav-sales" onclick="gotoTab('sales')">
+  <button class="bnav-btn" id="nav-sales" onclick="gotoTab('sales')" style="display:none;">
     <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
     売上
   </button>
@@ -579,6 +590,19 @@ body.modal-open #main{overflow:hidden;}
     <div class="form-row">
       <div class="form-lbl">📍 住所</div>
       <input class="form-input" id="cm-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
+    </div>
+
+    <div class="form-row">
+      <div class="form-lbl">📷 場所の写真</div>
+      <div id="cm-photo-wrap">
+        <img id="cm-photo-preview" class="photo-preview" style="display:none;">
+        <div class="photo-placeholder" onclick="document.getElementById('cm-photo-input').click()">
+          <span style="font-size:24px;">📷</span>
+          <span>タップして写真を選択</span>
+        </div>
+        <input type="file" id="cm-photo-input" accept="image/*" style="display:none;" onchange="onPhotoSelected(event)">
+        <button id="cm-photo-del" onclick="deletePhoto()" style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:var(--radius-sm);border:none;background:#FFF0EE;color:#C0392B;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">写真を削除</button>
+      </div>
     </div>
 
     <div id="cm-invoice-section" style="display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
@@ -809,6 +833,53 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- 一見さんモーダル -->
+<div class="modal-overlay hidden" id="ichigen-modal" onclick="if(event.target===this)closeIchigenModal()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding:22px 18px 36px;">
+    <div class="modal-title">当日追加</div>
+    <div class="form-row">
+      <div class="form-lbl">名前・メモ</div>
+      <input class="form-input" id="ig-name" type="text" placeholder="例：田中様、〇〇会社">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">コース</div>
+      <select class="form-select" id="ig-course">
+        <option value="ao">青</option>
+        <option value="midori">緑</option>
+        <option value="orenji">オレンジ</option>
+        <option value="pinku">ピンク</option>
+        <option value="iero">黄色</option>
+        <option value="shop">店頭</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">食数</div>
+      <input class="form-input" id="ig-count" type="number" min="1" max="99" placeholder="1" inputmode="numeric" style="font-size:22px;font-weight:900;text-align:center;">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">📍 住所</div>
+      <input class="form-input" id="ig-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">📝 メモ</div>
+      <input class="form-input" id="ig-memo" type="text" placeholder="例：インターホン・2階">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeIchigenModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveIchigen()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 写真ビューアモーダル -->
+<div class="modal-overlay hidden" id="photo-viewer-modal" onclick="closePhotoViewer()" style="background:rgba(0,0,0,.9);align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()" style="width:92%;max-width:440px;position:relative;">
+    <div id="photo-viewer-name" style="color:#fff;font-size:14px;font-weight:700;margin-bottom:10px;text-align:center;"></div>
+    <img id="photo-viewer-img" style="width:100%;border-radius:14px;display:block;" src="">
+    <button onclick="closePhotoViewer()" style="position:absolute;top:-36px;right:0;border:none;background:none;color:#fff;font-size:24px;cursor:pointer;padding:4px;">✕</button>
+  </div>
+</div>
+
 <!-- ログアウト確認 -->
 <div class="modal-overlay hidden" id="logout-modal" onclick="closeLogoutModal()">
   <div class="modal" onclick="event.stopPropagation()">
@@ -883,43 +954,43 @@ let pinkTodayStaff='';
 // 店舗別デフォルト顧客データ
 const MASTER_DEFAULTS = {
   '西宮': [
-    {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:4,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:5,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:3,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'a4',course:'ao',name:'谷矢製餡',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'a4',course:'ao',name:'谷矢製餡',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
     {id:'a5',course:'ao',name:'前田食品（株）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'',weekCounts:[0,7,5,7,5,7,0]},
-    {id:'a6',course:'ao',name:'鹿島建設（兵庫医大）',defaultCount:5,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a7',course:'ao',name:'コーナンメディカル',defaultCount:4,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a8',course:'ao',name:'新川東川作業所センター',defaultCount:6,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'a9',course:'ao',name:'長岡実業株式会社',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'m1',course:'midori',name:'松秀幼稚園',defaultCount:5,receipt:true,kake:false,memo:'',staffId:'',deliveryTime:'11:30'},
-    {id:'m2',course:'midori',name:'こども未来センター',defaultCount:3,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'m3',course:'midori',name:'西宮my助産院',defaultCount:2,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'m4',course:'midori',name:'東光寺',defaultCount:4,receipt:true,kake:false,memo:'',staffId:''},
-    {id:'m5',course:'midori',name:'（株）山下金物',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'m6',course:'midori',name:'（株）阪神青写真工業所',defaultCount:4,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'m7',course:'midori',name:'仁明会クリニック（現金）',defaultCount:3,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'m8',course:'midori',name:'仁明会クリニック（掛）',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'m9',course:'midori',name:'尼崎信用金庫門戸支店',defaultCount:5,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'o1',course:'orenji',name:'尼崎信用金庫甲子園口店',defaultCount:7,receipt:true,kake:false,memo:'',staffId:''},
-    {id:'o2',course:'orenji',name:'奥田株式会社311号室',defaultCount:3,receipt:true,kake:false,memo:'',staffId:''},
-    {id:'o3',course:'orenji',name:'甲子園口リハビリデイサービス',defaultCount:4,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'o4',course:'orenji',name:'三好病院',defaultCount:6,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'o5',course:'orenji',name:'三恭歯研 1階',defaultCount:3,receipt:false,kake:true,memo:'',staffId:''},
-    {id:'o6',course:'orenji',name:'パティシエトシヒロタダノ',defaultCount:2,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'p1',course:'pinku',name:'ベンツ',defaultCount:3,receipt:false,kake:false,memo:'',staffId:'ps1'},
-    {id:'p2',course:'pinku',name:'放課後デイサービスつばさ',defaultCount:4,receipt:false,kake:false,memo:'',staffId:'ps1'},
-    {id:'p3',course:'pinku',name:'すずかけ労働センター',defaultCount:25,receipt:false,kake:true,memo:'',staffId:'ps1'},
-    {id:'p4',course:'pinku',name:'上甲子園すずかけ作業所',defaultCount:10,receipt:false,kake:true,memo:'',staffId:'ps1'},
-    {id:'p5',course:'pinku',name:'尼崎信用金庫今津店',defaultCount:7,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'p6',course:'pinku',name:'松浦興業（株）',defaultCount:4,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'p7',course:'pinku',name:'一般法人KIZUNAの友',defaultCount:5,receipt:false,kake:false,memo:'',staffId:'ps1'},
-    {id:'p8',course:'pinku',name:'きんでん',defaultCount:3,receipt:false,kake:true,memo:'',staffId:'ps2'},
-    {id:'y1',course:'iero',name:'大村様',defaultCount:1,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y2',course:'iero',name:'杉本様',defaultCount:2,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y3',course:'iero',name:'山崎様307',defaultCount:1,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y4',course:'iero',name:'たかだ様',defaultCount:1,receipt:false,kake:false,memo:'',staffId:''},
-    {id:'y5',course:'iero',name:'すずかけ第2作業所',defaultCount:5,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a6',course:'ao',name:'鹿島建設（兵庫医大）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a7',course:'ao',name:'コーナンメディカル',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a8',course:'ao',name:'新川東川作業所センター',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'a9',course:'ao',name:'長岡実業株式会社',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m1',course:'midori',name:'松秀幼稚園',defaultCount:0,receipt:true,kake:false,memo:'',staffId:'',deliveryTime:'11:30'},
+    {id:'m2',course:'midori',name:'こども未来センター',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'m3',course:'midori',name:'西宮my助産院',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'m4',course:'midori',name:'東光寺',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
+    {id:'m5',course:'midori',name:'（株）山下金物',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m6',course:'midori',name:'（株）阪神青写真工業所',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m7',course:'midori',name:'仁明会クリニック（現金）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'m8',course:'midori',name:'仁明会クリニック（掛）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'m9',course:'midori',name:'尼崎信用金庫門戸支店',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'o1',course:'orenji',name:'尼崎信用金庫甲子園口店',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
+    {id:'o2',course:'orenji',name:'奥田株式会社311号室',defaultCount:0,receipt:true,kake:false,memo:'',staffId:''},
+    {id:'o3',course:'orenji',name:'甲子園口リハビリデイサービス',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'o4',course:'orenji',name:'三好病院',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'o5',course:'orenji',name:'三恭歯研 1階',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
+    {id:'o6',course:'orenji',name:'パティシエトシヒロタダノ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'p1',course:'pinku',name:'ベンツ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
+    {id:'p2',course:'pinku',name:'放課後デイサービスつばさ',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
+    {id:'p3',course:'pinku',name:'すずかけ労働センター',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps1'},
+    {id:'p4',course:'pinku',name:'上甲子園すずかけ作業所',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps1'},
+    {id:'p5',course:'pinku',name:'尼崎信用金庫今津店',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
+    {id:'p6',course:'pinku',name:'松浦興業（株）',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
+    {id:'p7',course:'pinku',name:'一般法人KIZUNAの友',defaultCount:0,receipt:false,kake:false,memo:'',staffId:'ps1'},
+    {id:'p8',course:'pinku',name:'きんでん',defaultCount:0,receipt:false,kake:true,memo:'',staffId:'ps2'},
+    {id:'y1',course:'iero',name:'大村様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y2',course:'iero',name:'杉本様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y3',course:'iero',name:'山崎様307',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y4',course:'iero',name:'たかだ様',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
+    {id:'y5',course:'iero',name:'すずかけ第2作業所',defaultCount:0,receipt:false,kake:true,memo:'',staffId:''},
   ],
   '杭瀬': [],
   '立花': [],
@@ -1010,7 +1081,8 @@ function _closeModal(id){
 function _closeAllModals(){
   ['cust-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
    'bulk-order-modal','yoyaku-detail-modal','yoyaku-memo-modal',
-   'monthly-report-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
+   'monthly-report-modal','logout-modal','print-modal','invoice-modal',
+   'ichigen-modal','photo-viewer-modal'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.classList.add('hidden'); if(id==='invoice-modal') el.style.display='none'; }
   });
@@ -1173,7 +1245,8 @@ function renderInputList(){
   const q=iSearch.trim()?normalizeKana(iSearch.trim().toLowerCase()):'';
 
   // 初回 or MASTER変更時だけ全DOM構築
-  if(!area.dataset.built || area.dataset.masterLen!==String(MASTER.length)){
+  const _igLen=(()=>{try{return String((ichigenList[fmtDate(selectedDate)]||[]).length);}catch(e){return '0';}})();
+  if(!area.dataset.built || area.dataset.masterLen!==String(MASTER.length) || area.dataset.ichigenLen!==_igLen){
     _buildInputListDOM(area);
   }
 
@@ -1253,6 +1326,7 @@ function _buildInputListDOM(area){
             ${isChanged?`<span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;background:${COURSE_COLORS_MAP[todayCourse]};color:#fff;">${COURSE_LABELS_MAP[todayCourse]}</span>`:''}
           </div>
           ${m.memo?`<div class="icard-sub">${escHtml(m.memo||"")}</div>`:''}
+          ${(()=>{const dm=bulkMemos[fmtDate(selectedDate)]?.[m.id];return dm?`<div class="icard-sub" style="color:var(--ao);">📝 ${escHtml(dm)}</div>`:''})()}
         </div>
         <button data-cid="${m.id}" onclick="showCourseMenu(this.dataset.cid,MASTER.find(x=>x.id===this.dataset.cid)?.name||'')"
           style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1;letter-spacing:-1px;">⋯</button>
@@ -1269,12 +1343,38 @@ function _buildInputListDOM(area){
         </div>
       </div>`;
     });
+    // 当日追加をコースグループ末尾に追加
+    try{
+      const dateKey=fmtDate(selectedDate);
+      (ichigenList[dateKey]||[]).filter(ig=>ig.course===c).forEach(ig=>{
+      html+=`<div class="icard" id="icard-ig-${ig.id}" style="border-radius:0;border-left:none;border-right:none;border-top:none;box-shadow:none;">
+        <div class="icard-bar bar-${ig.course}"></div>
+        <div class="icard-name">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span>${escHtml(ig.name)}</span>
+            <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:var(--bg);border:1px solid var(--border-dark);color:var(--muted);flex-shrink:0;">当日</span>
+          </div>
+          ${ig.memo?`<div class="icard-sub">📝 ${escHtml(ig.memo)}</div>`:''}
+        </div>
+        <button onclick="showIchigenCourseMenu('${ig.id}','${escHtml(ig.name)}')" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1;letter-spacing:-1px;">⋯</button>
+        <div class="icard-ctrl">
+          <button class="spin" onclick="changeIchigenCount('${ig.id}',-1)">−</button>
+          <input class="icard-input has" type="number" readonly
+            value="${ig.count}"
+            id="ig-inp-${ig.id}"
+            style="cursor:pointer;">
+          <button class="spin" onclick="changeIchigenCount('${ig.id}',1)">＋</button>
+        </div>
+      </div>`;
+      });
+    }catch(e){}
     html+=`</div></div>`;
   });
   html+=`</div>`;
   area.innerHTML=html;
   area.dataset.built='1';
   area.dataset.masterLen=String(MASTER.length);
+  try{ area.dataset.ichigenLen=String((ichigenList[fmtDate(selectedDate)]||[]).length); }catch(e){ area.dataset.ichigenLen='0'; }
 
   // 食数・スタイルを反映
   MASTER.forEach(m=>{
@@ -1303,6 +1403,9 @@ function renderInput(){
         </div>
       </div>
       <div class="frow" id="input-chip-row"></div>
+    </div>
+    <div style="padding:8px 12px 0;">
+      <button class="ichigen-add-btn" onclick="openIchigenModal()">＋ 当日追加</button>
     </div>
     <div id="input-list-area"></div>`;
     document.getElementById('tab-input').innerHTML=shell;
@@ -1348,8 +1451,11 @@ function _doSearch(){
   renderInputList();
 }
 function updateHdrTotal(){
-  const total=MASTER.reduce((s,m)=>s+(counts[m.id]||0),0);
-  const cnt=MASTER.filter(m=>counts[m.id]>0).length;
+  const igTotal=getIchigenTotal();
+  const total=MASTER.reduce((s,m)=>s+(counts[m.id]||0),0) + igTotal;
+  let igCount=0;
+  try{ igCount=(ichigenList[fmtDate(selectedDate)]||[]).length>0?1:0; }catch(e){}
+  const cnt=MASTER.filter(m=>counts[m.id]>0).length + igCount;
   const el=document.getElementById('hdr-total');
   if(el) el.textContent=`計${total}食・${cnt}件`;
 }
@@ -1400,7 +1506,9 @@ function showCourseMenu(id,name){
   const m=MASTER.find(x=>x.id===id);
   if(!m)return;
   const menu=document.getElementById('course-menu');
-  let html='';
+  const hasMemo=bulkMemos[fmtDate(selectedDate)]&&bulkMemos[fmtDate(selectedDate)][id];
+  let html=`<div class="course-menu-item" style="font-size:15px;" onclick="openDailyMemoFromDelivery('${id}');closeCourseMenu();">${hasMemo?'📝 メモ編集':'＋ メモを追加'}</div>
+    <div style="border-top:1px solid var(--border);margin:4px 0;"></div>`;
   COURSE_ORDER.forEach(c=>{
     const isCurrent=(m.todayCourse||m.course)===c;
     html+=`<div class="course-menu-item" onclick="changeCourse('${id}','${c}')"
@@ -1411,7 +1519,7 @@ function showCourseMenu(id,name){
   });
   menu.innerHTML=`<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:12px 8px calc(24px + env(safe-area-inset-bottom,0px));width:100%;">
     <div style="width:36px;height:4px;background:var(--border-dark);border-radius:2px;margin:0 auto 14px;"></div>
-    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${escHtml(name)}のコースを変更</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${escHtml(name)}</div>
     ${html}
     <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
     <div class="course-menu-item" style="color:var(--muted);justify-content:center;font-size:15px;" onclick="closeCourseMenu()">キャンセル</div>
@@ -1506,6 +1614,14 @@ function renderDelivery(){
 
   const total=active.length;
   const doneCount=active.filter(m=>done.has(m.id)).length;
+
+  // 当日追加をdeliveryに追加
+  const dateKey=fmtDate(selectedDate);
+  const activeIchigen=(ichigenList[dateKey]||[]).filter(ig=>{
+    if(dFilter==='all') return true;
+    if(dFilter==='pinku') return ig.course==='pinku';
+    return dFilterSet.has(ig.course);
+  });
   const pct=total>0?Math.round(doneCount/total*100):0;
 
 
@@ -1537,6 +1653,7 @@ function renderDelivery(){
       const hasTime=m.deliveryTime&&m.deliveryTime.trim();
       const hasMemo=m.memo&&m.memo.trim();
       const hasDailyMemo=bulkMemos[fmtDate(selectedDate)]&&bulkMemos[fmtDate(selectedDate)][m.id];
+      const hasPhoto=!!_photoData[m.id];
       let cardStyle='';
       if(!isDone){
         if(isReceipt&&hasTime) cardStyle='background:#FFF0F0;border-left:4px solid #E53E3E;';
@@ -1568,6 +1685,11 @@ function renderDelivery(){
           <div class="dcard-badges" style="margin-top:3px;">${badges(m)}${staffBadge(m)}</div>
           ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${escHtml(m.memo||"")}</div>`:''}
           ${getDailyMemo(m.id)}
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+            <button class="memo-inline-btn" onclick="openDailyMemoFromDelivery('${m.id}')">${hasDailyMemo?'📝 メモ編集':'＋ メモ'}</button>
+            ${hasPhoto?`<button class="memo-inline-btn" onclick="openPhotoViewer('${m.id}')">📷 写真</button>`:''}
+            ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener" class="memo-inline-btn" style="text-decoration:none;">🗺 地図</a>`:''}
+          </div>
         </div>
         <div class="dcard-right" style="padding:6px 8px;grid-column:${showDeliveryOrder?4:3}">
           <div class="dcard-count" style="font-size:18px;">${counts[m.id]||0}</div>
@@ -1578,6 +1700,37 @@ function renderDelivery(){
     });
     html+=`</div>`;
   }
+
+  // 当日追加カードを配達タブに表示（通常カードと同じ構造）
+  if(activeIchigen.length>0){
+    html+=`<div class="dview">`;
+    activeIchigen.forEach(ig=>{
+      const isDone=done.has('ig_done_'+ig.id);
+      const hasDailyMemoIg=bulkMemos[fmtDate(selectedDate)]&&bulkMemos[fmtDate(selectedDate)]['ig_'+ig.id];
+      html+=`<div class="dcard${isDone?' done':''}">
+        <div class="dcard-bar bar-${ig.course}"></div>
+        <div class="dcard-body" style="padding:8px 8px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span class="dcard-name" style="flex:1;font-size:13px;">${escHtml(ig.name)}</span>
+            <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:var(--bg);border:1px solid var(--border-dark);color:var(--muted);flex-shrink:0;">当日</span>
+            ${ig.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(ig.address)}" target="_blank" rel="noopener" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
+          </div>
+          ${ig.address?`<div style="font-size:10px;margin-top:2px;color:var(--muted);font-weight:500;">${escHtml(ig.address)}</div>`:''}
+          ${hasDailyMemoIg?`<div style="font-size:10px;margin-top:2px;color:var(--ao);font-weight:500;">📝 ${escHtml(bulkMemos[fmtDate(selectedDate)]['ig_'+ig.id])}</div>`:''}
+          <div style="margin-top:4px;">
+            <button class="memo-inline-btn" onclick="openDailyMemoForIchigen('${ig.id}')">${hasDailyMemoIg?'📝 メモ編集':'＋ メモ'}</button>
+          </div>
+        </div>
+        <div class="dcard-right" style="padding:6px 8px;">
+          <div class="dcard-count" style="font-size:18px;">${ig.count}</div>
+          <div class="dcard-unit">食</div>
+          <button class="chk${isDone?' on':''}" onclick="toggleIchigenDone('${ig.id}')">✓</button>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
   html+=`</div>`;
   document.getElementById('tab-delivery').innerHTML=html;
 
@@ -1595,6 +1748,13 @@ function renderDelivery(){
   const tabDel=document.getElementById('tab-delivery');
   if(tabDel) tabDel.style.paddingTop='44px';
   if(tabDel) tabDel.style.paddingBottom='';
+}
+function toggleIchigenDone(id){
+  const key='ig_done_'+id;
+  if(done.has(key)) done.delete(key);
+  else{ done.add(key); toast('配達完了 ✓'); }
+  saveToLocal();
+  renderDelivery();
 }
 function toggleDeliveryOrder(){
   showDeliveryOrder=!showDeliveryOrder;
@@ -1882,6 +2042,7 @@ function openCustModal(id){
     document.getElementById('cm-del-confirm').style.display='none';
     document.getElementById('cm-del-btn').textContent='この顧客を削除';
     document.getElementById('cm-del-btn').style.background='#C0392B';
+    loadPhotoForModal(id);
   } else {
     document.getElementById('cust-modal-title').textContent='顧客を追加';
     document.getElementById('cm-edit-id').value='';
@@ -1901,6 +2062,7 @@ function openCustModal(id){
     document.getElementById('cm-staff-row').classList.add('hidden');
     for(let i=1;i<=5;i++){const el=document.getElementById('cm-w'+i);if(el)el.value='';}
     document.getElementById('cm-del-wrap').classList.add('hidden');
+    loadPhotoForModal('__new__');
   }
   onCourseChange(document.getElementById('cm-course').value);
   onKakeChange();
@@ -2026,9 +2188,11 @@ function saveCust(){
       if(MASTER[idx].todayCourse) obj.todayCourse=MASTER[idx].todayCourse;
       MASTER[idx]=obj;
     }
+    savePhotoForCust(editId);
     toast('更新しました');
   } else {
     MASTER.push(obj);
+    savePhotoForCust(obj.id);
     toast('追加しました');
   }
   initCounts(selectedDate);
@@ -2383,6 +2547,266 @@ function renderCurrentTab(){
 
 const salesData={paypay:''};
 const UNIT_PRICE=650;
+
+// ── 写真機能 ──
+let _photoData={}; // {custId: base64}
+function onPhotoSelected(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const data=ev.target.result;
+    document.getElementById('cm-photo-preview').src=data;
+    document.getElementById('cm-photo-preview').style.display='block';
+    document.querySelector('.photo-placeholder').style.display='none';
+    document.getElementById('cm-photo-del').style.display='block';
+    _photoData['_pending']=data;
+  };
+  reader.readAsDataURL(file);
+}
+function deletePhoto(){
+  document.getElementById('cm-photo-preview').style.display='none';
+  document.getElementById('cm-photo-preview').src='';
+  document.querySelector('.photo-placeholder').style.display='flex';
+  document.getElementById('cm-photo-del').style.display='none';
+  document.getElementById('cm-photo-input').value='';
+  _photoData['_pending']=null;
+}
+function loadPhotoForModal(custId){
+  const prev=document.getElementById('cm-photo-preview');
+  const placeholder=document.querySelector('.photo-placeholder');
+  const delBtn=document.getElementById('cm-photo-del');
+  const photo=_photoData[custId]||null;
+  if(photo){
+    prev.src=photo;
+    prev.style.display='block';
+    if(placeholder) placeholder.style.display='none';
+    if(delBtn) delBtn.style.display='block';
+  } else {
+    prev.style.display='none';
+    prev.src='';
+    if(placeholder) placeholder.style.display='flex';
+    if(delBtn) delBtn.style.display='none';
+  }
+  _photoData['_pending']=undefined;
+}
+function savePhotoForCust(custId){
+  if(_photoData['_pending']===null){
+    delete _photoData[custId];
+  } else if(_photoData['_pending']){
+    _photoData[custId]=_photoData['_pending'];
+  }
+  delete _photoData['_pending'];
+  // localStorageに保存
+  try{ localStorage.setItem(lsKey('bentoPhotos'), JSON.stringify(_photoData)); }catch(e){}
+}
+function loadPhotosFromLocal(){
+  try{
+    const d=localStorage.getItem(lsKey('bentoPhotos'));
+    if(d){ const p=JSON.parse(d); Object.assign(_photoData, p); }
+  }catch(e){}
+}
+function openPhotoViewer(custId){
+  const m=MASTER.find(x=>x.id===custId);
+  const photo=_photoData[custId];
+  if(!photo){ toast('写真が登録されていません'); return; }
+  document.getElementById('photo-viewer-name').textContent=m?m.name:'';
+  document.getElementById('photo-viewer-img').src=photo;
+  _openModal('photo-viewer-modal');
+}
+function closePhotoViewer(){
+  _closeModal('photo-viewer-modal');
+}
+
+// ── 配達タブからのメモ入力 ──
+function openDailyMemoForIchigen(igId){
+  // bulkMemosのキーを 'ig_'+igId として管理
+  const dateKey=fmtDate(selectedDate);
+  const custKey='ig_'+igId;
+  const existing=bulkMemos[dateKey]?bulkMemos[dateKey][custKey]||'':'';
+  const ig=(ichigenList[dateKey]||[]).find(x=>x.id===igId);
+  _memoDateKey=dateKey;
+  const dt=new Date(dateKey);
+  const days2=['日','月','火','水','木','金','土'];
+  document.getElementById('yoyaku-memo-title').textContent=ig?ig.name:'当日追加';
+  document.getElementById('yoyaku-memo-date').textContent=
+    `${dt.getMonth()+1}月${dt.getDate()}日（${days2[dt.getDay()]}）`;
+  const hidEl=document.getElementById('yoyaku-customer');
+  if(hidEl) hidEl.value=custKey;
+  document.getElementById('yoyaku-memo-input').value=existing;
+  document.getElementById('yoyaku-memo-del-btn').style.display=existing?'block':'none';
+  _openModal('yoyaku-memo-modal');
+  setTimeout(()=>document.getElementById('yoyaku-memo-input').focus(),100);
+}
+function openDailyMemoFromDelivery(custId){
+  const dateKey=fmtDate(selectedDate);
+  const m=MASTER.find(x=>x.id===custId);
+  const existing=bulkMemos[dateKey]?bulkMemos[dateKey][custId]||'':'';
+  // 既存のyoyakuMemoModalを流用
+  _memoDateKey=dateKey;
+  const dt=new Date(dateKey);
+  const days2=['日','月','火','水','木','金','土'];
+  document.getElementById('yoyaku-memo-title').textContent=m?m.name:'メモ';
+  document.getElementById('yoyaku-memo-date').textContent=
+    `${dt.getMonth()+1}月${dt.getDate()}日（${days2[dt.getDay()]}）`;
+  // yoyaku-customerにcustIdをセット
+  const hidEl=document.getElementById('yoyaku-customer');
+  if(hidEl) hidEl.value=custId;
+  document.getElementById('yoyaku-memo-input').value=existing;
+  document.getElementById('yoyaku-memo-del-btn').style.display=existing?'block':'none';
+  _openModal('yoyaku-memo-modal');
+  setTimeout(()=>document.getElementById('yoyaku-memo-input').focus(),100);
+}
+
+// ── 一見さん機能 ──
+let ichigenList={}; // {dateKey: [{id, name, course, count}]}
+function openIchigenModal(){
+  document.getElementById('ig-name').value='';
+  document.getElementById('ig-count').value='1';
+  document.getElementById('ig-course').value='ao';
+  document.getElementById('ig-address').value='';
+  document.getElementById('ig-memo').value='';
+  document.getElementById('ichigen-modal').dataset.editId='';
+  _openModal('ichigen-modal');
+  setTimeout(()=>document.getElementById('ig-name').focus(),100);
+}
+function closeIchigenModal(){
+  _closeModal('ichigen-modal');
+}
+function deleteIchigen(id){
+  const dateKey=fmtDate(selectedDate);
+  if(ichigenList[dateKey]){
+    ichigenList[dateKey]=ichigenList[dateKey].filter(x=>x.id!==id);
+  }
+  saveIchigenToLocal();
+  closeCourseMenu();
+  renderIchigenList();
+  updateHdrTotal();
+}
+function renderIchigenList(){
+  // 当日追加はコースグループ内に表示するため、inputListのDOMキャッシュをリセットして再構築
+  const area=document.getElementById('input-list-area');
+  if(area){
+    delete area.dataset.built;
+    _buildInputListDOM(area);
+  }
+}
+function showIchigenCourseMenu(id, name){
+  const dateKey=fmtDate(selectedDate);
+  const ig=ichigenList[dateKey]?.find(x=>x.id===id);
+  if(!ig) return;
+  const menu=document.getElementById('course-menu');
+  let html=`<div class="course-menu-item" style="font-size:15px;" onclick="openIchigenEdit('${id}');closeCourseMenu();">✎ 編集する</div>
+    <div style="border-top:1px solid var(--border);margin:4px 0;"></div>`;
+  COURSE_ORDER.forEach(c=>{
+    const isCurrent=ig.course===c;
+    html+=`<div class="course-menu-item" onclick="changeIchigenCourse('${id}','${c}')"
+      style="padding:14px 20px;font-size:16px;${isCurrent?'background:var(--bg);font-weight:800;':''}">
+      <div class="course-menu-dot" style="background:${COURSE_COLORS_MAP[c]};width:12px;height:12px;"></div>
+      <span>${COURSE_LABELS_MAP[c]}${isCurrent?' ✓':''}</span>
+    </div>`;
+  });
+  html+=`<div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+    <div class="course-menu-item" style="color:#C0392B;font-size:15px;" onclick="deleteIchigen('${id}');closeCourseMenu();">✕ 削除する</div>`;
+  menu.innerHTML=`<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:12px 8px calc(24px + env(safe-area-inset-bottom,0px));width:100%;">
+    <div style="width:36px;height:4px;background:var(--border-dark);border-radius:2px;margin:0 auto 14px;"></div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${escHtml(name)}</div>
+    ${html}
+    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+    <div class="course-menu-item" style="color:var(--muted);justify-content:center;font-size:15px;" onclick="closeCourseMenu()">キャンセル</div>
+  </div>`;
+  menu.classList.remove('hidden');
+  menu.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;backdrop-filter:blur(2px);';
+  menu.onclick=function(ev){if(ev.target===menu)closeCourseMenu();};
+}
+function openIchigenEdit(id){
+  const dateKey=fmtDate(selectedDate);
+  const ig=ichigenList[dateKey]?.find(x=>x.id===id);
+  if(!ig) return;
+  document.getElementById('ig-name').value=ig.name;
+  document.getElementById('ig-count').value=ig.count;
+  document.getElementById('ig-course').value=ig.course;
+  document.getElementById('ig-address').value=ig.address||'';
+  document.getElementById('ig-memo').value=ig.memo||'';
+  document.getElementById('ichigen-modal').dataset.editId=id;
+  _openModal('ichigen-modal');
+  setTimeout(()=>document.getElementById('ig-name').focus(),100);
+}
+function saveIchigen(){
+  blurAll();
+  const name=document.getElementById('ig-name').value.trim();
+  if(!name){ toast('当日追加の名前を入力してください'); return; }
+  const count=parseInt(document.getElementById('ig-count').value)||1;
+  const course=document.getElementById('ig-course').value;
+  const address=document.getElementById('ig-address').value.trim();
+  const memo=document.getElementById('ig-memo').value.trim();
+  const dateKey=fmtDate(selectedDate);
+  const editId=document.getElementById('ichigen-modal').dataset.editId||'';
+  if(editId){
+    const ig=ichigenList[dateKey]?.find(x=>x.id===editId);
+    if(ig){ ig.name=name; ig.count=count; ig.course=course; ig.address=address; ig.memo=memo; }
+    delete document.getElementById('ichigen-modal').dataset.editId;
+    saveIchigenToLocal();
+    closeIchigenModal();
+    const area=document.getElementById('input-list-area');
+    if(area){ delete area.dataset.built; _buildInputListDOM(area); }
+    updateHdrTotal();
+    toast('更新しました');
+    return;
+  }
+  if(!ichigenList[dateKey]) ichigenList[dateKey]=[];
+  const ig={id:'ig_'+Date.now(), name, course, count, address, memo, createdAt:new Date().toISOString()};
+  ichigenList[dateKey].push(ig);
+  saveIchigenToLocal();
+  closeIchigenModal();
+  renderIchigenList();
+  updateHdrTotal();
+  toast('当日追加しました');
+}
+function changeIchigenCourse(id, course){
+  const dateKey=fmtDate(selectedDate);
+  const ig=ichigenList[dateKey]?.find(x=>x.id===id);
+  if(!ig) return;
+  ig.course=course;
+  saveIchigenToLocal();
+  closeCourseMenu();
+  renderIchigenList();
+  toast(`${COURSE_LABELS_MAP[course]}コースに移動しました`);
+}
+function cycleIchigenCourse(id){
+  const dateKey=fmtDate(selectedDate);
+  const ig=ichigenList[dateKey]?.find(x=>x.id===id);
+  if(!ig) return;
+  const idx=COURSE_ORDER.indexOf(ig.course);
+  ig.course=COURSE_ORDER[(idx+1)%COURSE_ORDER.length];
+  saveIchigenToLocal();
+  renderIchigenList();
+}
+function changeIchigenCount(id, delta){
+  const dateKey=fmtDate(selectedDate);
+  const ig=ichigenList[dateKey]?.find(x=>x.id===id);
+  if(!ig) return;
+  ig.count=Math.max(1, ig.count+delta);
+  saveIchigenToLocal();
+  renderIchigenList();
+  updateHdrTotal();
+}
+function getIchigenTotal(){
+  try{
+    const dateKey=fmtDate(selectedDate);
+    return (ichigenList[dateKey]||[]).reduce((s,ig)=>s+ig.count,0);
+  }catch(e){ return 0; }
+}
+function saveIchigenToLocal(){
+  try{ localStorage.setItem(lsKey('bentoIchigen'), JSON.stringify(ichigenList)); }catch(e){}
+  // 履歴（全日付分）は削除しない
+}
+function loadIchigenFromLocal(){
+  try{
+    const d=localStorage.getItem(lsKey('bentoIchigen'));
+    if(d){ const p=JSON.parse(d); Object.assign(ichigenList, p); }
+  }catch(e){}
+}
 
 function renderSales(){
   const allItems=MASTER.filter(m=>counts[m.id]>0);
@@ -3145,8 +3569,19 @@ function saveYoyakuMemo(){
     bulkOrders[dk][custId]=n;
   });
   saveToLocal();
+  const savedDateKey=_memoDateKey; // closeより前に保存
+  const isToday=savedDateKey===fmtDate(selectedDate);
   closeYoyakuMemo();
-  renderYoyaku();
+  // 本日分なら本日注文タブのDOMを強制再構築
+  if(isToday){
+    const area=document.getElementById('input-list-area');
+    if(area){
+      delete area.dataset.built;
+      _buildInputListDOM(area);
+    }
+  }
+  if(currentTab==='yoyaku') renderYoyaku();
+  if(currentTab==='delivery') renderDelivery();
   toast('メモを保存しました');
 }
 function deleteYoyakuMemo(){
@@ -3155,8 +3590,18 @@ function deleteYoyakuMemo(){
     delete bulkMemos[_memoDateKey][custId];
   }
   saveToLocal();
+  const savedDateKey=_memoDateKey;
+  const isToday=savedDateKey===fmtDate(selectedDate);
   closeYoyakuMemo();
-  renderYoyaku();
+  if(isToday){
+    const area=document.getElementById('input-list-area');
+    if(area){
+      delete area.dataset.built;
+      _buildInputListDOM(area);
+    }
+  }
+  if(currentTab==='yoyaku') renderYoyaku();
+  if(currentTab==='delivery') renderDelivery();
   toast('メモを削除しました');
 }
 
@@ -3786,6 +4231,8 @@ function loadFromLocal(){
     }
   }catch(e){ try{localStorage.removeItem(lsKey('bentoDone'));}catch(_){} }
   try{ updateHdrTotal(); }catch(e){}
+  loadPhotosFromLocal();
+  loadIchigenFromLocal();
 }
 
 let currentRole = '';
@@ -3976,24 +4423,21 @@ function loginDriverPink(staffId){
 function applyRole(){
   _closeAllModals();
   document.getElementById('login-screen').classList.add('hidden');
-  if(currentRole==='admin'){
-    document.getElementById('nav-input').classList.remove('hidden');
-    document.getElementById('nav-customer').classList.remove('hidden');
-    document.getElementById('nav-yoyaku').classList.remove('hidden');
-    document.getElementById('nav-summary').classList.remove('hidden');
-    document.getElementById('nav-sales').classList.remove('hidden');
+  const isDriver=currentRole==='driver';
+  // 管理者：配達ナビ非表示・他全表示 / 配達員：配達ナビのみ表示
+  ['nav-input','nav-summary','nav-yoyaku','nav-customer','nav-sales'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=isDriver?'none':'flex';
+  });
+  const navDel=document.getElementById('nav-delivery');
+  if(navDel) navDel.style.display=isDriver?'flex':'none';
+
+  if(!isDriver){
     gotoTab('input');
   } else {
-    document.getElementById('nav-input').classList.add('hidden');
-    document.getElementById('nav-customer').classList.add('hidden');
-    document.getElementById('nav-yoyaku').classList.add('hidden');
-    document.getElementById('nav-summary').classList.add('hidden');
-    document.getElementById('nav-sales').classList.add('hidden');
     if(currentDriverCourse==='all'){
       dFilter='all'; dFilterSet=new Set();
     } else if(currentDriverCourse==='multi'){
-      // dFilterSetが既にセットされていればそのまま使う（新規ログイン時）
-      // なければlocalStorageから復元（再起動時）
       if(dFilterSet.size===0){
         try{
           const saved=localStorage.getItem('driverCourses');
@@ -4005,7 +4449,6 @@ function applyRole(){
       dFilter=currentDriverCourse;
       dFilterSet=new Set([currentDriverCourse]);
     }
-    // ピンクで担当絞り込み
     if(currentDriverCourse==='pinku'&&currentDriverPinkStaff){
       dStaff=currentDriverPinkStaff;
     }
@@ -4042,9 +4485,9 @@ function toggleHdrMenu(){
     return;
   }
   // 配達タブ中は切替のみ表示
-  if(currentTab==='delivery'){
+  if(currentTab==='delivery'||currentRole==='driver'){
     m.innerHTML=`<div style="padding:6px 0;">
-      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
+      <button onclick="doLogout();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚪 ログアウト</button>
     </div>`;
   } else {
     m.innerHTML=`<div style="padding:6px 0;">
@@ -4052,7 +4495,7 @@ function toggleHdrMenu(){
       <div style="height:1px;background:var(--border);margin:0 12px;"></div>
       <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
       <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
+      <button onclick="doLogout();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚪 ログアウト</button>
     </div>`;
   }
   m.style.display='block';
