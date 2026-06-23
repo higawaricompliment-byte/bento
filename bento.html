@@ -80,7 +80,6 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 /* ── FILTER CHIPS ── */
 .frow{display:flex;gap:6px;padding:8px 14px 8px;overflow-x:auto;background:var(--bg);border-bottom:1px solid var(--border);border-top:1px solid var(--border);scrollbar-width:none;-webkit-overflow-scrolling:touch;white-space:nowrap;}
 .frow::-webkit-scrollbar{display:none;}
-.frow::-webkit-scrollbar{display:none;}
 .frow::after{content:'';flex-shrink:0;width:2px;}
 .chip{flex-shrink:0;padding:7px 13px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .15s;letter-spacing:.01em;}
 .chip:active{transform:scale(.95);}
@@ -250,8 +249,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:flex-end;backdrop-filter:blur(2px);overscroll-behavior:none;}
 .modal{background:var(--surface);border-radius:22px 22px 0 0;padding:22px 18px 36px;width:100%;max-height:88vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
 /* モーダル表示中はmainのスクロールを止める */
-body.modal-open #main{overflow:hidden;pointer-events:none;}
-body.modal-open .hdr,body.modal-open .bnav{pointer-events:none;}
+body.modal-open #main{overflow:hidden;}
 .modal-title{font-size:17px;font-weight:900;margin-bottom:18px;letter-spacing:-.3px;}
 .form-row{margin-bottom:12px;}
 .form-lbl{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:.03em;}
@@ -404,12 +402,13 @@ body.modal-open .hdr,body.modal-open .bnav{pointer-events:none;}
         </div>
       </div>
       <button class="date-nav-btn" onclick="shiftDay(1)" style="width:26px;height:26px;font-size:14px;">›</button>
+      <!-- カレンダーボタン -->
+      <button id="cal-toggle-btn" onclick="toggleCal()"
+        style="width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
     </div>
     <div class="hdr-right">
-      <button class="hdr-btn" id="cal-toggle-btn" onclick="toggleCal()" style="display:none!important;">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span id="cal-btn-label">日付</span>
-      </button>
       <div style="position:relative;">
         <button onclick="toggleHdrMenu()" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0;">
           <span style="display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;"></span>
@@ -435,6 +434,8 @@ body.modal-open .hdr,body.modal-open .bnav{pointer-events:none;}
     <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;flex:1;"></div>
   </div>
 </div>
+
+<div class="cal-dropdown hidden" id="cal-dropdown">
   <div class="cal-month-row">
     <button class="cal-nav" onclick="shiftMonth(-1)">‹</button>
     <div class="cal-month-label" id="cal-month-label"></div>
@@ -1032,13 +1033,20 @@ function updateDateBar(){
   const sub=document.getElementById('date-bar-sub');
   sub.textContent=isToday?'本日':'※日付変更中';
   sub.style.color=isToday?'var(--ao)':'var(--orenji)';
-  document.getElementById('cal-btn-label').textContent=isToday?'日付選択':`${selectedDate.getMonth()+1}/${selectedDate.getDate()}`;
-  document.getElementById('cal-toggle-btn').classList.toggle('active',!isToday);
-  // ヘッダー高さが変わる可能性があるので再計算
+  // カレンダーボタン：今日以外はオレンジ枠で強調
+  const calBtn=document.getElementById('cal-toggle-btn');
+  if(calBtn){
+    calBtn.style.borderColor=isToday?'var(--border-dark)':'var(--orenji)';
+    calBtn.style.background=isToday?'var(--bg)':'var(--orenji-bg)';
+    const icon=calBtn.querySelector('svg');
+    if(icon) icon.style.color=isToday?'var(--muted)':'var(--orenji)';
+  }
   requestAnimationFrame(adjustMainPadding);
 }
 function shiftDay(d){
-  selectedDate.setDate(selectedDate.getDate()+d);
+  const next=new Date(selectedDate);
+  next.setDate(next.getDate()+d);
+  selectedDate=next;
   initCounts(selectedDate);
   updateDateBar();
   if(currentTab==='input'){
@@ -1069,7 +1077,22 @@ function toggleCal(){
   calOpen=!calOpen;
   const cal=document.getElementById('cal-dropdown');
   const main=document.getElementById('main');
+  const calBtn=document.getElementById('cal-toggle-btn');
   if(cal) cal.classList.toggle('hidden',!calOpen);
+  // カレンダーボタンの状態更新
+  if(calBtn){
+    const icon=calBtn.querySelector('svg');
+    if(calOpen){
+      calBtn.style.background='var(--ao)';
+      calBtn.style.borderColor='var(--ao)';
+      if(icon) icon.style.color='#fff';
+    } else {
+      const isToday=sameDay(selectedDate,TODAY);
+      calBtn.style.background=isToday?'var(--bg)':'var(--orenji-bg)';
+      calBtn.style.borderColor=isToday?'var(--border-dark)':'var(--orenji)';
+      if(icon) icon.style.color=isToday?'var(--muted)':'var(--orenji)';
+    }
+  }
   if(main){
     if(calOpen){
       const calH=document.querySelector('.cal-dropdown')?.offsetHeight||240;
@@ -2093,7 +2116,7 @@ function renderStaff(){
   STAFF.forEach((s,i)=>{
     html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${i>0?'border-top:1px solid var(--border);':''}background:var(--surface);">
       <span style="font-size:14px;font-weight:700;">${s.name}</span>
-      <button class="cust-btn" style="color:#C0392B;" onclick="confirmDeleteStaff('${s.id}','${s.name}')">✕</button>
+      <button class="cust-btn" style="color:#C0392B;" data-sid="${s.id}" data-sname="${s.name.replace(/"/g,'&quot;')}" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>
     </div>`;
   });
 
@@ -3581,6 +3604,12 @@ function printInvoice(){
 function gotoTab(tab){
   const prevTab=currentTab;
   currentTab=tab;
+  // カレンダーが開いていたら閉じる
+  if(calOpen){
+    calOpen=false;
+    const cal=document.getElementById('cal-dropdown');
+    if(cal) cal.classList.add('hidden');
+  }
   ['input','delivery','customer','staff','summary','sales','yoyaku'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
     const nb=document.getElementById('nav-'+t);
@@ -3765,7 +3794,7 @@ function backFromDriverSelect(){
   });
   if(_driverSelectFrom==='modal'){
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('logout-modal').classList.remove('hidden');
+    _openModal('logout-modal');
   } else {
     document.getElementById('lc-role').classList.remove('hidden');
   }
@@ -3850,11 +3879,10 @@ function showPinkMemberSelect(){
   card.innerHTML=html;
 }
 function backFromPinkSelect(){
-  // 利用者から来た場合は役割選択へ、切替モーダルから来た場合はモーダルへ
   document.getElementById('lc-driver').classList.add('hidden');
   if(_driverSelectFrom==='modal'){
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('logout-modal').classList.remove('hidden');
+    _openModal('logout-modal');
   } else {
     document.getElementById('lc-role').classList.remove('hidden');
   }
@@ -3868,6 +3896,7 @@ function loginDriverPink(staffId){
 }
 
 function applyRole(){
+  _closeAllModals();
   document.getElementById('login-screen').classList.add('hidden');
   if(currentRole==='admin'){
     document.getElementById('nav-input').classList.remove('hidden');
@@ -3882,7 +3911,6 @@ function applyRole(){
     document.getElementById('nav-yoyaku').classList.add('hidden');
     document.getElementById('nav-summary').classList.add('hidden');
     document.getElementById('nav-sales').classList.add('hidden');
-    document.getElementById('cal-toggle-btn').classList.add('hidden');
     if(currentDriverCourse==='all'){
       dFilter='all'; dFilterSet=new Set();
     } else if(currentDriverCourse==='multi'){
@@ -3972,11 +4000,17 @@ function closeMonthlyReport(){
 }
 // 画面タップでメニューを閉じる
 document.addEventListener('touchstart',function(e){
+  // hdr-menuを外タップで閉じる
   const menu=document.getElementById('hdr-menu');
   if(menu&&menu.style.display==='block'){
     if(!menu.contains(e.target)&&!e.target.closest('[onclick*="toggleHdrMenu"]')){
       menu.style.display='none';
     }
+  }
+  // 入力欄以外タップでblur
+  const active=document.activeElement;
+  if(active&&(active.tagName==='INPUT'||active.tagName==='TEXTAREA')){
+    if(!active.contains(e.target)) active.blur();
   }
 },{passive:true});
 
@@ -3995,15 +4029,6 @@ function doLogout(){
 function closeLogoutModal(){
   _closeModal('logout-modal');
 }
-
-document.addEventListener('touchstart', function(e){
-  const active = document.activeElement;
-  if(active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA')){
-    if(!active.contains(e.target)){
-      active.blur();
-    }
-  }
-}, {passive:true});
 
 const savedRole = (() => { try{ return localStorage.getItem(LS_ROLE); }catch(e){ return null; } })();
 const savedCourse = (() => { try{ return localStorage.getItem(LS_COURSE)||'all'; }catch(e){ return 'all'; } })();
