@@ -3875,7 +3875,7 @@ setInterval(function(){
       applyRemoteState(snap.data());
     }
   }).catch(function(){ /* オフライン等は無視。次の周期で再試行される */ });
-}, 12000);
+}, 2000);
 
 function loadFromLocal(){
   try{
