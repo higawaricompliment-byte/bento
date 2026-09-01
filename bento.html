@@ -22,18 +22,21 @@ input, textarea{-webkit-user-select:auto;user-select:auto;}
 html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none;overflow:hidden;}
 
 /* PC対応：最大幅でセンタリング */
+/* 各要素の個別スタイル(left:0;right:0やinset:0、インラインstyle等)が後から効いてしまい、
+   ここでのセンタリング指定が上書きされていた(西宮→甲子園対応中に発覚)ため、
+   !important と right:auto / width を明示して確実にセンタリングされるようにする */
 @media (min-width:480px){
   body{background:#D0CFC9;display:flex;justify-content:center;}
-  .hdr{max-width:480px;left:50%;transform:translateX(-50%);}
-  .bnav{max-width:480px;left:50%;transform:translateX(-50%);}
-  .cal-dropdown{max-width:480px;left:50%;transform:translateX(-50%);}
+  .hdr{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .bnav{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .cal-dropdown{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
   .main{max-width:480px;width:480px;margin:0 auto;}
   .prog-bar{max-width:480px;left:50%;transform:translateX(-50%);}
-  #delivery-prog-bar{max-width:480px;left:50%;transform:translateX(-50%);}
-  .ftotal{max-width:480px;left:50%;transform:translateX(-50%);}
-  .modal-overlay{max-width:480px;left:50%;transform:translateX(-50%);}
-  .course-menu{max-width:480px;left:50%;transform:translateX(-50%);}
-  #print-preview-overlay{max-width:480px;left:50%;transform:translateX(-50%);}
+  #delivery-prog-bar{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .ftotal{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .modal-overlay{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .course-menu{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  #print-preview-overlay{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
 }
 
 /* ── HEADER ── */
@@ -301,9 +304,9 @@ body.modal-open #main{overflow:hidden;}
   <!-- ①店舗選択 -->
   <div class="login-card" id="lc-shop">
     <div class="login-card-title">店舗を選択</div>
-    <button class="role-btn" onclick="selectShop('西宮')" style="background:#EBF3FD;color:#0A3570;border-color:#1A6FD4;border-width:2px;">
+    <button class="role-btn" onclick="selectShop('甲子園')" style="background:#EBF3FD;color:#0A3570;border-color:#1A6FD4;border-width:2px;">
       <svg viewBox="0 0 24 24" style="stroke:#1A6FD4;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      西宮
+      甲子園
     </button>
     <button class="role-btn" onclick="selectShop('杭瀬')" style="background:#E6F5EA;color:#0D4019;border-color:#1F8C35;border-width:2px;">
       <svg viewBox="0 0 24 24" style="stroke:#1F8C35;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -386,7 +389,7 @@ body.modal-open #main{overflow:hidden;}
 <div class="hdr">
   <div class="hdr-top">
     <!-- 左：店舗名 -->
-    <div class="hdr-shop" id="hdr-shop-name" style="flex-shrink:0;">西宮</div>
+    <div class="hdr-shop" id="hdr-shop-name" style="flex-shrink:0;">甲子園</div>
     <!-- 中央：‹ 日付ブロック › -->
     <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;justify-content:flex-start;margin-left:1.4em;">
       <button class="date-nav-btn" onclick="shiftDay(-1)" style="width:26px;height:26px;font-size:14px;">‹</button>
@@ -817,8 +820,27 @@ body.modal-open #main{overflow:hidden;}
     window.dispatchEvent(new CustomEvent('firebase-ready'));
   }
 
+  // ── 店舗名の変更（西宮→甲子園）に伴う一回限りの引っ越し ──
+  // 古い名前(西宮)のデータが既にクラウドにあり、新しい名前(甲子園)のデータがまだ無ければ、
+  // 中身をそのまま新しい名前のドキュメントへコピーする（古い方は残るが使われなくなる）。
+  async function migrateShopRename(oldName, newName){
+    try{
+      const oldRef = doc(db,'shops',oldName);
+      const newRef = doc(db,'shops',newName);
+      const [oldSnap, newSnap] = await Promise.all([getDoc(oldRef), getDoc(newRef)]);
+      if(oldSnap.exists() && !newSnap.exists()){
+        await setDoc(newRef, oldSnap.data());
+        console.log(`店舗名を「${oldName}」から「${newName}」に移行しました`);
+      }
+    }catch(e){
+      console.error('店舗名の移行に失敗しました', e);
+    }
+  }
+
   onAuthStateChanged(auth, (user)=>{
-    if(user) notifyFirebaseReady();
+    if(user){
+      migrateShopRename('西宮','甲子園').finally(()=>{ notifyFirebaseReady(); });
+    }
   });
   signInAnonymously(auth).catch(err=>{
     console.error('Firebase匿名ログインに失敗しました。クラウド同期は無効化されます。', err);
@@ -879,7 +901,7 @@ let pinkTodayStaff='';
 
 // 店舗別デフォルト顧客データ
 const MASTER_DEFAULTS = {
-  '西宮': [
+  '甲子園': [
     {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:0,receipt:false,kake:false,memo:'11:30まで 2階左',staffId:''},
@@ -923,7 +945,7 @@ const MASTER_DEFAULTS = {
 };
 
 // currentShopはMASTER初期化より前に定義が必要
-let currentShop='西宮';
+let currentShop='甲子園';
 
 function MASTER_DEFAULT(){
   return JSON.parse(JSON.stringify(MASTER_DEFAULTS[currentShop]||[]));
@@ -3340,7 +3362,7 @@ function highlightYoyakuWeek(w){
 
 function renderMonthlyReport(){
   const SHOPS=[
-    {name:'西宮',target:220,color:'#1A6FD4',lightColor:'#A8C8F0',
+    {name:'甲子園',target:220,color:'#1A6FD4',lightColor:'#A8C8F0',
      months:[{m:'11月',v:207},{m:'12月',v:206},{m:'1月',v:201},{m:'2月',v:198},{m:'3月',v:195},{m:'4月',v:201}]},
     {name:'杭瀬',target:220,color:'#C45C00',lightColor:'#F5C89A',
      months:[{m:'11月',v:213},{m:'12月',v:222},{m:'1月',v:217},{m:'2月',v:210},{m:'3月',v:212},{m:'4月',v:213}]},
@@ -3440,7 +3462,7 @@ function renderMonthlyReport(){
     const d=v-s.target;
     return '　'+s.name+'：'+v+'食／日（目標比 '+(d>=0?'+':'')+d+'）';
   }).join('\n');
-  const mailStr='お疲れさまです。\n4月の平均食数の報告です。\n\n【4月 平均食数】\n'+mailLines+'\n\n目標食数\n　西宮・杭瀬：220食／日\n　立花：170食／日\n\nよろしくお願いいたします。';
+  const mailStr='お疲れさまです。\n4月の平均食数の報告です。\n\n【4月 平均食数】\n'+mailLines+'\n\n目標食数\n　甲子園・杭瀬：220食／日\n　立花：170食／日\n\nよろしくお願いいたします。';
 
   html+='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
   html+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">✉️ 報告メール</div>';
@@ -3680,6 +3702,31 @@ function saveToLocal(){
     localStorage.setItem(lsKey('bentoDoneDate'), todayKey);
   }catch(e){}
   pushToFirestore();
+  pushDailyHistory(currentShop, fmtDate(selectedDate), counts);
+}
+
+// ── 日別注文実績の永続記録（請求書計算のための土台） ──
+// 「今見ている1日分」のcountsは他の日に切り替えると上書きされてしまうため、
+// 保存のたびに、その日付専用のドキュメント(shops/{店舗}/orderHistory/{日付})へも
+// 別途書き込んでおく。こうすることで、過去の日にちの実績が消えずに積み上がっていく。
+// メインの店舗ドキュメントとは別の場所に置くことで、店舗ドキュメントが日々肥大化して
+// Firestoreのサイズ上限に近づいてしまう事態も避けられる。
+let _fbHistTimers={};
+function pushDailyHistory(shop, dateKey, countsObj){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !dateKey) return;
+  const fb=window.__fb;
+  const payload=JSON.parse(JSON.stringify(countsObj||{}));
+  const timerKey=shop+'|'+dateKey;
+  clearTimeout(_fbHistTimers[timerKey]);
+  _fbHistTimers[timerKey]=setTimeout(()=>{
+    delete _fbHistTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    const ref=fb.doc(fb.db,'shops',shop,'orderHistory',dateKey);
+    fb.setDoc(ref, {counts:payload, dateKey:dateKey, updatedAt:fb.serverTimestamp()}, {merge:true}).catch(err=>{
+      console.error('日別実績の保存に失敗しました', err);
+    });
+  }, 800);
 }
 
 // ── ここからFirestore同期（複数端末リアルタイム反映） ──
@@ -3705,7 +3752,7 @@ function buildStateSnapshot(){
     doneDate: fmtDate(new Date()),
   };
 }
-// 店舗ごとに個別のタイマーを持つ（西宮の送信待ちが、直後に杭瀬へ切り替えた操作で
+// 店舗ごとに個別のタイマーを持つ（甲子園の送信待ちが、直後に杭瀬へ切り替えた操作で
 // キャンセルされてしまう、といった事故を防ぐため）
 let _fbPushTimers={};
 function pushToFirestore(immediate){
@@ -4284,7 +4331,12 @@ function closeLogoutModal(){
 
 const savedRole = (() => { try{ return localStorage.getItem(LS_ROLE); }catch(e){ return null; } })();
 const savedCourse = (() => { try{ return localStorage.getItem(LS_COURSE)||'all'; }catch(e){ return 'all'; } })();
-const savedShop = (() => { try{ return localStorage.getItem(LS_SHOP)||''; }catch(e){ return ''; } })();
+let savedShop = (() => { try{ return localStorage.getItem(LS_SHOP)||''; }catch(e){ return ''; } })();
+// 店舗名変更(西宮→甲子園)前に保存されていた端末向けの読み替え
+if(savedShop==='西宮'){
+  savedShop='甲子園';
+  try{ localStorage.setItem(LS_SHOP, savedShop); }catch(e){}
+}
 
 // 店舗を先に確定させてからデータ読み込み
 if(savedShop){
