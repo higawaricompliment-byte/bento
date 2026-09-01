@@ -783,7 +783,7 @@ body.modal-open #main{overflow:hidden;}
   // ── Firebase(Firestore)初期化：複数端末でのリアルタイム同期用 ──
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getFirestore, doc, setDoc, onSnapshot, serverTimestamp,
+    getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp,
     enableIndexedDbPersistence
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -809,7 +809,7 @@ body.modal-open #main{overflow:hidden;}
     await enableIndexedDbPersistence(db);
   }catch(e){ /* no-op */ }
 
-  window.__fb = { db, auth, doc, setDoc, onSnapshot, serverTimestamp, ready:false };
+  window.__fb = { db, auth, doc, setDoc, getDoc, onSnapshot, serverTimestamp, ready:false };
 
   function notifyFirebaseReady(){
     if(window.__fb.ready) return;
@@ -1218,6 +1218,9 @@ function renderInputList(){
   MASTER.forEach(m=>{
     const card=document.getElementById('icard-'+m.id);
     if(!card) return;
+    // 食数を最新に同期する（他端末からのクラウド反映など、setC/spin以外の経路で
+    // countsが変わった場合でもここで必ず表示が追いつくようにする）
+    _updateCardValue(m.id);
     let visible=true;
     if(iFilter!=='all' && (m.todayCourse||m.course)!==iFilter) visible=false;
     if(q){
@@ -3843,6 +3846,36 @@ function setupRealtimeListener(shop){
     console.error('Firestoreリアルタイム同期でエラーが発生しました', err);
   });
 }
+
+// iOS Safari等では、画面をロックしたりタブを非表示にすると、裏側の通信(リアルタイム同期の接続)が
+// 一時停止されることがある。タブが再び表示された時に、接続を張り直して最新の状態を取りに行くことで、
+// 「リロードしないと最新にならない」という状態を防ぐ。
+function _resyncRealtimeIfNeeded(){
+  if(window.__fb && window.__fb.ready && currentShop){
+    setupRealtimeListener(currentShop);
+  }
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible'){ _resyncRealtimeIfNeeded(); }
+});
+window.addEventListener('pageshow', function(e){
+  if(e.persisted){ _resyncRealtimeIfNeeded(); }
+});
+window.addEventListener('focus', _resyncRealtimeIfNeeded);
+
+// 保険：リアルタイム接続(onSnapshot)が何らかの理由で裏側で切れてしまっていても、
+// 一定間隔でクラウドの最新状態を取りに行くことで、長くても数秒〜十数秒以内には
+// 必ず最新の状態に追いつくようにする（自分がまだ送信していない編集がある間は上書きしない）。
+setInterval(function(){
+  if(!(window.__fb && window.__fb.ready && currentShop)) return;
+  if(_fbPushTimers[currentShop]) return; // 未送信のローカル編集がある間はスキップ
+  const fb=window.__fb;
+  fb.getDoc(shopDocRef(currentShop)).then(function(snap){
+    if(snap.exists() && !_fbPushTimers[currentShop]){
+      applyRemoteState(snap.data());
+    }
+  }).catch(function(){ /* オフライン等は無視。次の周期で再試行される */ });
+}, 12000);
 
 function loadFromLocal(){
   try{
