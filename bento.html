@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>弁当配達管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!-- 請求書・領収書をPDFとして保存するためのライブラリ（画面の見た目をそのまま画像化してPDFに埋め込む方式。
+     日本語フォントをPDFライブラリ側に別途組み込む必要がなく、画面表示と完全に同じ見た目でPDF化できる） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --ao:#1A6FD4;--ao-bg:#EBF3FD;--ao-dk:#0A3570;
@@ -431,6 +435,8 @@ body.modal-open #main{overflow:hidden;}
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
       <div style="font-size:14px;font-weight:800;">📄 請求書プレビュー</div>
       <div style="display:flex;gap:8px;">
+        <button id="invoice-pdf-btn" onclick="downloadInvoicePdf()" style="padding:6px 14px;border-radius:8px;background:#1A6FD4;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📥 PDF保存</button>
+        <button id="invoice-mail-btn" onclick="mailInvoice()" style="padding:6px 14px;border-radius:8px;background:#1F8C35;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✉ メール</button>
         <button onclick="printInvoice()" style="padding:6px 14px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🖨 印刷</button>
         <button onclick="closeInvoiceModal()" style="padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
       </div>
@@ -3557,26 +3563,105 @@ function saveYoyaku(){
   renderInputList();
 }
 
-function sendInvoice(id){
+// ── 請求期間（締め日）の計算 ──
+function closingDateInMonth(year, monthIdx, closing){
+  if(closing==='end') return new Date(year, monthIdx+1, 0); // その月の最終日
+  return new Date(year, monthIdx, parseInt(closing));
+}
+function closingLabel(closing){
+  return closing==='end' ? '末日' : (closing?`${closing}日`:'未設定');
+}
+// todayKey以前で一番新しい締め日（＝直近で確定した請求期間の終わり）
+function mostRecentClosingDate(closing, todayKey){
+  const today=parseDateKey(todayKey);
+  let y=today.getFullYear(), mo=today.getMonth();
+  let cand=closingDateInMonth(y,mo,closing);
+  if(cand>today){ mo-=1; if(mo<0){mo=11;y-=1;} cand=closingDateInMonth(y,mo,closing); }
+  return cand;
+}
+// 指定した締め日の「1つ前」の締め日
+function previousClosingDate(closing, dateObj){
+  let y=dateObj.getFullYear(), mo=dateObj.getMonth()-1;
+  if(mo<0){mo=11;y-=1;}
+  return closingDateInMonth(y,mo,closing);
+}
+function addDaysToKey(dateKey, n){
+  const d=parseDateKey(dateKey);
+  d.setDate(d.getDate()+n);
+  return fmtDate(d);
+}
+// ── orderHistory(日別実績)から、指定期間のその顧客の実績を1日ずつ取得する ──
+async function fetchDailyCountsRange(shop, startKey, endKey, custId){
+  const fb=window.__fb;
+  const dates=[];
+  let d=parseDateKey(startKey);
+  const end=parseDateKey(endKey);
+  while(d<=end){ dates.push(fmtDate(d)); d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1); }
+  return Promise.all(dates.map(async dk=>{
+    try{
+      const snap=await fb.getDoc(fb.doc(fb.db,'shops',shop,'orderHistory',dk));
+      const c = snap.exists() ? ((snap.data().counts||{})[custId]||0) : 0;
+      return {date:dk, count:c};
+    }catch(e){ return {date:dk, count:0}; }
+  }));
+}
+// 日ごとの実績を、単価が変わった区切りごとにまとめる（月途中の単価変更に対応）
+function buildPriceRows(dailyResults){
+  const rows=[];
+  let cur=null;
+  dailyResults.forEach(r=>{
+    const p=priceOnDate(r.date);
+    if(!cur || cur.price!==p){ cur={price:p, from:r.date, to:r.date, qty:0}; rows.push(cur); }
+    cur.to=r.date;
+    cur.qty+=r.count;
+  });
+  return rows;
+}
+function fmtDateJp(dateKey){
+  const d=parseDateKey(dateKey);
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+let _invoiceCtx=null; // 直近に開いた請求書のプレビュー情報（PDF保存・メール用）
+
+async function sendInvoice(id){
   const m=MASTER.find(x=>x.id===id);
   if(!m) return;
-  const count=counts[m.id]||0;
-  const total=count*UNIT_PRICE;
-  const today=new Date();
-  const yyyy=today.getFullYear();
-  const mm=String(today.getMonth()+1).padStart(2,'0');
-  const dd=String(today.getDate()).padStart(2,'0');
-  const dateStr=`${yyyy}年${mm}月${dd}日`;
-  // 請求月（前月 or 当月）
-  const billMonth=`${yyyy}年${mm}月`;
-  // 締め日設定
-  const closing=m.closing||'末日';
-  // 支払期日（翌月末など）
-  const nextMonth=new Date(today.getFullYear(),today.getMonth()+1,0);
-  const dueDateStr=`${nextMonth.getFullYear()}年${nextMonth.getMonth()+1}月${nextMonth.getDate()}日`;
+  if(!m.closing){ toast('先に顧客編集で「締め日」を設定してください'); return; }
+  if(!window.__fb || !window.__fb.ready){ toast('通信できていません。少し待ってからもう一度お試しください'); return; }
 
+  document.getElementById('invoice-preview-body').innerHTML='<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">計算しています…</div>';
+  document.getElementById('invoice-modal').style.display='flex';
+  _openModal('invoice-modal');
+
+  const todayKey=fmtDate(new Date());
+  const closing=m.closing;
+  const periodEndDate=mostRecentClosingDate(closing, todayKey);
+  const periodEndKey=fmtDate(periodEndDate);
+  const periodStartKey=addDaysToKey(fmtDate(previousClosingDate(closing, periodEndDate)),1);
+  // 支払期限：期間終了の翌月末（正式なルールは未確定のため暫定）
+  const due=new Date(periodEndDate.getFullYear(), periodEndDate.getMonth()+2, 0);
+  const dueDateStr=`${due.getFullYear()}年${due.getMonth()+1}月${due.getDate()}日`;
+
+  const dailyResults=await fetchDailyCountsRange(currentShop, periodStartKey, periodEndKey, id);
+  const rows=buildPriceRows(dailyResults).filter(r=>r.qty>0);
+  const total=rows.reduce((s,r)=>s+r.qty*r.price,0);
+  const totalQty=rows.reduce((s,r)=>s+r.qty,0);
+
+  const today=new Date();
+  const invoiceNo=`${fmtDate(today).replace(/-/g,'')}-${periodEndKey.replace(/-/g,'')}-${m.id}`;
   const billName=m.billname||m.name;
-  const invoiceNo=`${yyyy}${mm}-${m.id}`;
+
+  _invoiceCtx={kind:'invoice', customerId:id, customerName:billName, email:m.email||'', invoiceNo, total, periodStartKey, periodEndKey};
+
+  const rowsHtml = rows.length ? rows.map(r=>`
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:10px 8px;">${fmtDateJp(r.from)}〜${fmtDateJp(r.to)}　弁当</td>
+            <td style="padding:10px 8px;text-align:center;">${r.qty}食</td>
+            <td style="padding:10px 8px;text-align:right;">¥${r.price.toLocaleString()}</td>
+            <td style="padding:10px 8px;text-align:right;font-weight:700;">¥${(r.qty*r.price).toLocaleString()}</td>
+          </tr>`).join('')
+    : `<tr><td colspan="4" style="padding:14px 8px;text-align:center;color:#999;">この期間の実績データがありません</td></tr>`;
 
   const html=`
     <div id="invoice-print-area" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;">
@@ -3590,17 +3675,17 @@ function sendInvoice(id){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
         <div>
           <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${billName} 御中</div>
-          <div style="font-size:11px;color:#666;">締め日：${closing}</div>
+          <div style="font-size:11px;color:#666;">対象期間：${fmtDateJp(periodStartKey)}〜${fmtDateJp(periodEndKey)}（${closingLabel(closing)}締め）</div>
         </div>
         <div style="text-align:right;font-size:11px;color:#666;line-height:1.8;">
-          <div>発行日：${dateStr}</div>
+          <div>発行日：${fmtDateJp(fmtDate(today))}</div>
           <div>お支払期限：${dueDateStr}</div>
         </div>
       </div>
 
       <!-- 請求金額 -->
       <div style="background:#f0f4ff;border:2px solid #1A6FD4;border-radius:10px;padding:14px 18px;margin-bottom:20px;text-align:center;">
-        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">ご請求金額（税込）</div>
+        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">ご請求金額（税込・合計${totalQty}食）</div>
         <div style="font-size:28px;font-weight:900;color:#1A6FD4;">¥ ${total.toLocaleString()}<span style="font-size:14px;">円</span></div>
       </div>
 
@@ -3614,14 +3699,7 @@ function sendInvoice(id){
             <th style="padding:8px;text-align:right;font-weight:700;">金額</th>
           </tr>
         </thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:10px 8px;">${billMonth}分　弁当</td>
-            <td style="padding:10px 8px;text-align:center;">${count}食</td>
-            <td style="padding:10px 8px;text-align:right;">¥${UNIT_PRICE.toLocaleString()}</td>
-            <td style="padding:10px 8px;text-align:right;font-weight:700;">¥${total.toLocaleString()}</td>
-          </tr>
-        </tbody>
+        <tbody>${rowsHtml}</tbody>
         <tfoot>
           <tr style="border-top:2px solid #ddd;background:#fafafa;">
             <td colspan="3" style="padding:8px;text-align:right;font-weight:700;">合計（税込）</td>
@@ -3650,12 +3728,48 @@ function sendInvoice(id){
   `;
 
   document.getElementById('invoice-preview-body').innerHTML=html;
-  document.getElementById('invoice-modal').style.display='flex';
-  _openModal('invoice-modal');
 }
 function closeInvoiceModal(){
   _closeModal('invoice-modal');
   document.getElementById('invoice-modal').style.display='none';
+}
+// プレビュー(#invoice-print-area)の見た目をそのまま画像化してPDFに埋め込む。
+// 日本語フォントをPDF側に個別組み込みする必要がなく、画面と同じ見た目で保存できる。
+async function _renderPrintAreaToPdf(){
+  const area=document.getElementById('invoice-print-area');
+  if(!area) return null;
+  const canvas=await html2canvas(area, {scale:2, backgroundColor:'#ffffff'});
+  const imgData=canvas.toDataURL('image/png');
+  const { jsPDF }=window.jspdf;
+  const pageWidth=210, pageHeight=297; // A4 (mm)
+  const imgWidth=pageWidth-20;
+  const imgHeight=canvas.height*imgWidth/canvas.width;
+  const pdf=new jsPDF('p','mm','a4');
+  pdf.addImage(imgData,'PNG',10,10,imgWidth, Math.min(imgHeight, pageHeight-20));
+  return pdf;
+}
+async function downloadInvoicePdf(){
+  if(typeof html2canvas==='undefined' || !window.jspdf){ toast('PDF機能の読み込みに失敗しました。通信環境を確認してください'); return; }
+  toast('PDFを作成しています…');
+  try{
+    const pdf=await _renderPrintAreaToPdf();
+    if(!pdf) return;
+    const name=_invoiceCtx ? `請求書_${_invoiceCtx.customerName}_${_invoiceCtx.periodEndKey}.pdf` : '請求書.pdf';
+    pdf.save(name);
+  }catch(e){
+    console.error('PDF作成に失敗しました', e);
+    toast('PDFの作成に失敗しました');
+  }
+}
+// 現時点ではメール本文の下書きを開くところまで（PDFはダウンロードしたものを手動で添付してもらう）
+function mailInvoice(){
+  if(!_invoiceCtx){ toast('請求書を開き直してください'); return; }
+  if(!_invoiceCtx.email){ toast('この顧客にメールアドレスが登録されていません（顧客編集から設定してください）'); return; }
+  const subject=encodeURIComponent(`【${GLOBAL_SETTINGS.companyName}】ご請求書（${fmtDateJp(_invoiceCtx.periodEndKey)}締め）`);
+  const body=encodeURIComponent(
+    `${_invoiceCtx.customerName} 様\n\nいつもお世話になっております。\n${fmtDateJp(_invoiceCtx.periodStartKey)}〜${fmtDateJp(_invoiceCtx.periodEndKey)}分のご請求書をお送りいたします。\nご請求金額：${_invoiceCtx.total.toLocaleString()}円\n\n先ほど保存したPDFファイルをこのメールに添付してご送信ください。\n\nよろしくお願いいたします。\n${GLOBAL_SETTINGS.companyName}`
+  );
+  window.location.href=`mailto:${_invoiceCtx.email}?subject=${subject}&body=${body}`;
 }
 function printInvoice(){
   const body=document.getElementById('invoice-print-area')?.innerHTML||'';
@@ -3978,37 +4092,44 @@ function pushToFirestore(immediate){
   _fbPushTimers[shopAtCall]=setTimeout(doPush, 400);
 }
 
-// 入力中（テキスト入力欄にフォーカスがある間）は、リモートからの更新で
-// 画面を再描画してカーソル位置や入力中の内容を失わせないようにする
+// 入力中（テキスト入力欄にフォーカスがある間）は、リモートからの更新を
+// 一切反映しないようにする（画面の再描画だけでなく、裏側のデータの差し替え自体も
+// 保留する）。以前は再描画だけを保留していたが、それだと入力中でも裏側のsalesData等の
+// オブジェクトが丸ごと差し替わってしまい、入力欄の表示が一瞬揺れる／古い値に戻る
+// 不具合の原因になっていた（例：売上タブのPayPay金額入力中に画面がガタつく）。
 let _pendingRemoteRerender=false;
+let _pendingRemoteData=null;
 function _canSafeRerenderNow(){
   const ae=document.activeElement;
   return !(ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA'));
 }
-function _rerenderAfterRemoteChange(){
-  if(_canSafeRerenderNow()){
-    _pendingRemoteRerender=false;
+function _applyPendingRemoteIfAny(){
+  if(!_pendingRemoteRerender) return;
+  if(!_canSafeRerenderNow()) return;
+  _pendingRemoteRerender=false;
+  const data=_pendingRemoteData;
+  _pendingRemoteData=null;
+  if(data){ applyRemoteState(data); }
+  else {
     try{ renderCurrentTab(); }catch(e){}
     try{ updateHdrTotal(); }catch(e){}
-  } else {
-    _pendingRemoteRerender=true;
   }
 }
 document.addEventListener('focusout', function(e){
   if(!_pendingRemoteRerender) return;
-  setTimeout(()=>{
-    if(_pendingRemoteRerender && _canSafeRerenderNow()){
-      _pendingRemoteRerender=false;
-      try{ renderCurrentTab(); }catch(e){}
-      try{ updateHdrTotal(); }catch(e){}
-    }
-  }, 50);
+  setTimeout(_applyPendingRemoteIfAny, 50);
 }, true);
 
 // Firestoreから届いたデータ(1店舗分の状態)を、既存のメモリ上の変数に反映する
 // (loadFromLocal()のFirestore版に相当。ローカル保存の形式に合わせてある)
 function applyRemoteState(data){
   if(!data) return;
+  if(!_canSafeRerenderNow()){
+    // 入力欄にフォーカス中：最新のデータだけ覚えておき、反映は入力が終わってから行う
+    _pendingRemoteData=data;
+    _pendingRemoteRerender=true;
+    return;
+  }
   if(Array.isArray(data.master)) MASTER.splice(0,MASTER.length,...data.master);
   if(data.counts && typeof data.counts==='object'){
     Object.keys(counts).forEach(k=>delete counts[k]);
@@ -4070,7 +4191,9 @@ function applyRemoteState(data){
   //  見逃してしまい、カードが古いコースの場所に残り続けるバグになる)
   const _inputArea=document.getElementById('input-list-area');
   if(_inputArea) delete _inputArea.dataset.built;
-  _rerenderAfterRemoteChange();
+  _pendingRemoteRerender=false;
+  try{ renderCurrentTab(); }catch(e){}
+  try{ updateHdrTotal(); }catch(e){}
 }
 
 let _fbUnsub=null;
@@ -4124,9 +4247,14 @@ window.addEventListener('focus', _resyncRealtimeIfNeeded);
 setInterval(function(){
   if(!(window.__fb && window.__fb.ready && currentShop)) return;
   if(_fbPushTimers[currentShop]) return; // 未送信のローカル編集がある間はスキップ
+  if(!_canSafeRerenderNow()) return; // 入力欄にフォーカス中は、裏側のデータを差し替えない
+                                      // (以前は画面の再描画だけガードしていたが、フォーカス中でも
+                                      //  salesData等のデータ自体を丸ごと入れ替えてしまっていたため、
+                                      //  入力中の数値がクラウドの少し古い値に一瞬置き換わり、
+                                      //  カンマ区切り表示等で見た目が揺れる不具合の原因になっていた)
   const fb=window.__fb;
   fb.getDoc(shopDocRef(currentShop)).then(function(snap){
-    if(snap.exists() && !_fbPushTimers[currentShop]){
+    if(snap.exists() && !_fbPushTimers[currentShop] && _canSafeRerenderNow()){
       applyRemoteState(snap.data());
     }
   }).catch(function(){ /* オフライン等は無視。次の周期で再試行される */ });
