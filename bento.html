@@ -438,6 +438,7 @@ body.modal-open #main{overflow:hidden;}
       <div style="display:flex;gap:8px;">
         <button id="invoice-pdf-btn" onclick="downloadInvoicePdf()" style="padding:6px 14px;border-radius:8px;background:#1A6FD4;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📥 PDF保存</button>
         <button id="invoice-mail-btn" onclick="mailInvoice()" style="padding:6px 14px;border-radius:8px;background:#1F8C35;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✉ メール</button>
+        <button id="invoice-autosend-btn" onclick="autoSendInvoice()" style="padding:6px 14px;border-radius:8px;background:#E5A100;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📧 自動送信</button>
         <button onclick="printInvoice()" style="padding:6px 14px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🖨 印刷</button>
         <button onclick="closeInvoiceModal()" style="padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
       </div>
@@ -684,6 +685,18 @@ body.modal-open #main{overflow:hidden;}
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeDelConfirm()">キャンセル</button>
       <button class="btn-del-full" style="margin-top:0;" id="del-confirm-btn" onclick="execDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 請求書メール自動送信の確認モーダル -->
+<div class="modal-overlay hidden" id="invoice-send-confirm-modal" style="z-index:900;" onclick="if(event.target===this)closeInvoiceSendConfirm()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding:24px 18px 32px;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px;text-align:center;">請求書メールを送信しますか？</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;" id="invoice-send-confirm-sub"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeInvoiceSendConfirm()">キャンセル</button>
+      <button style="margin-top:0;padding:14px;border-radius:var(--radius-sm);border:none;background:#1F8C35;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="execAutoSendInvoice()">送信する</button>
     </div>
   </div>
 </div>
@@ -1112,7 +1125,7 @@ function _closeModal(id){
 }
 function _closeAllModals(){
   ['cust-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
-   'yoyaku-memo-modal',
+   'yoyaku-memo-modal','invoice-send-confirm-modal',
    'monthly-report-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.classList.add('hidden'); if(id==='invoice-modal') el.style.display='none'; }
@@ -3907,6 +3920,71 @@ function mailInvoice(){
   );
   window.location.href=`mailto:${_invoiceCtx.email}?subject=${subject}&body=${body}`;
 }
+
+// ── 請求書メールの自動送信（Brevo経由・Google Apps Script中継） ──
+// Google Apps ScriptをWebアプリとして公開した時に発行されるURLをここに貼り付ける
+const INVOICE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbz3MGTGf88wYkrzOkv1aUejtnnH680rvywnUQpJIeuHlaClrZZTd5xmIEjHLTQP7ZYQ/exec';
+// Google Apps Script側のSHARED_SECRETと必ず同じ値にする（本人がAppsScript側の値を変えない限り、ここも変更不要）
+const SEND_INVOICE_SECRET = 'raG3G239DLDiKIsQhkfODfMAsG6rlQxp';
+
+function autoSendInvoice(){
+  if(!_invoiceCtx){ toast('請求書を開き直してください'); return; }
+  if(!_invoiceCtx.email){ toast('この顧客にメールアドレスが登録されていません（顧客編集から設定してください）'); return; }
+  if(!INVOICE_WEBAPP_URL || INVOICE_WEBAPP_URL.indexOf('PASTE_YOUR')===0){
+    toast('自動送信の設定がまだ完了していません'); return;
+  }
+  document.getElementById('invoice-send-confirm-sub').textContent =
+    `${_invoiceCtx.customerName} 様（${_invoiceCtx.email}）に、ご請求金額 ${_invoiceCtx.total.toLocaleString()}円 の請求書メールを送信します`;
+  _openModal('invoice-send-confirm-modal');
+}
+function closeInvoiceSendConfirm(){
+  _closeModal('invoice-send-confirm-modal');
+}
+async function execAutoSendInvoice(){
+  closeInvoiceSendConfirm();
+  if(!_invoiceCtx) return;
+  const btn=document.getElementById('invoice-autosend-btn');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.6'; }
+  toast('請求書メールを送信しています…');
+  try{
+    const pdf=await _renderPrintAreaToPdf();
+    if(!pdf){ toast('PDFの作成に失敗しました'); return; }
+    const dataUri=pdf.output('datauristring');
+    const base64=dataUri.substring(dataUri.indexOf('base64,')+7);
+    const subject=`【${GLOBAL_SETTINGS.companyName}】ご請求書（${fmtDateJp(_invoiceCtx.periodEndKey)}締め）`;
+    const bodyText=`${_invoiceCtx.customerName} 様\n\nいつもお世話になっております。\n${fmtDateJp(_invoiceCtx.periodStartKey)}〜${fmtDateJp(_invoiceCtx.periodEndKey)}分のご請求書をお送りいたします。\nご請求金額：${_invoiceCtx.total.toLocaleString()}円\n\n添付のPDFをご確認ください。\n\nよろしくお願いいたします。\n${GLOBAL_SETTINGS.companyName}`;
+    const payload={
+      secretToken: SEND_INVOICE_SECRET,
+      shop: currentShop,
+      toEmail: _invoiceCtx.email,
+      toName: _invoiceCtx.customerName,
+      subject,
+      bodyText,
+      pdfBase64: base64,
+      pdfFilename: `請求書_${_invoiceCtx.customerName}_${_invoiceCtx.periodEndKey}.pdf`,
+    };
+    // Content-Typeをtext/plainにすることで、ブラウザによる余計な事前確認通信(プリフライト)を避け、
+    // Google Apps Script側にそのままJSON文字列を届ける（Apps Script側でJSON.parseする）
+    const res=await fetch(INVOICE_WEBAPP_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+    });
+    const result=await res.json();
+    if(result.success){
+      toast('請求書メールを送信しました');
+    } else {
+      console.error('請求書メールの送信に失敗しました', result.error);
+      toast('送信に失敗しました：'+(result.error||'不明なエラー'));
+    }
+  }catch(e){
+    console.error('自動送信エラー', e);
+    toast('送信中にエラーが発生しました。通信環境をご確認ください');
+  }finally{
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+  }
+}
+
 function printInvoice(){
   const body=document.getElementById('invoice-print-area')?.innerHTML||'';
   const overlay=document.createElement('div');
