@@ -4099,6 +4099,7 @@ function pushToFirestore(immediate){
 // 不具合の原因になっていた（例：売上タブのPayPay金額入力中に画面がガタつく）。
 let _pendingRemoteRerender=false;
 let _pendingRemoteData=null;
+let _lastAppliedRemoteTs=null; // 直近に反映したFirestoreデータの更新時刻(ms)。同じ内容の再反映を防ぐ
 function _canSafeRerenderNow(){
   const ae=document.activeElement;
   return !(ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA'));
@@ -4124,12 +4125,19 @@ document.addEventListener('focusout', function(e){
 // (loadFromLocal()のFirestore版に相当。ローカル保存の形式に合わせてある)
 function applyRemoteState(data){
   if(!data) return;
+  // 内容が前回反映した時と変わっていなければ、何もしない。
+  // (2秒おきの保険の確認は、変化の有無に関わらず必ずここまで来ていたため、
+  //  タブを開いている間ずっと2秒ごとに画面全体が無条件に作り直され、
+  //  それが「開いた瞬間からずっと画面がガクガクする」不具合の原因になっていた)
+  const _remoteTs=(data.updatedAt && typeof data.updatedAt.toMillis==='function') ? data.updatedAt.toMillis() : null;
+  if(_remoteTs!==null && _remoteTs===_lastAppliedRemoteTs) return;
   if(!_canSafeRerenderNow()){
     // 入力欄にフォーカス中：最新のデータだけ覚えておき、反映は入力が終わってから行う
     _pendingRemoteData=data;
     _pendingRemoteRerender=true;
     return;
   }
+  _lastAppliedRemoteTs=_remoteTs;
   if(Array.isArray(data.master)) MASTER.splice(0,MASTER.length,...data.master);
   if(data.counts && typeof data.counts==='object'){
     Object.keys(counts).forEach(k=>delete counts[k]);
