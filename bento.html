@@ -265,7 +265,8 @@ body.modal-open #main{overflow:hidden;}
 .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;}
 .btn-cancel{padding:14px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);background:var(--bg);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);}
-.btn-save{padding:14px;border-radius:var(--radius-sm);border:none;background:var(--text);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-save{padding:14px;border-radius:var(--radius-sm);border:none;background:var(--text);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .1s ease,opacity .1s ease;}
+.btn-save:active{transform:scale(.96);opacity:.8;}
 .btn-del-full{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;background:#C0392B;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;}
 .del-confirm-msg{background:#FFF0EE;border:1px solid #F0C0B8;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:6px;font-size:13px;color:#7A1A1A;font-weight:600;}
 
@@ -275,7 +276,7 @@ body.modal-open #main{overflow:hidden;}
 .logout-modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:500;}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(23,23,26,.92);color:#fff;padding:9px 20px;border-radius:22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .18s;z-index:700;white-space:nowrap;backdrop-filter:blur(8px);}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(23,23,26,.92);color:#fff;padding:9px 20px;border-radius:22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .18s;z-index:2000;white-space:nowrap;backdrop-filter:blur(8px);}
 .toast.on{opacity:1;}
 
 /* ── MISC ── */
@@ -527,12 +528,12 @@ body.modal-open #main{overflow:hidden;}
 
     <div class="form-row">
       <div class="form-lbl">お客様名</div>
-      <input class="form-input" id="cm-name" type="text" placeholder="例：松秀幼稚園"
+      <input class="form-input" id="cm-name" type="text" placeholder="例：〇〇株式会社"
         oninput="onCmNameInput()">
     </div>
     <div class="form-row" style="margin-top:-6px;">
       <div class="form-lbl">よみがな</div>
-      <input class="form-input" id="cm-yomi" type="text" placeholder="例：まつひでようちえん"
+      <input class="form-input" id="cm-yomi" type="text" placeholder="例：〇〇かぶしきがいしゃ"
         style="margin-top:4px;">
     </div>
 
@@ -597,7 +598,7 @@ body.modal-open #main{overflow:hidden;}
       </div>
       <div>
         <div class="form-lbl">メモ</div>
-        <textarea class="form-input" id="cm-memo" placeholder="例：2階・インターホン" rows="3" style="resize:none;height:auto;"></textarea>
+        <textarea class="form-input" id="cm-memo" rows="3" style="resize:none;height:auto;"></textarea>
       </div>
     </div>
 
@@ -3630,7 +3631,7 @@ async function renderMonthlyReport(){
 
   // 画像として保存するのはグラフ・表まで（報告メール文面とボタンは画像に写り込まない）
   const html='<div id="monthly-report-capture" style="background:var(--bg);">'+body+'</div>'
-    +'<button onclick="downloadReportImage()" style="width:100%;padding:13px;border-radius:10px;background:var(--ao);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:10px;">📷 画像として保存（LINE WORKS等への共有用）</button>'
+    +'<button onclick="downloadReportImage()" style="width:100%;padding:13px;border-radius:10px;background:var(--ao);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:10px;">📷 画像として保存</button>'
     +mailBody;
 
   contentEl.innerHTML=html;
@@ -3642,8 +3643,28 @@ async function downloadReportImage(){
   toast('画像を作成しています…');
   try{
     const canvas=await html2canvas(area, {scale:2, backgroundColor:'#f5f4f1'});
+    const fileName='月次レポート_'+fmtDate(new Date())+'.png';
+    // iPhone(Safari)では<a download>によるダウンロードが反応しないことがあるため、
+    // 対応している端末ではまず「共有」画面を開く方式を使う。
+    // これなら「写真に保存」も「LINE WORKSに直接送る」もこの一つの画面から選べる。
+    let shared=false;
+    try{
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+      if(blob && navigator.canShare && navigator.share){
+        const file=new File([blob], fileName, {type:'image/png'});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file], title:'月次レポート'});
+          shared=true;
+        }
+      }
+    }catch(shareErr){
+      if(shareErr && shareErr.name==='AbortError'){ shared=true; } // 本人が共有画面を閉じただけなので、エラー扱いにしない
+      else console.error('共有に失敗しました。ダウンロード方式に切り替えます', shareErr);
+    }
+    if(shared) return;
+    // 共有に対応していない端末（パソコンのブラウザ等）では、従来通りダウンロードする
     const link=document.createElement('a');
-    link.download='月次レポート_'+fmtDate(new Date())+'.png';
+    link.download=fileName;
     link.href=canvas.toDataURL('image/png');
     link.click();
   }catch(e){
