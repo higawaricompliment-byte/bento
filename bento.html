@@ -316,6 +316,7 @@ body.modal-open #main{overflow:hidden;}
       <svg viewBox="0 0 24 24" style="stroke:#C45C00;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       立花
     </button>
+    <button onclick="openGlobalSettingsGate()" style="width:100%;margin-top:10px;padding:8px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;text-decoration:underline;">⚙ 共通設定（単価・請求書情報）</button>
   </div>
 
   <!-- ②役割選択 -->
@@ -776,6 +777,62 @@ body.modal-open #main{overflow:hidden;}
         </button>
       </div>
       <button style="width:100%;padding:10px;border:none;background:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500;text-decoration:underline;" onclick="doLogout()">別の店舗に切り替える</button>
+    </div>
+  </div>
+</div>
+
+<!-- 共通設定：管理者パスワード確認 -->
+<div class="modal-overlay hidden" id="gs-pin-modal" style="z-index:1100;" onclick="closeGsPinModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">管理者パスワード</div>
+    <input class="pw-input" id="gs-pin-input" type="password" placeholder="パスワードを入力" inputmode="numeric" pattern="[0-9]*" maxlength="4" onkeydown="if(event.key==='Enter')checkGsPin()" oninput="if(this.value.length===4)checkGsPin()">
+    <div class="hidden" id="gs-pin-error" style="color:#C0392B;font-size:12px;font-weight:700;margin-bottom:8px;">パスワードが違います</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeGsPinModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 共通設定：単価・振込先・会社情報 -->
+<div class="modal-overlay hidden" id="global-settings-modal" style="align-items:flex-start;overflow-y:auto;padding:0;z-index:1100;">
+  <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
+      <div style="font-size:16px;font-weight:900;">⚙ 共通設定</div>
+      <button onclick="closeGlobalSettingsModal()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
+    </div>
+
+    <div style="background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🍱 弁当単価（全店舗共通・税込）</div>
+      <div id="gs-price-history" style="margin-bottom:12px;"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;">新しい単価を追加</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input class="form-input" id="gs-new-price" type="number" min="0" placeholder="例：700">
+        <input class="form-input" id="gs-new-price-date" type="date">
+      </div>
+      <button class="btn-save" style="width:100%;" onclick="addPriceHistoryEntry()">この単価を追加</button>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">※ 過去の金額には影響しません。指定した日から新しい単価が使われます。</div>
+    </div>
+
+    <div style="background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🏦 振込先（請求書に記載）</div>
+      <div class="form-row"><div class="form-lbl">銀行名</div><input class="form-input" id="gs-bank-name" type="text" placeholder="例：〇〇銀行"></div>
+      <div class="form-row"><div class="form-lbl">支店名</div><input class="form-input" id="gs-bank-branch" type="text" placeholder="例：〇〇支店"></div>
+      <div class="form-row"><div class="form-lbl">口座種別</div>
+        <select class="form-select" id="gs-bank-type"><option value="普通">普通</option><option value="当座">当座</option></select>
+      </div>
+      <div class="form-row"><div class="form-lbl">口座番号</div><input class="form-input" id="gs-bank-number" type="text" placeholder="例：1234567"></div>
+      <div class="form-row"><div class="form-lbl">口座名義</div><input class="form-input" id="gs-bank-holder" type="text" placeholder="例：カ）コンプリメント"></div>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveBankInfo()">振込先を保存</button>
+    </div>
+
+    <div style="background:var(--surface);border-radius:var(--radius);padding:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🏢 会社情報（請求書・領収書に記載／全店舗共通）</div>
+      <div class="form-row"><div class="form-lbl">会社名</div><input class="form-input" id="gs-co-name" type="text"></div>
+      <div class="form-row"><div class="form-lbl">郵便番号</div><input class="form-input" id="gs-co-postal" type="text"></div>
+      <div class="form-row"><div class="form-lbl">住所</div><input class="form-input" id="gs-co-address" type="text"></div>
+      <div class="form-row"><div class="form-lbl">電話番号</div><input class="form-input" id="gs-co-phone" type="text"></div>
+      <div class="form-row"><div class="form-lbl">登録番号</div><input class="form-input" id="gs-co-regno" type="text"></div>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveCompanyInfo()">会社情報を保存</button>
     </div>
   </div>
 </div>
@@ -2438,7 +2495,7 @@ function ensureSalesData(dateKey){
   return salesData;
 }
 ensureSalesData(fmtDate(selectedDate));
-const UNIT_PRICE=650;
+let UNIT_PRICE=650;
 
 function renderSales(){
   const allItems=MASTER.filter(m=>counts[m.id]>0);
@@ -3577,14 +3634,17 @@ function sendInvoice(id){
       <div style="border:1px solid #ddd;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:11px;">
         <div style="font-weight:800;margin-bottom:6px;">【お振込先】</div>
         <div style="color:#444;line-height:1.8;">
-          銀行名・支店名・口座番号はスプレッドシート連携後に自動入力されます
+          ${(GLOBAL_SETTINGS.bankName||GLOBAL_SETTINGS.bankBranch||GLOBAL_SETTINGS.bankNumber)
+            ? `${GLOBAL_SETTINGS.bankName} ${GLOBAL_SETTINGS.bankBranch}<br>${GLOBAL_SETTINGS.bankType||'普通'} ${GLOBAL_SETTINGS.bankNumber}<br>${GLOBAL_SETTINGS.bankHolder}`
+            : '振込先が未設定です（店舗選択画面の「共通設定」から入力してください）'}
         </div>
       </div>
 
       <!-- 発行元 -->
       <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
-        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">株式会社コンプリメント</div>
-        <div>${currentShop}店</div>
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${GLOBAL_SETTINGS.companyName}</div>
+        <div>${GLOBAL_SETTINGS.postalCode} ${GLOBAL_SETTINGS.address}</div>
+        <div>TEL ${GLOBAL_SETTINGS.phone}　登録番号：${GLOBAL_SETTINGS.registrationNumber}</div>
       </div>
     </div>
   `;
@@ -3729,6 +3789,147 @@ function pushDailyHistory(shop, dateKey, countsObj){
   }, 800);
 }
 
+// ── 共通設定（単価履歴・振込先・会社情報）：全店舗共通、settings/global に保存 ──
+const GLOBAL_SETTINGS_DEFAULT = {
+  companyName:'株式会社コンプリメント',
+  postalCode:'〒660-0814',
+  address:'兵庫県尼崎市杭瀬本町1丁目2-5',
+  phone:'06-6423-8432',
+  registrationNumber:'T3140001110987',
+  bankName:'', bankBranch:'', bankType:'普通', bankNumber:'', bankHolder:'',
+  priceHistory:[{price:650, effectiveFrom:'2026-08-01'}],
+};
+let GLOBAL_SETTINGS=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT));
+let _gsUnsub=null;
+
+function settingsDocRef(){
+  const fb=window.__fb;
+  return fb.doc(fb.db,'settings','global');
+}
+function applyGlobalSettings(data){
+  if(!data) return;
+  GLOBAL_SETTINGS=Object.assign({}, GLOBAL_SETTINGS_DEFAULT, data);
+  if(!Array.isArray(GLOBAL_SETTINGS.priceHistory) || GLOBAL_SETTINGS.priceHistory.length===0){
+    GLOBAL_SETTINGS.priceHistory=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.priceHistory));
+  }
+  // 日々の売上表示・請求書プレビューで使う「現時点の単価」を更新
+  UNIT_PRICE = priceOnDate(fmtDate(new Date()));
+}
+function setupGlobalSettingsListener(){
+  if(!window.__fb || !window.__fb.ready) return;
+  const fb=window.__fb;
+  if(_gsUnsub){ try{ _gsUnsub(); }catch(e){} }
+  const ref=settingsDocRef();
+  _gsUnsub=fb.onSnapshot(ref, (snap)=>{
+    if(snap.exists()){
+      applyGlobalSettings(snap.data());
+      if(document.getElementById('global-settings-modal') && !document.getElementById('global-settings-modal').classList.contains('hidden')){
+        renderGlobalSettingsForm();
+      }
+    } else {
+      // クラウドにまだ設定が無い（初回導入時）→ デフォルト値を書き込んでおく
+      fb.setDoc(ref, GLOBAL_SETTINGS_DEFAULT).catch(err=>console.error('共通設定の初期作成に失敗しました', err));
+    }
+  }, (err)=>{ console.error('共通設定の取得に失敗しました', err); });
+}
+function saveGlobalSettingsPatch(patch){
+  if(!window.__fb || !window.__fb.ready){ toast('通信できていません。少し待ってからもう一度お試しください'); return; }
+  const fb=window.__fb;
+  Object.assign(GLOBAL_SETTINGS, patch);
+  fb.setDoc(settingsDocRef(), Object.assign({}, patch, {updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
+    console.error('共通設定の保存に失敗しました', err);
+    toast('保存に失敗しました');
+  });
+}
+// 指定した日付(YYYY-MM-DD)時点で有効な単価を返す（価格履歴から、その日以前で一番新しい適用開始日のものを探す）
+function priceOnDate(dateKey){
+  const hist=(GLOBAL_SETTINGS.priceHistory||[]).slice().sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1);
+  let price=hist.length?hist[0].price:650;
+  hist.forEach(h=>{ if(h.effectiveFrom<=dateKey) price=h.price; });
+  return price;
+}
+
+function openGlobalSettingsGate(){
+  document.getElementById('gs-pin-input').value='';
+  document.getElementById('gs-pin-error').classList.add('hidden');
+  _openModal('gs-pin-modal');
+  setTimeout(()=>document.getElementById('gs-pin-input').focus(),100);
+}
+function closeGsPinModal(){
+  blurAll();
+  _closeModal('gs-pin-modal');
+}
+function checkGsPin(){
+  const v=document.getElementById('gs-pin-input').value;
+  if(v===ADMIN_PW){
+    closeGsPinModal();
+    openGlobalSettingsModal();
+  } else {
+    document.getElementById('gs-pin-error').classList.remove('hidden');
+    document.getElementById('gs-pin-input').value='';
+  }
+}
+function openGlobalSettingsModal(){
+  renderGlobalSettingsForm();
+  _openModal('global-settings-modal');
+}
+function closeGlobalSettingsModal(){
+  blurAll();
+  _closeModal('global-settings-modal');
+}
+function renderGlobalSettingsForm(){
+  const hist=(GLOBAL_SETTINGS.priceHistory||[]).slice().sort((a,b)=>a.effectiveFrom<b.effectiveFrom?1:-1);
+  document.getElementById('gs-price-history').innerHTML = hist.map(h=>
+    `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="color:var(--muted);">${h.effectiveFrom}〜</span>
+      <span style="font-weight:800;">¥${Number(h.price).toLocaleString()}</span>
+    </div>`
+  ).join('') || '<div style="color:var(--muted);font-size:12px;">単価がまだ設定されていません</div>';
+  document.getElementById('gs-new-price-date').value = fmtDate(new Date());
+  document.getElementById('gs-bank-name').value = GLOBAL_SETTINGS.bankName||'';
+  document.getElementById('gs-bank-branch').value = GLOBAL_SETTINGS.bankBranch||'';
+  document.getElementById('gs-bank-type').value = GLOBAL_SETTINGS.bankType||'普通';
+  document.getElementById('gs-bank-number').value = GLOBAL_SETTINGS.bankNumber||'';
+  document.getElementById('gs-bank-holder').value = GLOBAL_SETTINGS.bankHolder||'';
+  document.getElementById('gs-co-name').value = GLOBAL_SETTINGS.companyName||'';
+  document.getElementById('gs-co-postal').value = GLOBAL_SETTINGS.postalCode||'';
+  document.getElementById('gs-co-address').value = GLOBAL_SETTINGS.address||'';
+  document.getElementById('gs-co-phone').value = GLOBAL_SETTINGS.phone||'';
+  document.getElementById('gs-co-regno').value = GLOBAL_SETTINGS.registrationNumber||'';
+}
+function addPriceHistoryEntry(){
+  const price=parseInt(document.getElementById('gs-new-price').value);
+  const dateStr=document.getElementById('gs-new-price-date').value;
+  if(isNaN(price)||price<=0){ toast('単価を入力してください'); return; }
+  if(!dateStr){ toast('適用開始日を選択してください'); return; }
+  const hist=(GLOBAL_SETTINGS.priceHistory||[]).filter(h=>h.effectiveFrom!==dateStr);
+  hist.push({price:price, effectiveFrom:dateStr});
+  saveGlobalSettingsPatch({priceHistory:hist});
+  document.getElementById('gs-new-price').value='';
+  renderGlobalSettingsForm();
+  toast('単価を追加しました');
+}
+function saveBankInfo(){
+  saveGlobalSettingsPatch({
+    bankName:document.getElementById('gs-bank-name').value.trim(),
+    bankBranch:document.getElementById('gs-bank-branch').value.trim(),
+    bankType:document.getElementById('gs-bank-type').value,
+    bankNumber:document.getElementById('gs-bank-number').value.trim(),
+    bankHolder:document.getElementById('gs-bank-holder').value.trim(),
+  });
+  toast('振込先を保存しました');
+}
+function saveCompanyInfo(){
+  saveGlobalSettingsPatch({
+    companyName:document.getElementById('gs-co-name').value.trim(),
+    postalCode:document.getElementById('gs-co-postal').value.trim(),
+    address:document.getElementById('gs-co-address').value.trim(),
+    phone:document.getElementById('gs-co-phone').value.trim(),
+    registrationNumber:document.getElementById('gs-co-regno').value.trim(),
+  });
+  toast('会社情報を保存しました');
+}
+
 // ── ここからFirestore同期（複数端末リアルタイム反映） ──
 // ローカル保存(saveToLocal)は今まで通り即時・同期的に行い、
 // その内容を少し遅らせてまとめてクラウドへ送信する（連続入力時の書き込み回数を抑えるため）
@@ -3863,6 +4064,12 @@ function applyRemoteState(data){
     localStorage.setItem(lsKey('bentoDone'), JSON.stringify([...done]));
     localStorage.setItem(lsKey('bentoDoneDate'), todayKey);
   }catch(e){}
+  // コース変更や顧客の追加・削除など、カードの並び自体が変わりうる更新が
+  // 他端末から届いた場合に備えて、入力タブのDOMを次回描画時に必ず作り直させる
+  // (masterLenだけが変化検知の条件だと、件数が同じままコースだけ変わるケースを
+  //  見逃してしまい、カードが古いコースの場所に残り続けるバグになる)
+  const _inputArea=document.getElementById('input-list-area');
+  if(_inputArea) delete _inputArea.dataset.built;
   _rerenderAfterRemoteChange();
 }
 
@@ -3900,6 +4107,7 @@ function setupRealtimeListener(shop){
 function _resyncRealtimeIfNeeded(){
   if(window.__fb && window.__fb.ready && currentShop){
     setupRealtimeListener(currentShop);
+    setupGlobalSettingsListener();
   }
 }
 document.addEventListener('visibilitychange', function(){
@@ -4384,6 +4592,7 @@ if(savedRole === 'admin'){
 // （ここまでの表示はローカル保存データで即座に行われており、通信を待つ必要はない）
 waitForFirebase().then(()=>{
   setupRealtimeListener(currentShop);
+  setupGlobalSettingsListener();
 }).catch(err=>{
   console.error('Firebaseへの接続に失敗しました。このデバイスはオフラインのローカル保存のみで動作します。', err);
 });
