@@ -320,7 +320,7 @@ body.modal-open #main{overflow:hidden;}
       <svg viewBox="0 0 24 24" style="stroke:#C45C00;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       立花
     </button>
-    <button onclick="openGlobalSettingsGate()" style="width:100%;margin-top:10px;padding:8px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;text-decoration:underline;">⚙ 共通設定（単価・請求書情報）</button>
+    <button onclick="openGlobalSettingsGate()" style="width:100%;margin-top:10px;padding:8px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;text-decoration:underline;">⚙ 管理者メニュー（設定・月次レポート）</button>
   </div>
 
   <!-- ②役割選択 -->
@@ -752,7 +752,7 @@ body.modal-open #main{overflow:hidden;}
 </div>
 
 <!-- 月次レポートモーダル -->
-<div class="modal-overlay hidden" id="monthly-report-modal" style="z-index:600;overflow-y:auto;align-items:flex-start;padding:0;">
+<div class="modal-overlay hidden" id="monthly-report-modal" style="z-index:1100;overflow-y:auto;align-items:flex-start;padding:0;">
   <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
       <div style="font-size:16px;font-weight:900;">📊 月次レポート</div>
@@ -799,15 +799,28 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
-<!-- 共通設定：単価・振込先・会社情報 -->
+<!-- 管理者メニュー：単価・振込先・会社情報・月次レポート -->
 <div class="modal-overlay hidden" id="global-settings-modal" style="align-items:flex-start;overflow-y:auto;padding:0;z-index:1100;">
   <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
-      <div style="font-size:16px;font-weight:900;">⚙ 共通設定</div>
+      <div style="font-size:16px;font-weight:900;">⚙ 管理者メニュー</div>
       <button onclick="closeGlobalSettingsModal()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
     </div>
 
-    <div style="background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+    <button onclick="closeGlobalSettingsModal();openMonthlyReport();" style="width:100%;padding:15px 16px;border-radius:var(--radius);border:none;background:var(--ao);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.12);">📊 月次レポートを見る</button>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin:0 4px 8px;letter-spacing:.03em;">📅 月次レポート関連</div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid var(--ao);">
+      <div style="font-size:13px;font-weight:800;margin-bottom:4px;">🎯 目標食数（店舗ごと・月次レポート用）</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">未入力の店舗は、レポートで目標との比較を表示しません。</div>
+      <div class="form-row"><div class="form-lbl">甲子園</div><input class="form-input" id="gs-target-甲子園" type="number" min="0" placeholder="例：220"></div>
+      <div class="form-row"><div class="form-lbl">杭瀬</div><input class="form-input" id="gs-target-杭瀬" type="number" min="0" placeholder="例：220"></div>
+      <div class="form-row"><div class="form-lbl">立花</div><input class="form-input" id="gs-target-立花" type="number" min="0" placeholder="例：170"></div>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveTargets()">目標食数を保存</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin:0 4px 8px;letter-spacing:.03em;">⚙ 基本設定</div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid #C45C00;">
       <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🍱 弁当単価（全店舗共通・税込）</div>
       <div id="gs-price-history" style="margin-bottom:12px;"></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;">新しい単価を追加</div>
@@ -819,8 +832,10 @@ body.modal-open #main{overflow:hidden;}
       <div style="font-size:10px;color:var(--muted);margin-top:6px;">※ 過去の金額には影響しません。指定した日から新しい単価が使われます。</div>
     </div>
 
-    <div style="background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
-      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🏦 振込先（請求書に記載）</div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid #1A6FD4;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:4px;">🏦 振込先（請求書に記載・店舗ごとに設定）</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">店舗タブを選んでから入力してください。他の店舗タブに切り替えても内容は自動的に保存されます。</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;" id="gs-bank-shop-tabs"></div>
       <div class="form-row"><div class="form-lbl">銀行名</div><input class="form-input" id="gs-bank-name" type="text" placeholder="例：〇〇銀行"></div>
       <div class="form-row"><div class="form-lbl">支店名</div><input class="form-input" id="gs-bank-branch" type="text" placeholder="例：〇〇支店"></div>
       <div class="form-row"><div class="form-lbl">口座種別</div>
@@ -828,10 +843,10 @@ body.modal-open #main{overflow:hidden;}
       </div>
       <div class="form-row"><div class="form-lbl">口座番号</div><input class="form-input" id="gs-bank-number" type="text" placeholder="例：1234567"></div>
       <div class="form-row"><div class="form-lbl">口座名義</div><input class="form-input" id="gs-bank-holder" type="text" placeholder="例：カ）コンプリメント"></div>
-      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveBankInfo()">振込先を保存</button>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveBankInfo()">この店舗の振込先を保存</button>
     </div>
 
-    <div style="background:var(--surface);border-radius:var(--radius);padding:14px;">
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid #1F8C35;">
       <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🏢 会社情報（請求書・領収書に記載／全店舗共通）</div>
       <div class="form-row"><div class="form-lbl">会社名</div><input class="form-input" id="gs-co-name" type="text"></div>
       <div class="form-row"><div class="form-lbl">郵便番号</div><input class="form-input" id="gs-co-postal" type="text"></div>
@@ -850,7 +865,7 @@ body.modal-open #main{overflow:hidden;}
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp,
-    enableIndexedDbPersistence
+    enableIndexedDbPersistence, collection, query, where, getDocs
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
@@ -875,7 +890,7 @@ body.modal-open #main{overflow:hidden;}
     await enableIndexedDbPersistence(db);
   }catch(e){ /* no-op */ }
 
-  window.__fb = { db, auth, doc, setDoc, getDoc, onSnapshot, serverTimestamp, ready:false };
+  window.__fb = { db, auth, doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs, ready:false };
 
   function notifyFirebaseReady(){
     if(window.__fb.ready) return;
@@ -2496,8 +2511,11 @@ function renderCurrentTab(){
 let salesDataByDate={}; // 日付(YYYY-MM-DD)ごとの売上入力データ
 let salesData={paypay:''}; // 表示中の日付(selectedDate)に対応するsalesDataByDateの中身への参照
 function ensureSalesData(dateKey){
-  if(!salesDataByDate[dateKey]) salesDataByDate[dateKey]={paypay:''};
+  const existed=!!salesDataByDate[dateKey];
+  if(!existed) salesDataByDate[dateKey]={paypay:''};
   salesData=salesDataByDate[dateKey];
+  // 本体から間引かれた古い日付の可能性があるので、アーカイブに残っていれば取り直す
+  if(!existed && typeof _fetchArchivedSalesIfMissing==='function') _fetchArchivedSalesIfMissing(dateKey);
   return salesData;
 }
 ensureSalesData(fmtDate(selectedDate));
@@ -3423,22 +3441,79 @@ function highlightYoyakuWeek(w){
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function renderMonthlyReport(){
-  const SHOPS=[
-    {name:'甲子園',target:220,color:'#1A6FD4',lightColor:'#A8C8F0',
-     months:[{m:'11月',v:207},{m:'12月',v:206},{m:'1月',v:201},{m:'2月',v:198},{m:'3月',v:195},{m:'4月',v:201}]},
-    {name:'杭瀬',target:220,color:'#C45C00',lightColor:'#F5C89A',
-     months:[{m:'11月',v:213},{m:'12月',v:222},{m:'1月',v:217},{m:'2月',v:210},{m:'3月',v:212},{m:'4月',v:213}]},
-    {name:'立花',target:170,color:'#1F8C35',lightColor:'#9FDA8A',
-     months:[{m:'11月',v:163},{m:'12月',v:167},{m:'1月',v:161},{m:'2月',v:168},{m:'3月',v:168},{m:'4月',v:168}]}
-  ];
+const REPORT_SHOP_COLORS={ '甲子園':{color:'#1A6FD4',lightColor:'#A8C8F0'}, '杭瀬':{color:'#C45C00',lightColor:'#F5C89A'}, '立花':{color:'#1F8C35',lightColor:'#9FDA8A'} };
+function _monthRangeKeys(y,m){ // m は0始まり(0=1月)
+  const start=y+'-'+String(m+1).padStart(2,'0')+'-01';
+  const lastDay=new Date(y,m+1,0).getDate();
+  const end=y+'-'+String(m+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  return {start,end};
+}
+// 指定店舗・指定期間のorderHistory(日別実績)を、1回のクエリでまとめて取得する
+async function fetchShopOrderHistoryRange(shop,startKey,endKey){
+  if(!window.__fb || !window.__fb.ready) return [];
+  const fb=window.__fb;
+  try{
+    const col=fb.collection(fb.db,'shops',shop,'orderHistory');
+    const q=fb.query(col, fb.where('dateKey','>=',startKey), fb.where('dateKey','<=',endKey));
+    const snap=await fb.getDocs(q);
+    const results=[];
+    snap.forEach(d=>{
+      const data=d.data();
+      const counts=data.counts||{};
+      const total=Object.values(counts).reduce((s,v)=>s+(parseInt(v)||0),0);
+      results.push({date:data.dateKey||d.id, total});
+    });
+    return results;
+  }catch(e){ console.error('月次レポート用データの取得に失敗しました', e); return []; }
+}
+// 月次レポートは、実際にたまった日別実績(orderHistory)から集計する。
+// 「先月分を報告する」という運用に合わせて、開いた時点の前月を基準に直近6ヶ月分を表示する
+// (例：9月に開くと、4月〜9月ではなく3月〜8月分が表示され、8月が「今回報告する月」になる)。
+async function renderMonthlyReport(){
+  const contentEl=document.getElementById('monthly-report-content');
+  contentEl.innerHTML='<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">読み込んでいます…</div>';
+
+  const SHOP_NAMES=['甲子園','杭瀬','立花'];
+  const now=new Date();
+  let reportY=now.getFullYear(), reportM=now.getMonth()-1; // 報告対象＝先月(0始まり)
+  if(reportM<0){ reportM=11; reportY--; }
+
+  const monthsList=[];
+  for(let i=5;i>=0;i--){
+    let y=reportY, m=reportM-i;
+    while(m<0){ m+=12; y--; }
+    monthsList.push({y,m});
+  }
+  const rangeStart=_monthRangeKeys(monthsList[0].y, monthsList[0].m).start;
+  const rangeEnd=_monthRangeKeys(monthsList[monthsList.length-1].y, monthsList[monthsList.length-1].m).end;
+  const targetByShop=GLOBAL_SETTINGS.targetByShop||{};
+
+  const perShop=await Promise.all(SHOP_NAMES.map(async name=>{
+    const rows=await fetchShopOrderHistoryRange(name, rangeStart, rangeEnd);
+    const byDate={};
+    rows.forEach(r=>{ byDate[r.date]=r.total; });
+    const months=monthsList.map(({y,m})=>{
+      const {start,end}=_monthRangeKeys(y,m);
+      const daysWithData=Object.keys(byDate).filter(dk=>dk>=start&&dk<=end);
+      if(daysWithData.length===0) return {label:(m+1)+'月', avg:null};
+      const sum=daysWithData.reduce((s,dk)=>s+byDate[dk],0);
+      return {label:(m+1)+'月', avg:Math.round(sum/daysWithData.length)};
+    });
+    const colors=REPORT_SHOP_COLORS[name]||{color:'#666',lightColor:'#ccc'};
+    const t=targetByShop[name];
+    return {name, target:(t!==null&&t!==undefined)?t:null, months, color:colors.color, lightColor:colors.lightColor};
+  }));
 
   function makeSvg(s){
+    const vals=s.months.map(d=>d.avg).filter(v=>v!==null);
+    if(vals.length===0){
+      return '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;">この期間のデータがまだありません</div>';
+    }
     const W=320,H=170,PT=32,PB=24,PL=30,PR=20;
-    const vals=s.months.map(d=>d.v);
-    const maxV=Math.max(...vals,s.target)+15;
-    const minV=Math.max(0,Math.min(...vals,s.target)-15);
-    const range=maxV-minV;
+    const forRange=s.target?[...vals,s.target]:vals;
+    const maxV=Math.max(...forRange)+15;
+    const minV=Math.max(0,Math.min(...forRange)-15);
+    const range=maxV-minV||1;
     const n=s.months.length;
     const barW=(W-PL-PR)/n;
     const bp=barW*0.18;
@@ -3450,92 +3525,131 @@ function renderMonthlyReport(){
       svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#f0efeb" stroke-width="1"/>';
       svg+='<text x="'+(PL-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="8" fill="#bbb">'+v+'</text>';
     });
-    const ty=yp(s.target);
-    svg+='<line x1="'+PL+'" y1="'+ty+'" x2="'+(W-PR)+'" y2="'+ty+'" stroke="#E53E3E" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.8"/>';
-    svg+='<text x="'+(W-PR+3)+'" y="'+(ty+3)+'" font-size="8" fill="#E53E3E" font-weight="700">目標</text>';
+    if(s.target){
+      const ty=yp(s.target);
+      svg+='<line x1="'+PL+'" y1="'+ty+'" x2="'+(W-PR)+'" y2="'+ty+'" stroke="#E53E3E" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.8"/>';
+      svg+='<text x="'+(W-PR+3)+'" y="'+(ty+3)+'" font-size="8" fill="#E53E3E" font-weight="700">目標</text>';
+    }
     s.months.forEach(function(d,i){
-      const achieved=d.v>=s.target;
-      const diff=d.v-s.target;
       const x=PL+i*barW+bp;
       const bw=barW-bp*2;
-      const yTop=yp(d.v);
+      if(d.avg===null){
+        svg+='<text x="'+(x+bw/2)+'" y="'+(PT+cH/2)+'" text-anchor="middle" font-size="8" fill="#ccc">ー</text>';
+        svg+='<text x="'+(x+bw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#999">'+d.label+'</text>';
+        return;
+      }
+      const achieved=s.target?d.avg>=s.target:true;
+      const diff=s.target?d.avg-s.target:null;
+      const yTop=yp(d.avg);
       const yBot=yp(minV);
       const bh=Math.max(2,yBot-yTop);
       svg+='<rect x="'+x+'" y="'+yTop+'" width="'+bw+'" height="'+bh+'" rx="3" fill="'+(achieved?s.color:s.lightColor)+'"/>';
-      svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-4)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="'+(achieved?s.color:'#999')+'">'+d.v+'</text>';
-      const dc=diff>=0?'#1F8C35':'#E53E3E';
-      svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-15)+'" text-anchor="middle" font-size="8" font-weight="700" fill="'+dc+'">'+(diff>=0?'+':'')+diff+'</text>';
-      svg+='<text x="'+(x+bw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#999">'+d.m+'</text>';
+      svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-4)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="'+(achieved?s.color:'#999')+'">'+d.avg+'</text>';
+      if(diff!==null){
+        const dc=diff>=0?'#1F8C35':'#E53E3E';
+        svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-15)+'" text-anchor="middle" font-size="8" font-weight="700" fill="'+dc+'">'+(diff>=0?'+':'')+diff+'</text>';
+      }
+      svg+='<text x="'+(x+bw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#999">'+d.label+'</text>';
     });
     svg+='</svg>';
     return svg;
   }
 
-  let html='';
+  let body='<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+reportY+'年'+(reportM+1)+'月分のご報告（直近6ヶ月の推移）</div>';
 
   // 達成カード
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
-  SHOPS.forEach(function(s){
-    const v=s.months[s.months.length-1].v;
-    const d=v-s.target;
-    html+='<div style="background:#fff;border-radius:12px;padding:10px 6px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid '+s.color+';">';
-    html+='<div style="font-size:10px;font-weight:700;color:#888;margin-bottom:3px;">'+s.name+'</div>';
-    html+='<div style="font-size:20px;font-weight:900;color:'+s.color+';line-height:1;">'+v+'</div>';
-    html+='<div style="font-size:8px;color:#aaa;margin-top:2px;">食／日</div>';
-    html+='<div style="font-size:11px;font-weight:800;margin-top:4px;color:'+(d>=0?'#1F8C35':'#E53E3E')+';">目標比 '+(d>=0?'+':'')+d+'</div>';
-    html+='</div>';
+  body+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+  perShop.forEach(function(s){
+    const last=s.months[s.months.length-1];
+    const d=(s.target&&last.avg!==null)?last.avg-s.target:null;
+    body+='<div style="background:#fff;border-radius:12px;padding:10px 6px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid '+s.color+';">';
+    body+='<div style="font-size:10px;font-weight:700;color:#888;margin-bottom:3px;">'+s.name+'</div>';
+    body+='<div style="font-size:20px;font-weight:900;color:'+s.color+';line-height:1;">'+(last.avg!==null?last.avg:'ー')+'</div>';
+    body+='<div style="font-size:8px;color:#aaa;margin-top:2px;">食／日</div>';
+    body+= d!==null ? ('<div style="font-size:11px;font-weight:800;margin-top:4px;color:'+(d>=0?'#1F8C35':'#E53E3E')+';">目標比 '+(d>=0?'+':'')+d+'</div>') : '<div style="font-size:10px;color:#ccc;margin-top:4px;">'+(s.target?'データなし':'目標未設定')+'</div>';
+    body+='</div>';
   });
-  html+='</div>';
+  body+='</div>';
 
   // 各店グラフ
-  SHOPS.forEach(function(s){
-    html+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
-    html+='<div style="font-size:13px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
-    html+='<span style="background:'+s.color+';color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;">'+s.name+'</span>月別推移</div>';
-    html+='<div style="display:flex;gap:10px;margin-bottom:6px;font-size:10px;">';
-    html+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.color+';display:inline-block;"></span>達成</span>';
-    html+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.lightColor+';display:inline-block;"></span>未達</span>';
-    html+='</div>';
-    html+=makeSvg(s);
-    html+='</div>';
+  perShop.forEach(function(s){
+    body+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
+    body+='<div style="font-size:13px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
+    body+='<span style="background:'+s.color+';color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;">'+s.name+'</span>月別推移</div>';
+    if(s.target){
+      body+='<div style="display:flex;gap:10px;margin-bottom:6px;font-size:10px;">';
+      body+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.color+';display:inline-block;"></span>達成</span>';
+      body+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.lightColor+';display:inline-block;"></span>未達</span>';
+      body+='</div>';
+    }
+    body+=makeSvg(s);
+    body+='</div>';
   });
 
   // 表
-  html+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
-  html+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">📋 直近6ヶ月サマリー</div>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-  html+='<thead><tr><th style="padding:6px;background:#f5f4f1;text-align:left;">月</th>';
-  SHOPS.forEach(function(s){ html+='<th style="padding:6px;background:#f5f4f1;text-align:center;color:'+s.color+';">'+s.name+'</th>'; });
-  html+='</tr></thead><tbody>';
-  SHOPS[0].months.forEach(function(md,i){
-    html+='<tr>';
-    html+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;font-weight:600;">'+md.m+'</td>';
-    SHOPS.forEach(function(s){
-      const v=s.months[i].v;
-      const d=v-s.target;
-      html+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;text-align:center;"><strong>'+v+'</strong> <span style="font-size:10px;color:'+(d>=0?'#1F8C35':'#E53E3E')+'">'+(d>=0?'+':'')+d+'</span></td>';
+  body+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
+  body+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">📋 直近6ヶ月サマリー</div>';
+  body+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  body+='<thead><tr><th style="padding:6px;background:#f5f4f1;text-align:left;">月</th>';
+  perShop.forEach(function(s){ body+='<th style="padding:6px;background:#f5f4f1;text-align:center;color:'+s.color+';">'+s.name+'</th>'; });
+  body+='</tr></thead><tbody>';
+  perShop[0].months.forEach(function(md,i){
+    body+='<tr>';
+    body+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;font-weight:600;">'+md.label+'</td>';
+    perShop.forEach(function(s){
+      const v=s.months[i].avg;
+      if(v===null){ body+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;text-align:center;color:#ccc;">ー</td>'; return; }
+      const d=s.target?v-s.target:null;
+      body+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;text-align:center;"><strong>'+v+'</strong>'+(d!==null?(' <span style="font-size:10px;color:'+(d>=0?'#1F8C35':'#E53E3E')+'">'+(d>=0?'+':'')+d+'</span>'):'')+'</td>';
     });
-    html+='</tr>';
+    body+='</tr>';
   });
-  html+='</tbody></table></div>';
+  body+='</tbody></table></div>';
 
-  // メール文面
-  const mailLines=SHOPS.map(function(s){
-    const v=s.months[s.months.length-1].v;
-    const d=v-s.target;
-    return '　'+s.name+'：'+v+'食／日（目標比 '+(d>=0?'+':'')+d+'）';
+  // メール文面（報告対象月は自動判定＝先月分）
+  const mailLines=perShop.map(function(s){
+    const last=s.months[s.months.length-1];
+    if(last.avg===null) return '　'+s.name+'：データなし';
+    const d=s.target?last.avg-s.target:null;
+    return '　'+s.name+'：'+last.avg+'食／日'+(d!==null?'（目標比 '+(d>=0?'+':'')+d+'）':'');
   }).join('\n');
-  const mailStr='お疲れさまです。\n4月の平均食数の報告です。\n\n【4月 平均食数】\n'+mailLines+'\n\n目標食数\n　甲子園・杭瀬：220食／日\n　立花：170食／日\n\nよろしくお願いいたします。';
+  const targetLines=perShop.filter(s=>s.target).map(s=>'　'+s.name+'：'+s.target+'食／日').join('\n');
+  const mailStr='お疲れさまです。\n'+(reportM+1)+'月の平均食数の報告です。\n\n【'+(reportM+1)+'月 平均食数】\n'+mailLines
+    +(targetLines?('\n\n目標食数\n'+targetLines):'')
+    +'\n\nよろしくお願いいたします。';
 
-  html+='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
-  html+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">✉️ 報告メール</div>';
-  html+='<div style="background:#f8f7f4;border-radius:10px;padding:14px;font-size:12px;line-height:1.9;color:#333;white-space:pre-wrap;border:1px solid #e5e4e0;">'+mailStr+'</div>';
+  // 報告メールは、画像として保存する範囲(monthly-report-capture)の「外」に置く。
+  // 画像にはグラフ・表までを保存し、メール文面は画像に含めない（本人の希望）。
+  let mailBody='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-top:10px;">';
+  mailBody+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">✉️ 報告メール</div>';
+  mailBody+='<div style="background:#f8f7f4;border-radius:10px;padding:14px;font-size:12px;line-height:1.9;color:#333;white-space:pre-wrap;border:1px solid #e5e4e0;">'+mailStr+'</div>';
   window._reportMailStr=mailStr;
-  html+='<button onclick="copyReportMail(this)" ';
-  html+='style="width:100%;padding:12px;border-radius:10px;background:#1a1a1a;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;">📋 文面をコピー</button>';
-  html+='</div>';
+  mailBody+='<button onclick="copyReportMail(this)" ';
+  mailBody+='style="width:100%;padding:12px;border-radius:10px;background:#1a1a1a;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;">📋 文面をコピー</button>';
+  mailBody+='</div>';
 
-  document.getElementById('monthly-report-content').innerHTML=html;
+  // 画像として保存するのはグラフ・表まで（報告メール文面とボタンは画像に写り込まない）
+  const html='<div id="monthly-report-capture" style="background:var(--bg);">'+body+'</div>'
+    +'<button onclick="downloadReportImage()" style="width:100%;padding:13px;border-radius:10px;background:var(--ao);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:10px;">📷 画像として保存（LINE WORKS等への共有用）</button>'
+    +mailBody;
+
+  contentEl.innerHTML=html;
+}
+async function downloadReportImage(){
+  if(typeof html2canvas==='undefined'){ toast('画像化機能の読み込みに失敗しました。通信環境を確認してください'); return; }
+  const area=document.getElementById('monthly-report-capture');
+  if(!area) return;
+  toast('画像を作成しています…');
+  try{
+    const canvas=await html2canvas(area, {scale:2, backgroundColor:'#f5f4f1'});
+    const link=document.createElement('a');
+    link.download='月次レポート_'+fmtDate(new Date())+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){
+    console.error(e);
+    toast('画像の作成に失敗しました');
+  }
 }
 
 function saveYoyaku(){
@@ -3708,13 +3822,14 @@ async function sendInvoice(id){
         </tfoot>
       </table>
 
-      <!-- 振込先 -->
+      <!-- 振込先（店舗ごと） -->
       <div style="border:1px solid #ddd;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:11px;">
         <div style="font-weight:800;margin-bottom:6px;">【お振込先】</div>
         <div style="color:#444;line-height:1.8;">
-          ${(GLOBAL_SETTINGS.bankName||GLOBAL_SETTINGS.bankBranch||GLOBAL_SETTINGS.bankNumber)
-            ? `${GLOBAL_SETTINGS.bankName} ${GLOBAL_SETTINGS.bankBranch}<br>${GLOBAL_SETTINGS.bankType||'普通'} ${GLOBAL_SETTINGS.bankNumber}<br>${GLOBAL_SETTINGS.bankHolder}`
-            : '振込先が未設定です（店舗選択画面の「共通設定」から入力してください）'}
+          ${(()=>{ const b=(GLOBAL_SETTINGS.bankByShop&&GLOBAL_SETTINGS.bankByShop[currentShop])||{};
+            return (b.bankName||b.bankBranch||b.bankNumber)
+              ? `${b.bankName} ${b.bankBranch}<br>${b.bankType||'普通'} ${b.bankNumber}<br>${b.bankHolder}`
+              : '振込先が未設定です（店舗選択画面の「共通設定」から入力してください）'; })()}
         </div>
       </div>
 
@@ -3877,6 +3992,7 @@ function saveToLocal(){
   }catch(e){}
   pushToFirestore();
   pushDailyHistory(currentShop, fmtDate(selectedDate), counts);
+  archiveAndPruneDailyRecords();
 }
 
 // ── 日別注文実績の永続記録（請求書計算のための土台） ──
@@ -3903,18 +4019,116 @@ function pushDailyHistory(shop, dateKey, countsObj){
   }, 800);
 }
 
+// ── 予約・売上データの永続アーカイブ ＋ 本体ドキュメントの肥大化防止 ──
+// bulkOrders(予約)・bulkMemos(予約メモ)・salesDataByDate(売上入力)は、日付ごとに
+// キーを持つオブジェクトとして「店舗1件分のドキュメント」の中にそのまま溜まっていく作りだった。
+// 日々の注文数(counts)と違って毎日上書きされるものではなく、日付が増えるたびにどんどん
+// 大きくなっていくため、このまま使い続けると将来Firestoreの1ドキュメントあたり1MBという
+// 上限に近づいてしまう恐れがある。
+// そこで、下記の日別実績(orderHistory)と同じ考え方で、日付ごとに別ドキュメント
+// (shops/{店舗}/reservations/{日付}, shops/{店舗}/salesRecords/{日付})へ複製保存(=永久保存)した上で、
+// 十分に古い日付は本体のオブジェクトから間引く。間引いても永久保存側にはデータが残るので消えない。
+const ARCHIVE_WINDOW_PAST_DAYS=14;   // これより新しい過去日は毎回アーカイブ対象にする
+const ARCHIVE_WINDOW_FUTURE_DAYS=200; // これより先の未来日はアーカイブ対象にしない(予約は数ヶ月先まで想定)
+const PRUNE_CUTOFF_DAYS=45; // これより過去の日付は、アーカイブ済みとみなして本体から削除する
+function _daysFromToday(dateKey){
+  const d=parseDateKey(dateKey);
+  const t=new Date(); t.setHours(0,0,0,0);
+  return Math.round((d-t)/86400000);
+}
+function pushDailyReservation(shop, dateKey, orders, memos){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !dateKey) return;
+  const fb=window.__fb;
+  const payload={orders:JSON.parse(JSON.stringify(orders||{})), memos:JSON.parse(JSON.stringify(memos||{}))};
+  const timerKey='resv|'+shop+'|'+dateKey;
+  clearTimeout(_fbHistTimers[timerKey]);
+  _fbHistTimers[timerKey]=setTimeout(()=>{
+    delete _fbHistTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    const ref=fb.doc(fb.db,'shops',shop,'reservations',dateKey);
+    fb.setDoc(ref, Object.assign({}, payload, {dateKey:dateKey, updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
+      console.error('予約データの保存に失敗しました', err);
+    });
+  }, 800);
+}
+function pushDailySalesRecord(shop, dateKey, salesObj){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !dateKey) return;
+  const fb=window.__fb;
+  const payload=JSON.parse(JSON.stringify(salesObj||{}));
+  const timerKey='sale|'+shop+'|'+dateKey;
+  clearTimeout(_fbHistTimers[timerKey]);
+  _fbHistTimers[timerKey]=setTimeout(()=>{
+    delete _fbHistTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    const ref=fb.doc(fb.db,'shops',shop,'salesRecords',dateKey);
+    fb.setDoc(ref, Object.assign({}, payload, {dateKey:dateKey, updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
+      console.error('売上記録の保存に失敗しました', err);
+    });
+  }, 800);
+}
+// 近い過去〜未来の日付をアーカイブし、十分に古い日付を本体から間引く。
+// 今まさに画面に表示中の日付(selectedDate)だけは、間引きの対象から必ず除外する
+// (表示中にデータが消えて空欄に見えてしまう事故を防ぐため)。
+function archiveAndPruneDailyRecords(){
+  if(!window.__fb || !window.__fb.ready || !currentShop) return;
+  const shop=currentShop;
+  const currentKey=fmtDate(selectedDate);
+  const touchedForReservation=new Set([...Object.keys(bulkOrders), ...Object.keys(bulkMemos)]);
+  touchedForReservation.forEach(dk=>{
+    const diff=_daysFromToday(dk);
+    if(diff>=-ARCHIVE_WINDOW_PAST_DAYS && diff<=ARCHIVE_WINDOW_FUTURE_DAYS){
+      pushDailyReservation(shop, dk, bulkOrders[dk], bulkMemos[dk]);
+    }
+  });
+  Object.keys(salesDataByDate).forEach(dk=>{
+    const diff=_daysFromToday(dk);
+    if(diff>=-ARCHIVE_WINDOW_PAST_DAYS && diff<=ARCHIVE_WINDOW_FUTURE_DAYS){
+      pushDailySalesRecord(shop, dk, salesDataByDate[dk]);
+    }
+  });
+  Object.keys(bulkOrders).forEach(dk=>{ if(dk!==currentKey && _daysFromToday(dk)<-PRUNE_CUTOFF_DAYS) delete bulkOrders[dk]; });
+  Object.keys(bulkMemos).forEach(dk=>{ if(dk!==currentKey && _daysFromToday(dk)<-PRUNE_CUTOFF_DAYS) delete bulkMemos[dk]; });
+  Object.keys(salesDataByDate).forEach(dk=>{ if(dk!==currentKey && _daysFromToday(dk)<-PRUNE_CUTOFF_DAYS) delete salesDataByDate[dk]; });
+}
+// 本体から間引かれた(＝十分に古い)日付の売上データが再び必要になった場合
+// (カレンダーで古い日付に戻って売上タブを開いた場合など)に備えて、
+// アーカイブ側から取り直して復元する。売上タブはどの日付にも遡って表示できる作りのため、
+// 予約(bulkOrders/bulkMemos、将来日しか編集できない画面)と異なりこの復元処理を用意している。
+function _fetchArchivedSalesIfMissing(dateKey){
+  if(salesDataByDate[dateKey] && Object.keys(salesDataByDate[dateKey]).some(k=>k!=='paypay' || salesDataByDate[dateKey][k])) return;
+  if(!window.__fb || !window.__fb.ready || !currentShop) return;
+  const fb=window.__fb;
+  const shop=currentShop;
+  fb.getDoc(fb.doc(fb.db,'shops',shop,'salesRecords',dateKey)).then(snap=>{
+    if(!snap.exists()) return;
+    if(shop!==currentShop || dateKey!==fmtDate(selectedDate)) return; // その間に画面が変わっていたら何もしない
+    const data=snap.data();
+    delete data.dateKey; delete data.updatedAt;
+    salesDataByDate[dateKey]=data;
+    salesData=salesDataByDate[dateKey];
+    if(currentTab==='sales') renderCurrentTab();
+  }).catch(()=>{});
+}
+
 // ── 共通設定（単価履歴・振込先・会社情報）：全店舗共通、settings/global に保存 ──
+function _blankBankEntry(){ return {bankName:'', bankBranch:'', bankType:'普通', bankNumber:'', bankHolder:''}; }
 const GLOBAL_SETTINGS_DEFAULT = {
   companyName:'株式会社コンプリメント',
   postalCode:'〒660-0814',
   address:'兵庫県尼崎市杭瀬本町1丁目2-5',
   phone:'06-6423-8432',
   registrationNumber:'T3140001110987',
-  bankName:'', bankBranch:'', bankType:'普通', bankNumber:'', bankHolder:'',
+  // 振込先は店舗ごとに別々（会社情報は全店舗共通のまま）
+  bankByShop:{ '甲子園':_blankBankEntry(), '杭瀬':_blankBankEntry(), '立花':_blankBankEntry() },
+  // 月次レポートで使う、店舗ごとの目標食数／日（未設定＝null。設定されるまで目標比較は表示しない）
+  targetByShop:{ '甲子園':null, '杭瀬':null, '立花':null },
   priceHistory:[{price:650, effectiveFrom:'2026-08-01'}],
 };
 let GLOBAL_SETTINGS=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT));
 let _gsUnsub=null;
+let _gsBankShop='甲子園'; // 共通設定画面で今選んでいる、振込先の編集対象の店舗
 
 function settingsDocRef(){
   const fb=window.__fb;
@@ -3925,6 +4139,21 @@ function applyGlobalSettings(data){
   GLOBAL_SETTINGS=Object.assign({}, GLOBAL_SETTINGS_DEFAULT, data);
   if(!Array.isArray(GLOBAL_SETTINGS.priceHistory) || GLOBAL_SETTINGS.priceHistory.length===0){
     GLOBAL_SETTINGS.priceHistory=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.priceHistory));
+  }
+  if(!GLOBAL_SETTINGS.bankByShop || typeof GLOBAL_SETTINGS.bankByShop!=='object'){
+    GLOBAL_SETTINGS.bankByShop=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.bankByShop));
+  } else {
+    // 店舗が増えた場合などに備えて、まだ無い店舗分はデフォルト(空欄)で補っておく
+    Object.keys(GLOBAL_SETTINGS_DEFAULT.bankByShop).forEach(shop=>{
+      if(!GLOBAL_SETTINGS.bankByShop[shop]) GLOBAL_SETTINGS.bankByShop[shop]=_blankBankEntry();
+    });
+  }
+  if(!GLOBAL_SETTINGS.targetByShop || typeof GLOBAL_SETTINGS.targetByShop!=='object'){
+    GLOBAL_SETTINGS.targetByShop=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.targetByShop));
+  } else {
+    Object.keys(GLOBAL_SETTINGS_DEFAULT.targetByShop).forEach(shop=>{
+      if(!(shop in GLOBAL_SETTINGS.targetByShop)) GLOBAL_SETTINGS.targetByShop[shop]=null;
+    });
   }
   // 日々の売上表示・請求書プレビューで使う「現時点の単価」を更新
   UNIT_PRICE = priceOnDate(fmtDate(new Date()));
@@ -3984,6 +4213,7 @@ function checkGsPin(){
   }
 }
 function openGlobalSettingsModal(){
+  if(['甲子園','杭瀬','立花'].includes(currentShop)) _gsBankShop=currentShop;
   renderGlobalSettingsForm();
   _openModal('global-settings-modal');
 }
@@ -4000,16 +4230,39 @@ function renderGlobalSettingsForm(){
     </div>`
   ).join('') || '<div style="color:var(--muted);font-size:12px;">単価がまだ設定されていません</div>';
   document.getElementById('gs-new-price-date').value = fmtDate(new Date());
-  document.getElementById('gs-bank-name').value = GLOBAL_SETTINGS.bankName||'';
-  document.getElementById('gs-bank-branch').value = GLOBAL_SETTINGS.bankBranch||'';
-  document.getElementById('gs-bank-type').value = GLOBAL_SETTINGS.bankType||'普通';
-  document.getElementById('gs-bank-number').value = GLOBAL_SETTINGS.bankNumber||'';
-  document.getElementById('gs-bank-holder').value = GLOBAL_SETTINGS.bankHolder||'';
+  const targetByShop=GLOBAL_SETTINGS.targetByShop||{};
+  ['甲子園','杭瀬','立花'].forEach(s=>{
+    const el=document.getElementById('gs-target-'+s);
+    if(el) el.value = (targetByShop[s]!==null && targetByShop[s]!==undefined) ? targetByShop[s] : '';
+  });
+  if(!GLOBAL_SETTINGS.bankByShop || !GLOBAL_SETTINGS.bankByShop[_gsBankShop]) _gsBankShop='甲子園';
+  const shopTabsEl=document.getElementById('gs-bank-shop-tabs');
+  if(shopTabsEl){
+    shopTabsEl.innerHTML = ['甲子園','杭瀬','立花'].map(s=>
+      `<button type="button" class="chip ${s===_gsBankShop?'chip-ao-on':'chip-ao-off'}" onclick="switchGsBankShop('${s}')">${s}</button>`
+    ).join('');
+  }
+  const bankEntry=(GLOBAL_SETTINGS.bankByShop&&GLOBAL_SETTINGS.bankByShop[_gsBankShop])||_blankBankEntry();
+  document.getElementById('gs-bank-name').value = bankEntry.bankName||'';
+  document.getElementById('gs-bank-branch').value = bankEntry.bankBranch||'';
+  document.getElementById('gs-bank-type').value = bankEntry.bankType||'普通';
+  document.getElementById('gs-bank-number').value = bankEntry.bankNumber||'';
+  document.getElementById('gs-bank-holder').value = bankEntry.bankHolder||'';
   document.getElementById('gs-co-name').value = GLOBAL_SETTINGS.companyName||'';
   document.getElementById('gs-co-postal').value = GLOBAL_SETTINGS.postalCode||'';
   document.getElementById('gs-co-address').value = GLOBAL_SETTINGS.address||'';
   document.getElementById('gs-co-phone').value = GLOBAL_SETTINGS.phone||'';
   document.getElementById('gs-co-regno').value = GLOBAL_SETTINGS.registrationNumber||'';
+}
+function saveTargets(){
+  const targetByShop={};
+  ['甲子園','杭瀬','立花'].forEach(s=>{
+    const raw=document.getElementById('gs-target-'+s).value;
+    const n=parseInt(raw);
+    targetByShop[s]=(raw===''||isNaN(n))?null:n;
+  });
+  saveGlobalSettingsPatch({targetByShop:targetByShop});
+  toast('目標食数を保存しました');
 }
 function addPriceHistoryEntry(){
   const price=parseInt(document.getElementById('gs-new-price').value);
@@ -4023,15 +4276,32 @@ function addPriceHistoryEntry(){
   renderGlobalSettingsForm();
   toast('単価を追加しました');
 }
-function saveBankInfo(){
-  saveGlobalSettingsPatch({
+function _captureBankEntryFromForm(){
+  return {
     bankName:document.getElementById('gs-bank-name').value.trim(),
     bankBranch:document.getElementById('gs-bank-branch').value.trim(),
     bankType:document.getElementById('gs-bank-type').value,
     bankNumber:document.getElementById('gs-bank-number').value.trim(),
     bankHolder:document.getElementById('gs-bank-holder').value.trim(),
-  });
-  toast('振込先を保存しました');
+  };
+}
+function switchGsBankShop(shop){
+  if(shop===_gsBankShop) return;
+  // 店舗タブを切り替える前に、今画面に入力されている内容を自動保存しておく
+  // （保存ボタンを押し忘れて切り替えても、入力した内容が消えないようにするため）
+  const bankByShop=Object.assign({}, GLOBAL_SETTINGS.bankByShop||{});
+  bankByShop[_gsBankShop]=_captureBankEntryFromForm();
+  saveGlobalSettingsPatch({bankByShop:bankByShop});
+  _gsBankShop=shop;
+  renderGlobalSettingsForm();
+}
+function saveBankInfo(){
+  const shop=_gsBankShop||'甲子園';
+  // 他店舗分を消してしまわないよう、店舗ごとのオブジェクト全体を組み直して送る
+  const bankByShop=Object.assign({}, GLOBAL_SETTINGS.bankByShop||{});
+  bankByShop[shop]=_captureBankEntryFromForm();
+  saveGlobalSettingsPatch({bankByShop:bankByShop});
+  toast(shop+'の振込先を保存しました');
 }
 function saveCompanyInfo(){
   saveGlobalSettingsPatch({
@@ -4606,22 +4876,11 @@ function toggleHdrMenu(){
     m.style.display='none';
     return;
   }
-  // 配達タブ中は切替のみ表示
-  if(currentTab==='delivery'){
-    m.innerHTML=`<div style="padding:6px 0;">
-      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
-    </div>`;
-  } else {
-    m.innerHTML=`<div style="padding:6px 0;">
-      <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 配達メンバー</button>
-      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="gotoTab('delivery');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🚚 配達</button>
-      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
-      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
-    </div>`;
-  }
+  // 配達メンバー・配達は、配達員としてログインすれば自動でその画面に入るため、
+  // 管理者用のこのメニューでは「店舗・役割を切替」のみを表示するようにしている
+  m.innerHTML=`<div style="padding:6px 0;">
+    <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
+  </div>`;
   m.style.display='block';
 }
 function closeHdrMenu(){
