@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>弁当配達管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!-- 請求書・領収書をPDFとして保存するためのライブラリ（画面の見た目をそのまま画像化してPDFに埋め込む方式。
+     日本語フォントをPDFライブラリ側に別途組み込む必要がなく、画面表示と完全に同じ見た目でPDF化できる） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- 経理向けデータ書き出し（店舗ごとにタブ(シート)を分けたExcelファイルを作るためのライブラリ） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --ao:#1A6FD4;--ao-bg:#EBF3FD;--ao-dk:#0A3570;
@@ -22,18 +28,21 @@ input, textarea{-webkit-user-select:auto;user-select:auto;}
 html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none;overflow:hidden;}
 
 /* PC対応：最大幅でセンタリング */
+/* 各要素の個別スタイル(left:0;right:0やinset:0、インラインstyle等)が後から効いてしまい、
+   ここでのセンタリング指定が上書きされていた(西宮→甲子園対応中に発覚)ため、
+   !important と right:auto / width を明示して確実にセンタリングされるようにする */
 @media (min-width:480px){
   body{background:#D0CFC9;display:flex;justify-content:center;}
-  .hdr{max-width:480px;left:50%;transform:translateX(-50%);}
-  .bnav{max-width:480px;left:50%;transform:translateX(-50%);}
-  .cal-dropdown{max-width:480px;left:50%;transform:translateX(-50%);}
+  .hdr{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .bnav{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .cal-dropdown{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
   .main{max-width:480px;width:480px;margin:0 auto;}
   .prog-bar{max-width:480px;left:50%;transform:translateX(-50%);}
-  #delivery-prog-bar{max-width:480px;left:50%;transform:translateX(-50%);}
-  .ftotal{max-width:480px;left:50%;transform:translateX(-50%);}
-  .modal-overlay{max-width:480px;left:50%;transform:translateX(-50%);}
-  .course-menu{max-width:480px;left:50%;transform:translateX(-50%);}
-  #print-preview-overlay{max-width:480px;left:50%;transform:translateX(-50%);}
+  #delivery-prog-bar{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .ftotal{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .modal-overlay{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  .course-menu{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
+  #print-preview-overlay{width:480px!important;max-width:480px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;}
 }
 
 /* ── HEADER ── */
@@ -74,7 +83,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .bnav-btn.on svg{stroke:var(--ao);}
 
 /* ── MAIN ── */
-.main{padding-top:0;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
+.main{padding-top:0;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
 .main.cal-open{}
 
 /* ── FILTER CHIPS ── */
@@ -106,7 +115,8 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .igroup-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);}
 .igroup-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;background:var(--surface);}
 .igroup-header:active{background:var(--bg);}
-.icard{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;margin-bottom:5px;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;-webkit-touch-callout:none;}
+.icard{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;margin-bottom:5px;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s,opacity .2s;-webkit-touch-callout:none;}
+.icard.icard-done{opacity:.4;}
 .icard.lifting{transform:scale(1.02) translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12);border-color:var(--border-dark);z-index:10;position:relative;}
 .icard-bar{width:3px;flex-shrink:0;align-self:stretch;}
 .bar-ao{background:var(--ao)}.bar-midori{background:var(--midori)}.bar-orenji{background:var(--orenji)}.bar-pinku{background:var(--pinku)}.bar-iero{background:var(--iero)}.bar-shop{background:var(--shop)}
@@ -258,7 +268,8 @@ body.modal-open #main{overflow:hidden;}
 .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;}
 .btn-cancel{padding:14px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);background:var(--bg);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);}
-.btn-save{padding:14px;border-radius:var(--radius-sm);border:none;background:var(--text);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-save{padding:14px;border-radius:var(--radius-sm);border:none;background:var(--text);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .1s ease,opacity .1s ease;}
+.btn-save:active{transform:scale(.96);opacity:.8;}
 .btn-del-full{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;background:#C0392B;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;}
 .del-confirm-msg{background:#FFF0EE;border:1px solid #F0C0B8;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:6px;font-size:13px;color:#7A1A1A;font-weight:600;}
 
@@ -268,7 +279,7 @@ body.modal-open #main{overflow:hidden;}
 .logout-modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:500;}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(23,23,26,.92);color:#fff;padding:9px 20px;border-radius:22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .18s;z-index:700;white-space:nowrap;backdrop-filter:blur(8px);}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(23,23,26,.92);color:#fff;padding:9px 20px;border-radius:22px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .18s;z-index:2000;white-space:nowrap;backdrop-filter:blur(8px);}
 .toast.on{opacity:1;}
 
 /* ── MISC ── */
@@ -301,9 +312,9 @@ body.modal-open #main{overflow:hidden;}
   <!-- ①店舗選択 -->
   <div class="login-card" id="lc-shop">
     <div class="login-card-title">店舗を選択</div>
-    <button class="role-btn" onclick="selectShop('西宮')" style="background:#EBF3FD;color:#0A3570;border-color:#1A6FD4;border-width:2px;">
+    <button class="role-btn" onclick="selectShop('甲子園')" style="background:#EBF3FD;color:#0A3570;border-color:#1A6FD4;border-width:2px;">
       <svg viewBox="0 0 24 24" style="stroke:#1A6FD4;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      西宮
+      甲子園
     </button>
     <button class="role-btn" onclick="selectShop('杭瀬')" style="background:#E6F5EA;color:#0D4019;border-color:#1F8C35;border-width:2px;">
       <svg viewBox="0 0 24 24" style="stroke:#1F8C35;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -313,6 +324,7 @@ body.modal-open #main{overflow:hidden;}
       <svg viewBox="0 0 24 24" style="stroke:#C45C00;width:22px;height:22px;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       立花
     </button>
+    <button onclick="openGlobalSettingsGate()" style="width:100%;margin-top:10px;padding:8px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;text-decoration:underline;">⚙ 管理者メニュー（設定・月次レポート）</button>
   </div>
 
   <!-- ②役割選択 -->
@@ -386,10 +398,9 @@ body.modal-open #main{overflow:hidden;}
 <div class="hdr">
   <div class="hdr-top">
     <!-- 左：店舗名 -->
-    <div class="hdr-shop" id="hdr-shop-name" style="flex-shrink:0;">西宮</div>
+    <div class="hdr-shop" id="hdr-shop-name" style="flex-shrink:0;">甲子園</div>
     <!-- 中央：‹ 日付ブロック › -->
     <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;justify-content:flex-start;margin-left:1.4em;">
-      <button class="date-nav-btn" onclick="shiftDay(-1)" style="width:26px;height:26px;font-size:14px;">‹</button>
       <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;">
           <span id="date-bar-sub" style="font-size:10px;font-weight:800;color:var(--ao);letter-spacing:.03em;"></span>
@@ -401,14 +412,16 @@ body.modal-open #main{overflow:hidden;}
           <span id="hdr-total" style="font-size:10px;font-weight:800;color:var(--text);">0食</span>
         </div>
       </div>
-      <button class="date-nav-btn" onclick="shiftDay(1)" style="width:26px;height:26px;font-size:14px;">›</button>
+      <!-- カレンダーボタン -->
+      <button id="cal-toggle-btn" onclick="toggleCal()"
+        style="width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
     </div>
     <div class="hdr-right">
       <div style="position:relative;">
-        <button onclick="toggleHdrMenu()" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0;">
-          <span style="display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;"></span>
-          <span style="display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;"></span>
-          <span style="display:block;width:10px;height:2px;background:var(--muted);border-radius:2px;align-self:flex-start;margin-left:10px;"></span>
+        <button onclick="showSettingMenu()" title="店舗・役割を切替" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
         </button>
         <div id="hdr-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:500;overflow:hidden;"></div>
       </div>
@@ -419,15 +432,30 @@ body.modal-open #main{overflow:hidden;}
 <!-- 請求書プレビューモーダル -->
 <div id="invoice-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:800;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;width:92%;max-width:420px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
-      <div style="font-size:14px;font-weight:800;">📄 請求書プレビュー</div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="printInvoice()" style="padding:6px 14px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🖨 印刷</button>
-        <button onclick="closeInvoiceModal()" style="padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
+    <div style="padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:800;white-space:nowrap;">📄 請求書プレビュー</div>
+        <button onclick="closeInvoiceModal()" style="flex-shrink:0;padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="invoice-pdf-btn" onclick="downloadInvoicePdf()" style="padding:6px 12px;border-radius:8px;background:#1A6FD4;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📥 PDF保存</button>
+        <button id="invoice-mail-btn" onclick="mailInvoice()" style="padding:6px 12px;border-radius:8px;background:#1F8C35;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">✉ メール</button>
+        <button id="invoice-autosend-btn" onclick="autoSendInvoice()" style="padding:6px 12px;border-radius:8px;background:#E5A100;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📧 自動送信</button>
+        <button onclick="printInvoice()" style="padding:6px 12px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">🖨 印刷</button>
       </div>
     </div>
-    <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;flex:1;"></div>
+    <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;overflow-x:auto;flex:1;"></div>
   </div>
+</div>
+
+<div class="cal-dropdown hidden" id="cal-dropdown">
+  <div class="cal-month-row">
+    <button class="cal-nav" onclick="shiftMonth(-1)">‹</button>
+    <div class="cal-month-label" id="cal-month-label"></div>
+    <button class="cal-nav" onclick="shiftMonth(1)">›</button>
+    <button onclick="toggleCal()" style="margin-left:8px;padding:4px 10px;border-radius:20px;border:1px solid var(--border-dark);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;color:var(--muted);">✕ 閉じる</button>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
 </div>
 
 <!-- MAIN -->
@@ -502,12 +530,11 @@ body.modal-open #main{overflow:hidden;}
 
     <div class="form-row">
       <div class="form-lbl">お客様名</div>
-      <input class="form-input" id="cm-name" type="text" placeholder="例：松秀幼稚園"
-        oninput="onCmNameInput()">
+      <input class="form-input" id="cm-name" type="text" placeholder="例：〇〇株式会社">
     </div>
     <div class="form-row" style="margin-top:-6px;">
       <div class="form-lbl">よみがな</div>
-      <input class="form-input" id="cm-yomi" type="text" placeholder="例：まつひでようちえん"
+      <input class="form-input" id="cm-yomi" type="text" placeholder="例：〇〇かぶしきがいしゃ"
         style="margin-top:4px;">
     </div>
 
@@ -527,7 +554,7 @@ body.modal-open #main{overflow:hidden;}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
       <div>
         <div class="form-lbl">領収書</div>
-        <select class="form-select" id="cm-receipt"><option value="false">なし</option><option value="true">あり</option></select>
+        <select class="form-select" id="cm-receipt" onchange="onReceiptChange()"><option value="none">なし</option><option value="paper">紙</option><option value="electronic">電子</option></select>
       </div>
       <div>
         <div class="form-lbl">掛け払い</div>
@@ -572,13 +599,21 @@ body.modal-open #main{overflow:hidden;}
       </div>
       <div>
         <div class="form-lbl">メモ</div>
-        <textarea class="form-input" id="cm-memo" placeholder="例：2階・インターホン" rows="3" style="resize:none;height:auto;"></textarea>
+        <textarea class="form-input" id="cm-memo" rows="3" style="resize:none;height:auto;"></textarea>
       </div>
     </div>
 
     <div class="form-row">
       <div class="form-lbl">📍 住所</div>
       <input class="form-input" id="cm-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
+    </div>
+
+    <div id="cm-receipt-section" style="display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">🧾 領収書設定</div>
+      <div class="form-row">
+        <div class="form-lbl">メールアドレス</div>
+        <input class="form-input" id="cm-receipt-email" type="email" placeholder="例：info@example.com">
+      </div>
     </div>
 
     <div id="cm-invoice-section" style="display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
@@ -611,6 +646,51 @@ body.modal-open #main{overflow:hidden;}
     <div class="hidden" id="cm-del-wrap" style="margin-top:8px;">
       <div id="cm-del-confirm" class="del-confirm-msg" style="display:none;">本当に削除しますか？</div>
       <button class="btn-del-full" id="cm-del-btn" onclick="deleteCustStep()">この顧客を削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 本日限りのお客様（一元さん）追加モーダル -->
+<div class="modal-overlay hidden" id="onetime-modal" onclick="closeOnetimeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">本日限りのお客様を追加</div>
+    <div style="font-size:11px;color:var(--muted);margin:-8px 0 12px;">顧客管理には登録されません。今日1日だけ本日の注文に表示され、日付が変わると自動的に削除されます。</div>
+    <div class="form-row">
+      <div class="form-lbl">お客様名</div>
+      <input class="form-input" id="om-name" type="text" placeholder="例：〇〇様">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <div class="form-lbl">コース</div>
+        <select class="form-select" id="om-course">
+          <option value="ao">青</option>
+          <option value="midori">緑</option>
+          <option value="orenji">オレンジ</option>
+          <option value="iero">黄色</option>
+          <option value="pinku">ピンク</option>
+          <option value="shop">店頭</option>
+        </select>
+      </div>
+      <div>
+        <div class="form-lbl">食数</div>
+        <input class="form-input" id="om-count" type="number" min="0" max="99" value="1" style="font-size:16px;font-weight:900;">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">電話番号</div>
+      <input class="form-input" id="om-phone" type="tel" placeholder="例：090-1234-5678">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">📍 住所</div>
+      <input class="form-input" id="om-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">メモ</div>
+      <textarea class="form-input" id="om-memo" rows="2" style="resize:none;height:auto;"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOnetimeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveOnetimeCust()">追加</button>
     </div>
   </div>
 </div>
@@ -658,6 +738,18 @@ body.modal-open #main{overflow:hidden;}
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeDelConfirm()">キャンセル</button>
       <button class="btn-del-full" style="margin-top:0;" id="del-confirm-btn" onclick="execDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 請求書メール自動送信の確認モーダル -->
+<div class="modal-overlay hidden" id="invoice-send-confirm-modal" style="z-index:900;" onclick="if(event.target===this)closeInvoiceSendConfirm()">
+  <div class="modal" onclick="event.stopPropagation()" style="padding:24px 18px 32px;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px;text-align:center;">請求書メールを送信しますか？</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;" id="invoice-send-confirm-sub"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeInvoiceSendConfirm()">キャンセル</button>
+      <button style="margin-top:0;padding:14px;border-radius:var(--radius-sm);border:none;background:#1F8C35;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="execAutoSendInvoice()">送信する</button>
     </div>
   </div>
 </div>
@@ -711,78 +803,6 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
-<!-- 一括予約モーダル -->
-<div class="modal-overlay hidden" id="bulk-order-modal" onclick="if(event.target===this)closeBulkOrderModal()">
-  <div class="modal" onclick="event.stopPropagation()" style="padding:20px 18px 36px;max-height:94vh;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div class="modal-title" style="margin:0;">予約</div>
-      <button onclick="closeBulkOrderModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);font-size:16px;cursor:pointer;color:var(--muted);">×</button>
-    </div>
-
-    <!-- 顧客検索 -->
-    <div style="margin-bottom:12px;">
-      <input type="text" id="bulk-cust-search" placeholder="顧客名を検索..."
-        oninput="onBulkCustSearch(event)"
-        oncompositionend="onBulkCustSearchEnd(event)"
-        autocomplete="off"
-        style="width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;background:var(--bg);color:var(--text);">
-      <div id="bulk-cust-list" style="display:none;background:var(--surface);border:1px solid var(--border-dark);border-radius:var(--radius-sm);margin-top:4px;max-height:140px;overflow-y:auto;box-shadow:var(--shadow);"></div>
-      <input type="hidden" id="bulk-customer">
-      <div id="bulk-cust-selected" style="display:none;margin-top:6px;padding:8px 12px;background:var(--ao-bg);border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:var(--ao-dk);align-items:center;justify-content:space-between;"></div>
-    </div>
-
-    <!-- 日付選択ショートカット -->
-    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-      <button type="button" onclick="setBulkQuick('today')" id="bq-today" style="padding:6px 10px;border-radius:20px;border:1.5px solid var(--border-dark);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">今日</button>
-      <button type="button" onclick="setBulkQuick('thisweek')" id="bq-thisweek" style="padding:6px 10px;border-radius:20px;border:1.5px solid var(--ao);background:var(--ao);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;">今週</button>
-      <button type="button" onclick="setBulkQuick('nextweek')" id="bq-nextweek" style="padding:6px 10px;border-radius:20px;border:1.5px solid var(--border-dark);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">来週</button>
-      <button type="button" onclick="setBulkQuick('2weeks')" id="bq-2weeks" style="padding:6px 10px;border-radius:20px;border:1.5px solid var(--border-dark);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">2週間</button>
-    </div>
-
-    <!-- 日付×食数グリッド（3週分） -->
-    <div id="bulk-week-grid" style="overflow-y:auto;max-height:46vh;"></div>
-
-    <!-- 登録ボタン -->
-    <div class="modal-btns" style="margin-top:12px;">
-      <button class="btn-cancel" onclick="closeBulkOrderModal()">キャンセル</button>
-      <button class="btn-save" onclick="saveBulkOrder()">登録する</button>
-    </div>
-  </div>
-</div>
-
-<!-- 予約詳細入力モーダル -->
-<div class="modal-overlay hidden" id="yoyaku-detail-modal" onclick="if(event.target===this)closeYoyakuDetail()">
-  <div class="modal" onclick="event.stopPropagation()" style="padding:22px 18px 32px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--muted);" id="yd-cust-name"></div>
-        <div style="font-size:18px;font-weight:900;" id="yd-date-label"></div>
-      </div>
-      <button onclick="closeYoyakuDetail()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);font-size:16px;cursor:pointer;color:var(--muted);">×</button>
-    </div>
-    <input type="hidden" id="yd-date-key">
-    <!-- 食数 -->
-    <div class="form-row">
-      <div class="form-lbl">食数</div>
-      <div style="position:relative;">
-        <input type="number" id="yd-count" min="0" max="99" placeholder="0"
-          style="width:100%;padding:14px 44px 14px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:28px;font-weight:900;font-family:inherit;background:var(--bg);text-align:center;">
-        <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);font-weight:700;">食</span>
-      </div>
-    </div>
-    <!-- メモ -->
-    <div class="form-row">
-      <div class="form-lbl">📝 メモ（注意事項など）</div>
-      <textarea id="yd-memo" placeholder="例：袋必要、時間変更など..."
-        style="width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;background:var(--bg);resize:none;height:80px;color:var(--text);"></textarea>
-    </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="clearYoyakuDetail()">クリア</button>
-      <button class="btn-save" onclick="saveYoyakuDetail()">保存</button>
-    </div>
-  </div>
-</div>
-
 <!-- 予約メモモーダル -->
 <div class="modal-overlay hidden" id="yoyaku-memo-modal" onclick="if(event.target===this)closeYoyakuMemo()">
   <div class="modal" onclick="event.stopPropagation()" style="padding:20px 18px 32px;">
@@ -798,14 +818,54 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- 本日の注文画面から追加する「その日だけのメモ」モーダル -->
+<div class="modal-overlay hidden" id="daily-memo-modal" onclick="closeDailyMemoModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="padding:20px 18px 32px;">
+    <div style="font-size:15px;font-weight:800;margin-bottom:4px;" id="daily-memo-modal-title">メモ</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;" id="daily-memo-date"></div>
+    <textarea id="daily-memo-input" placeholder="例：本日は不在のため裏口へお願いします" rows="3"
+      style="width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;background:var(--bg);resize:none;color:var(--text);"></textarea>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn-cancel" onclick="closeDailyMemoModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveDailyMemo()">保存</button>
+    </div>
+    <button id="daily-memo-del-btn" onclick="deleteDailyMemo()" style="display:none;width:100%;margin-top:8px;padding:12px;border-radius:var(--radius-sm);border:none;background:#FFF0EE;color:#C0392B;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">メモを削除</button>
+  </div>
+</div>
+
 <!-- 月次レポートモーダル -->
-<div class="modal-overlay hidden" id="monthly-report-modal" style="z-index:600;overflow-y:auto;align-items:flex-start;padding:0;">
+<div class="modal-overlay hidden" id="monthly-report-modal" style="z-index:1100;overflow-y:auto;align-items:flex-start;padding:0;">
   <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
       <div style="font-size:16px;font-weight:900;">📊 月次レポート</div>
       <button onclick="closeMonthlyReport()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
     </div>
     <div id="monthly-report-content"></div>
+  </div>
+</div>
+
+<!-- 経理データCSV書き出しモーダル -->
+<div class="modal-overlay hidden" id="csv-export-modal" style="z-index:1100;overflow-y:auto;align-items:flex-start;padding:0;">
+  <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
+      <div style="font-size:16px;font-weight:900;">🧾 経理データの書き出し</div>
+      <button onclick="closeCsvExportModal()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
+    </div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">日ごとの現金売上・掛け売上・PayPay金額・支出記録を、店舗ごとにタブ（シート）を分けたExcelファイル（.xlsx）として書き出します。Excel・Googleスプレッドシートどちらでも開けます。</div>
+      <div style="font-size:12px;font-weight:800;margin-bottom:8px;">期間を選ぶ</div>
+      <select class="form-select" id="csv-period-select" onchange="onCsvPeriodChange(this.value)" style="width:100%;margin-bottom:10px;">
+        <option value="thisMonth">今月分</option>
+        <option value="lastMonth">先月分</option>
+        <option value="custom">期間を指定する</option>
+      </select>
+      <div id="csv-custom-range" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px;">開始日</div><input class="form-input" id="csv-start-date" type="date"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px;">終了日</div><input class="form-input" id="csv-end-date" type="date"></div>
+      </div>
+    </div>
+    <button id="csv-download-btn" onclick="generateAndDownloadCsv()" style="width:100%;padding:14px;border-radius:var(--radius);border:none;background:var(--ao);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 3px 10px rgba(0,0,0,.12);">📥 Excelファイルをダウンロード</button>
+    <div id="csv-status" style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px;"></div>
   </div>
 </div>
 
@@ -834,23 +894,164 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- 共通設定：管理者パスワード確認 -->
+<div class="modal-overlay hidden" id="gs-pin-modal" style="z-index:1100;" onclick="closeGsPinModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">管理者パスワード</div>
+    <input class="pw-input" id="gs-pin-input" type="password" placeholder="パスワードを入力" inputmode="numeric" pattern="[0-9]*" maxlength="4" onkeydown="if(event.key==='Enter')checkGsPin()" oninput="if(this.value.length===4)checkGsPin()">
+    <div class="hidden" id="gs-pin-error" style="color:#C0392B;font-size:12px;font-weight:700;margin-bottom:8px;">パスワードが違います</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeGsPinModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理者メニュー：単価・振込先・会社情報・月次レポート -->
+<div class="modal-overlay hidden" id="global-settings-modal" style="align-items:flex-start;overflow-y:auto;padding:0;z-index:1100;">
+  <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
+      <div style="font-size:16px;font-weight:900;">⚙ 管理者メニュー</div>
+      <button onclick="closeGlobalSettingsModal()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
+    </div>
+
+    <button onclick="closeGlobalSettingsModal();openMonthlyReport();" style="width:100%;padding:15px 16px;border-radius:var(--radius);border:none;background:var(--ao);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.12);">📊 月次レポートを見る</button>
+
+    <button onclick="closeGlobalSettingsModal();openCsvExportModal();" style="width:100%;padding:15px 16px;border-radius:var(--radius);border:1.5px solid var(--ao);background:#fff;color:var(--ao);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;">🧾 経理データを書き出す（Excel）</button>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin:0 4px 8px;letter-spacing:.03em;">📅 月次レポート関連</div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid var(--ao);">
+      <div style="font-size:13px;font-weight:800;margin-bottom:4px;">🎯 目標食数（店舗ごと・月次レポート用）</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">未入力の店舗は、レポートで目標との比較を表示しません。</div>
+      <div class="form-row"><div class="form-lbl">甲子園</div><input class="form-input" id="gs-target-甲子園" type="number" min="0" placeholder="例：220"></div>
+      <div class="form-row"><div class="form-lbl">杭瀬</div><input class="form-input" id="gs-target-杭瀬" type="number" min="0" placeholder="例：220"></div>
+      <div class="form-row"><div class="form-lbl">立花</div><input class="form-input" id="gs-target-立花" type="number" min="0" placeholder="例：170"></div>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveTargets()">目標食数を保存</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);margin:0 4px 8px;letter-spacing:.03em;">⚙ 基本設定</div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid #C45C00;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🍱 弁当単価（全店舗共通・税込）</div>
+      <div id="gs-price-history" style="margin-bottom:12px;"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;">新しい単価を追加</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input class="form-input" id="gs-new-price" type="number" min="0" placeholder="例：700">
+        <input class="form-input" id="gs-new-price-date" type="date">
+      </div>
+      <button class="btn-save" style="width:100%;" onclick="addPriceHistoryEntry()">この単価を追加</button>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">※ 過去の金額には影響しません。指定した日から新しい単価が使われます。</div>
+    </div>
+
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid #1A6FD4;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:4px;">🏦 振込先（請求書に記載・店舗ごとに設定）</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">店舗タブを選んでから入力してください。他の店舗タブに切り替えても内容は自動的に保存されます。</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;" id="gs-bank-shop-tabs"></div>
+      <div class="form-row"><div class="form-lbl">銀行名</div><input class="form-input" id="gs-bank-name" type="text" placeholder="例：〇〇銀行"></div>
+      <div class="form-row"><div class="form-lbl">支店名</div><input class="form-input" id="gs-bank-branch" type="text" placeholder="例：〇〇支店"></div>
+      <div class="form-row"><div class="form-lbl">口座種別</div>
+        <select class="form-select" id="gs-bank-type"><option value="普通">普通</option><option value="当座">当座</option></select>
+      </div>
+      <div class="form-row"><div class="form-lbl">口座番号</div><input class="form-input" id="gs-bank-number" type="text" placeholder="例：1234567"></div>
+      <div class="form-row"><div class="form-lbl">口座名義</div><input class="form-input" id="gs-bank-holder" type="text" placeholder="例：カ）コンプリメント"></div>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveBankInfo()">この店舗の振込先を保存</button>
+    </div>
+
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid #1F8C35;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🏢 会社情報（請求書・領収書に記載／全店舗共通）</div>
+      <div class="form-row"><div class="form-lbl">会社名</div><input class="form-input" id="gs-co-name" type="text"></div>
+      <div class="form-row"><div class="form-lbl">郵便番号</div><input class="form-input" id="gs-co-postal" type="text"></div>
+      <div class="form-row"><div class="form-lbl">住所</div><input class="form-input" id="gs-co-address" type="text"></div>
+      <div class="form-row"><div class="form-lbl">電話番号</div><input class="form-input" id="gs-co-phone" type="text"></div>
+      <div class="form-row"><div class="form-lbl">登録番号</div><input class="form-input" id="gs-co-regno" type="text"></div>
+      <button class="btn-save" style="width:100%;margin-top:6px;" onclick="saveCompanyInfo()">会社情報を保存</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script type="module">
+  // ── Firebase(Firestore)初期化：複数端末でのリアルタイム同期用 ──
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp,
+    enableIndexedDbPersistence, collection, query, where, getDocs
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_r43JWqbkl69Xtdjr_SAZRO52uUA6PvM",
+    authDomain: "bento-c36d9.firebaseapp.com",
+    projectId: "bento-c36d9",
+    storageBucket: "bento-c36d9.firebasestorage.app",
+    messagingSenderId: "179743926938",
+    appId: "1:179743926938:web:536ebfce1aa664ea3dcd23",
+    measurementId: "G-DBBXWDP1N3"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const auth = getAuth(fbApp);
+
+  try{
+    // オフライン時でも直近のデータを表示・編集できるようにするキャッシュ
+    // (同じブラウザで複数タブを開いている場合など、有効化に失敗することがあるが、
+    //  その場合もFirestore自体の動作には支障がないため握りつぶす)
+    await enableIndexedDbPersistence(db);
+  }catch(e){ /* no-op */ }
+
+  window.__fb = { db, auth, doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs, ready:false };
+
+  function notifyFirebaseReady(){
+    if(window.__fb.ready) return;
+    window.__fb.ready = true;
+    window.dispatchEvent(new CustomEvent('firebase-ready'));
+  }
+
+  // ── 店舗名の変更（西宮→甲子園）に伴う一回限りの引っ越し ──
+  // 古い名前(西宮)のデータが既にクラウドにあり、新しい名前(甲子園)のデータがまだ無ければ、
+  // 中身をそのまま新しい名前のドキュメントへコピーする（古い方は残るが使われなくなる）。
+  async function migrateShopRename(oldName, newName){
+    try{
+      const oldRef = doc(db,'shops',oldName);
+      const newRef = doc(db,'shops',newName);
+      const [oldSnap, newSnap] = await Promise.all([getDoc(oldRef), getDoc(newRef)]);
+      if(oldSnap.exists() && !newSnap.exists()){
+        await setDoc(newRef, oldSnap.data());
+        console.log(`店舗名を「${oldName}」から「${newName}」に移行しました`);
+      }
+    }catch(e){
+      console.error('店舗名の移行に失敗しました', e);
+    }
+  }
+
+  onAuthStateChanged(auth, (user)=>{
+    if(user){
+      migrateShopRename('西宮','甲子園').finally(()=>{ notifyFirebaseReady(); });
+    }
+  });
+  signInAnonymously(auth).catch(err=>{
+    console.error('Firebase匿名ログインに失敗しました。クラウド同期は無効化されます。', err);
+    window.__fbAuthFailed = err || true;
+    window.dispatchEvent(new CustomEvent('firebase-auth-error', {detail:err}));
+  });
+</script>
+
 <script>
-// ── セキュリティ：XSS対策ユーティリティ ──
-function escHtml(str){
-  if(str==null) return '';
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;');
-}
-// onclick等の属性値内でシングルクォートをエスケープ
-function escAttr(str){
-  if(str==null) return '';
-  return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+// ── Firebase連携ブリッジ（type="module"側の初期化完了を待つ） ──
+function waitForFirebase(){
+  return new Promise((resolve, reject)=>{
+    if(window.__fb && window.__fb.ready){ resolve(window.__fb); return; }
+    // 認証に失敗した後（'firebase-auth-error'は一度しか発火しない）に呼ばれた場合、
+    // イベント待ちのままPromiseが永久に解決しなくなるのを防ぐ
+    if(window.__fbAuthFailed){ reject(window.__fbAuthFailed); return; }
+    let settled=false;
+    window.addEventListener('firebase-ready', ()=>{
+      if(settled) return; settled=true; resolve(window.__fb);
+    }, {once:true});
+    window.addEventListener('firebase-auth-error', (e)=>{
+      if(settled) return; settled=true; reject(e.detail);
+    }, {once:true});
+  });
 }
 
 const COURSE_META={
@@ -863,26 +1064,31 @@ const COURSE_META={
 };
 const COURSE_ORDER=['ao','midori','orenji','iero','pinku','shop'];
 
-let STAFF=[
-  {id:'s1',name:'隅谷'},
-  {id:'s2',name:'光家'},
-  {id:'s3',name:'柴田'},
-];
-
-let PINK_STAFF=[
-  {id:'ps1',name:'門谷'},
-  {id:'ps2',name:'野田耕'},
-];
-
-let COURSE_ASSIGN={
-  ao:'s1',midori:'s1',orenji:'s3',iero:'',shop:'',
-};
+function STAFF_DEFAULT(){
+  return [
+    {id:'s1',name:'隅谷'},
+    {id:'s2',name:'光家'},
+    {id:'s3',name:'柴田'},
+  ];
+}
+function PINK_STAFF_DEFAULT(){
+  return [
+    {id:'ps1',name:'門谷'},
+    {id:'ps2',name:'野田耕'},
+  ];
+}
+function COURSE_ASSIGN_DEFAULT(){
+  return {ao:'s1',midori:'s1',orenji:'s3',iero:'',shop:''};
+}
+let STAFF=STAFF_DEFAULT();
+let PINK_STAFF=PINK_STAFF_DEFAULT();
+let COURSE_ASSIGN=COURSE_ASSIGN_DEFAULT();
 
 let pinkTodayStaff='';
 
 // 店舗別デフォルト顧客データ
 const MASTER_DEFAULTS = {
-  '西宮': [
+  '甲子園': [
     {id:'a1',course:'ao',name:'ダイキョウクリーン（鳴尾浜）',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a2',course:'ao',name:'大手前大学第一事務室 1階左',defaultCount:0,receipt:false,kake:false,memo:'',staffId:''},
     {id:'a3',course:'ao',name:'大手前大学 美芸院',defaultCount:0,receipt:false,kake:false,memo:'11:30まで 2階左',staffId:''},
@@ -926,7 +1132,7 @@ const MASTER_DEFAULTS = {
 };
 
 // currentShopはMASTER初期化より前に定義が必要
-let currentShop='西宮';
+let currentShop='甲子園';
 
 function MASTER_DEFAULT(){
   return JSON.parse(JSON.stringify(MASTER_DEFAULTS[currentShop]||[]));
@@ -942,6 +1148,9 @@ function getDefaultCount(m, dow){
     const v = m.weekCounts[dow];
     if(v !== null && v !== undefined && v !== '') return Number(v);
   }
+  // 土日(dow:0=日,6=土)は、個別にweekCountsで指定されていない限り、
+  // 「毎日○食」のデフォルト値を適用しない（通常配達が無いため、請求額が過大になるのを防ぐ）
+  if(dow === 0 || dow === 6) return 0;
   return m.defaultCount;
 }
 function initCounts(date){
@@ -958,6 +1167,8 @@ function initCounts(date){
 }
 initCounts(new Date());
 const done=new Set();
+// 「電子」領収書のメールを、その日すでに自動送信したお客様のID一覧（二重送信防止用。doneと同じく「本日分」のみ意味を持つ）
+const receiptSent=new Set();
 let iFilter='all',dFilter='all',dFilterSet=new Set(),dStaff='all',cFilter='all';
 let deliveryOrder={}; // {custId: number}
 let showDeliveryOrder=false;
@@ -969,10 +1180,15 @@ const TODAY=new Date(); TODAY.setHours(0,0,0,0);
 function fmtDate(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+// fmtDate()形式(YYYY-MM-DD)の文字列を「ローカル時刻」のDateに変換する
+// (new Date('YYYY-MM-DD')はUTC 0時として解釈されるため、日本より西のタイムゾーンで日付がずれる可能性がある)
+function parseDateKey(key){
+  const parts=String(key).split('-').map(Number);
+  return new Date(parts[0],parts[1]-1,parts[2]);
+}
 let selectedDate=new Date(TODAY);
 let calViewYear=TODAY.getFullYear(),calViewMonth=TODAY.getMonth(),calOpen=false;
 
-function dk(d){return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
 function staffName(id){
   const s=STAFF.find(x=>x.id===id)||PINK_STAFF.find(x=>x.id===id);
@@ -1008,12 +1224,13 @@ function _closeModal(id){
   if(_modalCount===0) document.body.classList.remove('modal-open');
 }
 function _closeAllModals(){
-  ['cust-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
-   'bulk-order-modal','yoyaku-detail-modal','yoyaku-memo-modal',
-   'monthly-report-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
+  ['cust-modal','onetime-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
+   'yoyaku-memo-modal','daily-memo-modal','invoice-send-confirm-modal',
+   'monthly-report-modal','csv-export-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.classList.add('hidden'); if(id==='invoice-modal') el.style.display='none'; }
   });
+  try{ closeCourseMenu(); }catch(e){}
   _modalCount=0;
   document.body.classList.remove('modal-open');
 }
@@ -1034,24 +1251,15 @@ function updateDateBar(){
   const sub=document.getElementById('date-bar-sub');
   sub.textContent=isToday?'本日':'※日付変更中';
   sub.style.color=isToday?'var(--ao)':'var(--orenji)';
-  requestAnimationFrame(adjustMainPadding);
-}
-function shiftDay(d){
-  const next=new Date(selectedDate);
-  next.setDate(next.getDate()+d);
-  selectedDate=next;
-  initCounts(selectedDate);
-  updateDateBar();
-  if(currentTab==='input'){
-    iSearch='';
-    inputCollapsed={};
-    const area=document.getElementById('input-list-area');
-    if(area) delete area.dataset.built;
-    document.getElementById('tab-input').innerHTML='';
-    const main=document.getElementById('main');
-    if(main) main.scrollTop=0;
+  // カレンダーボタン：今日以外はオレンジ枠で強調
+  const calBtn=document.getElementById('cal-toggle-btn');
+  if(calBtn){
+    calBtn.style.borderColor=isToday?'var(--border-dark)':'var(--orenji)';
+    calBtn.style.background=isToday?'var(--bg)':'var(--orenji-bg)';
+    const icon=calBtn.querySelector('svg');
+    if(icon) icon.style.color=isToday?'var(--muted)':'var(--orenji)';
   }
-  renderCurrentTab();
+  requestAnimationFrame(adjustMainPadding);
 }
 function adjustMainPadding(){
   const hdr=document.querySelector('.hdr');
@@ -1065,47 +1273,82 @@ function adjustMainPadding(){
   }
 }
 
-function toggleCal(){}
-function renderCal(){}
-function selectDate(y,m,d){selectedDate=new Date(y,m,d);initCounts(selectedDate);updateDateBar();renderCurrentTab();}
-function shiftMonth(d){}
-
-function closeYoyakuDetail(){_closeModal('yoyaku-detail-modal');}
-function clearYoyakuDetail(){
-  document.getElementById('yd-count').value='';
-  document.getElementById('yd-memo').value='';
-}
-function saveYoyakuDetail(){
-  const dateKey=document.getElementById('yd-date-key').value;
-  const custId=_currentYoyakuCustId||document.getElementById('yoyaku-customer')?.value||'';
-  const n=parseInt(document.getElementById('yd-count').value)||0;
-  const memo=document.getElementById('yd-memo').value.trim();
-  if(dateKey&&custId){
-    if(!bulkOrders[dateKey]) bulkOrders[dateKey]={};
-    bulkOrders[dateKey][custId]=n;
-    if(memo){
-      if(!bulkMemos[dateKey]) bulkMemos[dateKey]={};
-      bulkMemos[dateKey][custId]=memo;
+function toggleCal(){
+  calOpen=!calOpen;
+  const cal=document.getElementById('cal-dropdown');
+  const main=document.getElementById('main');
+  const calBtn=document.getElementById('cal-toggle-btn');
+  if(cal) cal.classList.toggle('hidden',!calOpen);
+  // カレンダーボタンの状態更新
+  if(calBtn){
+    const icon=calBtn.querySelector('svg');
+    if(calOpen){
+      calBtn.style.background='var(--ao)';
+      calBtn.style.borderColor='var(--ao)';
+      if(icon) icon.style.color='#fff';
+    } else {
+      const isToday=sameDay(selectedDate,TODAY);
+      calBtn.style.background=isToday?'var(--bg)':'var(--orenji-bg)';
+      calBtn.style.borderColor=isToday?'var(--border-dark)':'var(--orenji)';
+      if(icon) icon.style.color=isToday?'var(--muted)':'var(--orenji)';
     }
-    saveToLocal();
-    initCounts(selectedDate);
-    updateHdrTotal();
-    renderYoyaku();
-    toast('保存しました');
   }
-  closeYoyakuDetail();
+  if(main){
+    if(calOpen){
+      const calH=document.querySelector('.cal-dropdown')?.offsetHeight||240;
+      const hdrH=document.querySelector('.hdr')?.offsetHeight||96;
+      main.style.paddingTop=(hdrH+calH)+'px';
+    } else {
+      adjustMainPadding();
+    }
+  }
+  if(calOpen) renderCal();
 }
 function hasOrderData(date){
-  const key=fmtDate(date);
-  if(bulkOrders[key]&&Object.keys(bulkOrders[key]).length>0) return true;
-  return false;
+  const dk=fmtDate(date);
+  const bo=bulkOrders[dk],bm=bulkMemos[dk];
+  return !!(bo&&Object.keys(bo).length)||!!(bm&&Object.keys(bm).length);
 }
-
-
+function renderCal(){
+  const days=['日','月','火','水','木','金','土'];
+  document.getElementById('cal-month-label').textContent=`${calViewYear}年${calViewMonth+1}月`;
+  const first=new Date(calViewYear,calViewMonth,1),last=new Date(calViewYear,calViewMonth+1,0);
+  let html=days.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<first.getDay();i++)html+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=last.getDate();d++){
+    const date=new Date(calViewYear,calViewMonth,d),dow=date.getDay();
+    const isToday=sameDay(date,TODAY),isSel=sameDay(date,selectedDate),hasData=hasOrderData(date)||isToday;
+    const cls=['cal-day',dow===0?'sun':dow===6?'sat':'',isToday?'today':'',isSel&&!isToday?'selected':'',hasData?'has-data':''].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="selectDate(${calViewYear},${calViewMonth},${d})">${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+function selectDate(y,m,d){selectedDate=new Date(y,m,d);initCounts(selectedDate);ensureSalesData(fmtDate(selectedDate));updateDateBar();renderCurrentTab();toggleCal();}
+function shiftMonth(d){calViewMonth+=d;if(calViewMonth<0){calViewMonth=11;calViewYear--;}if(calViewMonth>11){calViewMonth=0;calViewYear++;}renderCal();}
 
 function badges(m){return (m.receipt?'<span class="badge-r">領収</span>':'')+(m.kake?'<span class="badge-k">掛</span>':'');}
-function staffBadge(m){const n=staffName(getAssignedStaff(m));return n?`<span class="badge-staff">${n}</span>`:'';};
+function staffBadge(m){const n=staffName(getAssignedStaff(m));return n?`<span class="badge-staff">${escHtml(n)}</span>`:'';};
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1600);}
+// 顧客名・スタッフ名などをonclick="...('...')"のJS文字列引数として埋め込む際に使う共通エスケープ
+// (バックスラッシュ→シングルクォート→ダブルクォートの順で処理。ダブルクォートはHTML属性の区切り崩れを防ぐため実体参照化)
+function escJs(str){
+  return String(str==null?'':str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+// data-*属性などプレーンなHTML属性値に埋め込む際に使う共通エスケープ(ダブルクォートのみ対策)
+function escHtmlAttr(str){
+  return String(str==null?'':str).replace(/"/g,'&quot;');
+}
+// 顧客名・メモ・宛名など、自由入力の文字列を画面の文章として(innerHTMLで)表示する際に使う共通エスケープ。
+// "&"や"<"を含む名前（例：「田中&佐藤商店」）がそのまま埋め込まれると、意図しないタグとして解釈されて
+// 表示が崩れたり、請求書・領収書のPDFでレイアウトが崩れてしまうため、表示直前に必ずこれを通す。
+function escHtml(str){
+  return String(str==null?'':str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
 
 function sortByKana(arr){
   return [...arr].sort((a,b)=>a.name.localeCompare(b.name,'ja'));
@@ -1134,7 +1377,7 @@ function makeChips(f,setter){
 function makeStaffOptions(selected='',includeAll=false){
   let html=includeAll?`<option value="all"${selected==='all'?' selected':''}>全員</option>`:'';
   html+=`<option value=""${!selected||selected===''?' selected':''}>未設定</option>`;
-  STAFF.forEach(s=>{html+=`<option value="${s.id}"${selected===s.id?' selected':''}>${escHtml(s.name)}</option>`;});
+  STAFF.forEach(s=>{html+=`<option value="${s.id}"${selected===s.id?' selected':''}>${s.name}</option>`;});
   return html;
 }
 
@@ -1178,9 +1421,15 @@ function renderInputList(){
   }
 
   // 各カードのdisplay切り替え（DOMを書き換えない）
+  const _isTodaySelected=sameDay(selectedDate,TODAY);
   MASTER.forEach(m=>{
     const card=document.getElementById('icard-'+m.id);
     if(!card) return;
+    // 食数を最新に同期する（他端末からのクラウド反映など、setC/spin以外の経路で
+    // countsが変わった場合でもここで必ず表示が追いつくようにする）
+    _updateCardValue(m.id);
+    // 配達完了（本日分のみ意味を持つ）済みのお客様は、カードを薄く表示する
+    card.classList.toggle('icard-done', _isTodaySelected && done.has(m.id));
     let visible=true;
     if(iFilter!=='all' && (m.todayCourse||m.course)!==iFilter) visible=false;
     if(q){
@@ -1223,6 +1472,7 @@ function renderInputList(){
 
 function _buildInputListDOM(area){
   let html=`<div class="iview">`;
+  const _selDateKey=fmtDate(selectedDate);
   COURSE_ORDER.forEach(c=>{
     const meta=COURSE_META[c];
     const assignedName=c==='pinku'?'':staffName(COURSE_ASSIGN[c]||'');
@@ -1233,7 +1483,7 @@ function _buildInputListDOM(area){
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:10px;height:10px;border-radius:50%;background:${COURSE_COLORS_MAP[c]};flex-shrink:0;"></div>
           <span style="font-size:13px;font-weight:800;">${meta.label}コース</span>
-          ${assignedName?`<span style="font-size:11px;color:var(--muted);font-weight:500;">${escHtml(assignedName)}</span>`:''}
+          ${assignedName?`<span style="font-size:11px;color:var(--muted);font-weight:500;">${assignedName}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span class="igroup-total" id="igroup-total-${c}" style="font-size:18px;font-weight:900;color:${COURSE_COLORS_MAP[c]};"></span>
@@ -1242,8 +1492,10 @@ function _buildInputListDOM(area){
       </div>
       <div id="igroup-rows-${c}" style="border-top:1px solid var(--border);">`;
     members.forEach(m=>{
+      const safeName=escJs(m.name);
       const todayCourse=m.todayCourse||m.course;
       const isChanged=m.todayCourse&&m.todayCourse!==m.course;
+      const hasDailyMemo=!!(bulkMemos[_selDateKey]&&bulkMemos[_selDateKey][m.id]);
       html+=`<div class="icard" id="icard-${m.id}"
         style="border-radius:0;border-left:none;border-right:none;border-top:none;box-shadow:none;${isChanged?'border-left:3px solid '+COURSE_COLORS_MAP[todayCourse]+';':''}">
         <div class="icard-bar bar-${todayCourse}"></div>
@@ -1252,16 +1504,17 @@ function _buildInputListDOM(area){
             <span>${escHtml(m.name)}</span>
             ${isChanged?`<span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;background:${COURSE_COLORS_MAP[todayCourse]};color:#fff;">${COURSE_LABELS_MAP[todayCourse]}</span>`:''}
           </div>
-          ${m.memo?`<div class="icard-sub">${escHtml(m.memo||"")}</div>`:''}
+          ${m.memo?`<div class="icard-sub">${escHtml(m.memo)}</div>`:''}
+          ${hasDailyMemo?`<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${escHtml(bulkMemos[_selDateKey][m.id])}</div>`:''}
         </div>
-        <button data-cid="${m.id}" onclick="showCourseMenu(this.dataset.cid,MASTER.find(x=>x.id===this.dataset.cid)?.name||'')"
+        <button onclick="showCourseMenu('${m.id}','${safeName}')"
           style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1;letter-spacing:-1px;">⋯</button>
         <div class="icard-ctrl">
           <button class="spin" onclick="spin('${m.id}',-1)">−</button>
           <input class="icard-input" type="number" min="0" max="999"
             value="" placeholder="0"
             oninput="setC('${m.id}',this.value)"
-            data-cid="${m.id}" onclick="openNumPicker(this.dataset.cid,MASTER.find(x=>x.id===this.dataset.cid)?.name||'',counts[this.dataset.cid]||0)"
+            onclick="openNumPicker('${m.id}','${safeName}',counts['${m.id}']||0)"
             readonly
             id="inp-${m.id}"
             style="cursor:pointer;">
@@ -1301,6 +1554,7 @@ function renderInput(){
             style="width:100%;padding:11px 36px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;color:var(--text);outline:none;font-weight:500;background:var(--bg);">
           <button id="input-search-clear" onclick="clearInputSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;font-size:17px;color:var(--muted);cursor:pointer;padding:0;">×</button>
         </div>
+        <button onclick="openOnetimeModal()" style="width:100%;margin-top:8px;padding:9px;border-radius:var(--radius-sm);border:1.5px dashed var(--border-dark);background:var(--bg);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 本日限りのお客様を追加</button>
       </div>
       <div class="frow" id="input-chip-row"></div>
     </div>
@@ -1380,7 +1634,7 @@ function selectNum(n){
 function applyNumPicker(){
   blurAll();
   const v=parseInt(document.getElementById('num-picker-input').value);
-  if(!isNaN(v)&&v>=0&&_pickerTargetId){
+  if(!isNaN(v)&&v>=0&&v<=999&&_pickerTargetId){
     counts[_pickerTargetId]=v;
     updateHdrTotal();
     setC(_pickerTargetId,v);
@@ -1409,9 +1663,22 @@ function showCourseMenu(id,name){
       <span>${COURSE_LABELS_MAP[c]}${isCurrent?' ✓':''}</span>
     </div>`;
   });
+  const _selDateKey=fmtDate(selectedDate);
+  const hasDailyMemo=!!(bulkMemos[_selDateKey]&&bulkMemos[_selDateKey][id]);
+  const receiptEligible = m.receiptType==='electronic' && m.receiptEmail;
+  const actionsHtml =
+    (receiptEligible?`<div class="course-menu-item" style="padding:14px 20px;font-size:15px;" onclick="closeCourseMenu();manualSendReceiptFromInput('${id}')">
+      <span>🧾</span><span>領収書を送信</span>
+    </div>`:'') +
+    `<div class="course-menu-item" style="padding:14px 20px;font-size:15px;" onclick="closeCourseMenu();openDailyMemoModal('${id}','${escJs(name)}')">
+      <span>📝</span><span>${hasDailyMemo?'今日だけのメモを編集':'今日だけのメモを追加'}</span>
+    </div>`;
   menu.innerHTML=`<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:12px 8px calc(24px + env(safe-area-inset-bottom,0px));width:100%;">
     <div style="width:36px;height:4px;background:var(--border-dark);border-radius:2px;margin:0 auto 14px;"></div>
-    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${escHtml(name)}のコースを変更</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${name}</div>
+    ${actionsHtml}
+    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700;padding:0 12px 8px;text-align:center;">コースを変更</div>
     ${html}
     <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
     <div class="course-menu-item" style="color:var(--muted);justify-content:center;font-size:15px;" onclick="closeCourseMenu()">キャンセル</div>
@@ -1439,7 +1706,13 @@ function closeCourseMenu(){
 }
 
 function setC(id,v){
-  const n=parseInt(v);counts[id]=isNaN(n)||n<0?0:n;
+  const n=parseInt(v);counts[id]=isNaN(n)||n<0?0:Math.min(n,999);
+  // 「本日の注文」タブでの変更も、予約タブと同じ場所(bulkOrders＝日付ごとの個数)に書き込んでおく。
+  // こうしないと、日付を切り替えて戻った時に「毎日◯食」の設定に戻ってしまったり、
+  // 予約タブのカレンダーに反映されなかったりする(予約タブ側はbulkOrdersしか見ていないため)。
+  const _dateKey=fmtDate(selectedDate);
+  if(!bulkOrders[_dateKey]) bulkOrders[_dateKey]={};
+  bulkOrders[_dateKey][id]=counts[id];
   _updateCardValue(id);
   updateHdrTotal();
   const m=MASTER.find(x=>x.id===id);
@@ -1559,18 +1832,18 @@ function renderDelivery(){
         <div class="dcard-body" style="padding:8px 8px;grid-column:${showDeliveryOrder?3:2}">
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(isReceipt||hasTime)&&!isDone?'5':'0'}px;">
             ${isReceipt&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E53E3E;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">🧾 領収書</span>`:''}
-            ${hasTime&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E8A020;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">⏰ ${m.deliveryTime}まで</span>`:''}
+            ${hasTime&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E8A020;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">⏰ ${escHtml(m.deliveryTime)}まで</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span class="dcard-name" style="flex:1;font-size:13px;">${escHtml(m.name)}</span>
             ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
           </div>
           <div class="dcard-badges" style="margin-top:3px;">${badges(m)}${staffBadge(m)}</div>
-          ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${escHtml(m.memo||"")}</div>`:''}
+          ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${escHtml(m.memo)}</div>`:''}
           ${getDailyMemo(m.id)}
         </div>
         <div class="dcard-right" style="padding:6px 8px;grid-column:${showDeliveryOrder?4:3}">
-          <div class="dcard-count" style="font-size:18px;">${counts[m.id]||0}</div>
+          <div class="dcard-count" style="font-size:18px;">${counts[m.id]}</div>
           <div class="dcard-unit">食</div>
           <button class="chk${isDone?' on':''}" onclick="toggleDone('${m.id}')">✓</button>
         </div>
@@ -1591,10 +1864,16 @@ function renderDelivery(){
     if(progFill) progFill.style.width=`${pct}%`;
   }
 
-  // tab-deliveryのpadding-topを進捗バー分追加
+  // tab-deliveryのpadding-topを進捗バー分追加（固定の44pxだと機種によって実際の進捗バーの高さとズレて
+  // 一覧の一番上のカードが進捗バーの下に隠れてしまうことがあるため、実際の高さを測って正確に合わせる）
   const tabDel=document.getElementById('tab-delivery');
-  if(tabDel) tabDel.style.paddingTop='44px';
-  if(tabDel) tabDel.style.paddingBottom='';
+  if(tabDel){
+    const progH=progBar?progBar.offsetHeight:44;
+    tabDel.style.paddingTop=(progH||44)+'px';
+    // 一番下の配達先が、画面下部の固定ナビ（本日注文/集計/予約/顧客/売上）の下に隠れて見切れないよう、
+    // 余白を持たせておく
+    tabDel.style.paddingBottom='20px';
+  }
 }
 function toggleDeliveryOrder(){
   showDeliveryOrder=!showDeliveryOrder;
@@ -1629,7 +1908,7 @@ function getDailyMemo(custId){
 }
 function setDeliveryOrder(id,v){
   const n=parseInt(v);
-  if(isNaN(n)||v===''){
+  if(isNaN(n)||v===''||n<1||n>99){
     delete deliveryOrder[id];
   } else {
     deliveryOrder[id]=n;
@@ -1648,7 +1927,17 @@ function onDeliveryOrderBlur(id){
   renderDelivery();
 }
 
-function toggleDone(id){if(done.has(id))done.delete(id);else{done.add(id);toast('配達完了 ✓');}saveToLocal();renderDelivery();}
+function toggleDone(id){
+  if(done.has(id)){
+    done.delete(id);
+  } else {
+    done.add(id);
+    toast('配達完了 ✓');
+    maybeSendReceiptOnDelivery(id); // 領収書「電子」設定のお客様には、この瞬間に自動でメール送信を試みる
+  }
+  saveToLocal();
+  renderDelivery();
+}
 
 let cSearch='';
 let isComposing=false;
@@ -1704,7 +1993,8 @@ function renderCustList(){
   const q = cSearch.trim();
   const qNorm = normalizeKana(q.toLowerCase());
 
-  let filtered = cFilter==='all' ? MASTER : MASTER.filter(m=>m.course===cFilter);
+  let filtered = MASTER.filter(m=>!m.temporary);
+  if(cFilter!=='all') filtered = filtered.filter(m=>m.course===cFilter);
   if(q){
     filtered = filtered.filter(m=>{
       const name = normalizeKana(m.name.toLowerCase());
@@ -1718,9 +2008,9 @@ function renderCustList(){
   filtered.forEach(m=>{if(!groups[m.course])groups[m.course]=[];groups[m.course].push(m);});
 
   const hl=txt=>{
-    const safe=escHtml(txt||'');
+    const safe=escHtml(txt);
     if(!q) return safe;
-    return normalizeKana(txt||'').includes(normalizeKana(q))
+    return normalizeKana(txt).includes(normalizeKana(q))
       ? `<mark style="background:#FFF3B0;border-radius:2px;">${safe}</mark>`
       : safe;
   };
@@ -1731,7 +2021,7 @@ function renderCustList(){
     </button>`;
 
   if(filtered.length===0){
-    html+=`<div class="empty-msg">${q?`「${escHtml(q)}」に一致する顧客が見つかりません`:'顧客がいません'}</div>`;
+    html+=`<div class="empty-msg">${q?`「${q}」に一致する顧客が見つかりません`:'顧客がいません'}</div>`;
   } else {
     COURSE_ORDER.forEach(c=>{
       if(!groups[c])return;
@@ -1822,7 +2112,7 @@ function renderCustStaffArea(){
     PINK_STAFF.forEach(function(s,i){
       staffHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;'+(i>0?'border-top:1px solid var(--border);':'')+'">';
       staffHtml+='<span style="font-size:14px;font-weight:700;">'+s.name+'</span>';
-      staffHtml+='<button class="cust-btn" style="color:#C0392B;background:#fff;" data-pid="'+s.id+'" data-pname="'+s.name+'" onclick="confirmDeletePinkStaff(this.dataset.pid,this.dataset.pname)">✕</button>';
+      staffHtml+='<button class="cust-btn" style="color:#C0392B;background:#fff;" data-pid="'+s.id+'" data-pname="'+escHtmlAttr(s.name)+'" onclick="confirmDeletePinkStaff(this.dataset.pid,this.dataset.pname)">✕</button>';
       staffHtml+='</div>';
     });
   }
@@ -1836,7 +2126,7 @@ function renderCustStaffArea(){
   STAFF.forEach(function(s,i){
     staffHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;'+(i>0?'border-top:1px solid var(--border);':'')+'background:var(--surface);">';
     staffHtml+='<span style="font-size:14px;font-weight:700;">'+s.name+'</span>';
-    staffHtml+='<button class="cust-btn" style="color:#C0392B;" data-sid="'+s.id+'" data-sname="'+s.name+'" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>';
+    staffHtml+='<button class="cust-btn" style="color:#C0392B;" data-sid="'+s.id+'" data-sname="'+escHtmlAttr(s.name)+'" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>';
     staffHtml+='</div>';
   });
   staffHtml+='</div></div><div style="height:60px;"></div></div>';
@@ -1862,13 +2152,14 @@ function openCustModal(id){
     document.getElementById('cm-name').value=m.name;
     document.getElementById('cm-yomi').value=m.yomi||'';
     document.getElementById('cm-course').value=m.course;
-    document.getElementById('cm-count').value=m.defaultCount||0;
-    document.getElementById('cm-receipt').value=String(m.receipt);
+    document.getElementById('cm-count').value=(m.defaultCount!=null?m.defaultCount:0);
+    document.getElementById('cm-receipt').value=m.receiptType||(m.receipt?'paper':'none');
     document.getElementById('cm-kake').value=String(m.kake);
-    document.getElementById('cm-memo').value=m.memo||'';
+    document.getElementById('cm-memo').value=m.memo;
     document.getElementById('cm-address').value=m.address||'';
     document.getElementById('cm-time-input').value=m.deliveryTime||'';
     document.getElementById('cm-email').value=m.email||'';
+    document.getElementById('cm-receipt-email').value=m.receiptEmail||'';
     document.getElementById('cm-closing').value=m.closing||'';
     document.getElementById('cm-billname').value=m.billname||'';
     document.getElementById('cm-staff').value=m.staffId||'';
@@ -1889,12 +2180,13 @@ function openCustModal(id){
     document.getElementById('cm-yomi').value='';
     document.getElementById('cm-course').value='ao';
     document.getElementById('cm-count').value='0';
-    document.getElementById('cm-receipt').value='false';
+    document.getElementById('cm-receipt').value='none';
     document.getElementById('cm-kake').value='false';
     document.getElementById('cm-memo').value='';
     document.getElementById('cm-address').value='';
     document.getElementById('cm-time-input').value='';
     document.getElementById('cm-email').value='';
+    document.getElementById('cm-receipt-email').value='';
     document.getElementById('cm-closing').value='';
     document.getElementById('cm-billname').value='';
     document.getElementById('cm-staff').value='';
@@ -1904,14 +2196,8 @@ function openCustModal(id){
   }
   onCourseChange(document.getElementById('cm-course').value);
   onKakeChange();
+  onReceiptChange();
   selectCourse(document.getElementById('cm-course').value);
-}
-function onCmNameInput(){
-  const yomiEl=document.getElementById('cm-yomi');
-  if(yomiEl && !yomiEl.value){
-    clearTimeout(window._yomiTimer);
-    window._yomiTimer=setTimeout(()=>genYomi(true),600);
-  }
 }
 function genYomi(silent){
   const name=document.getElementById('cm-name').value.trim();
@@ -1986,6 +2272,10 @@ function onKakeChange(){
   const isKake=document.getElementById('cm-kake').value==='true';
   document.getElementById('cm-invoice-section').style.display=isKake?'block':'none';
 }
+function onReceiptChange(){
+  const isElectronic=document.getElementById('cm-receipt').value==='electronic';
+  document.getElementById('cm-receipt-section').style.display=isElectronic?'block':'none';
+}
 function blurAll(){
   if(document.activeElement && document.activeElement.blur){
     document.activeElement.blur();
@@ -2002,35 +2292,27 @@ function saveCust(){
   for(let i=1;i<=5;i++){
     const el=document.getElementById('cm-w'+i);
     const v=el?el.value:'';
-    weekCounts[i]=v===''||v===null?null:parseInt(v);
+    weekCounts[i]=v===''||v===null?null:Math.max(0,parseInt(v)||0);
   }
   const obj={
     id:editId||'c'+nextId++,course,name,
     yomi:document.getElementById('cm-yomi').value.trim(),
-    defaultCount:parseInt(document.getElementById('cm-count').value)||0,
-    receipt:document.getElementById('cm-receipt').value==='true',
+    defaultCount:Math.max(0,parseInt(document.getElementById('cm-count').value)||0),
+    receiptType:document.getElementById('cm-receipt').value,
+    receipt:document.getElementById('cm-receipt').value!=='none',
     kake:document.getElementById('cm-kake').value==='true',
     memo:document.getElementById('cm-memo').value.trim(),
     address:document.getElementById('cm-address').value.trim(),
     deliveryTime:document.getElementById('cm-time-input').value||'',
     email:document.getElementById('cm-email').value.trim(),
+    receiptEmail:document.getElementById('cm-receipt-email').value.trim(),
     closing:document.getElementById('cm-closing').value,
     billname:document.getElementById('cm-billname').value.trim(),
     staffId:course==='pinku'?document.getElementById('cm-staff').value:'',
     weekCounts,
   };
-  if(editId){
-    const idx=MASTER.findIndex(m=>m.id===editId);
-    if(idx!==-1){
-      // todayCourseを引き継ぐ
-      if(MASTER[idx].todayCourse) obj.todayCourse=MASTER[idx].todayCourse;
-      MASTER[idx]=obj;
-    }
-    toast('更新しました');
-  } else {
-    MASTER.push(obj);
-    toast('追加しました');
-  }
+  if(editId){const idx=MASTER.findIndex(m=>m.id===editId);if(idx!==-1)MASTER[idx]=obj;toast('更新しました');}
+  else{MASTER.push(obj);toast('追加しました');}
   initCounts(selectedDate);
   updateHdrTotal();
   saveToLocal();
@@ -2038,7 +2320,56 @@ function saveCust(){
   const _area=document.getElementById('input-list-area');
   if(_area) delete _area.dataset.built;
   _closeModal('cust-modal');
+
   renderCustomer();
+}
+function openOnetimeModal(){
+  document.getElementById('om-name').value='';
+  document.getElementById('om-course').value=iFilter!=='all'?iFilter:'ao';
+  document.getElementById('om-count').value='1';
+  document.getElementById('om-phone').value='';
+  document.getElementById('om-address').value='';
+  document.getElementById('om-memo').value='';
+  _openModal('onetime-modal');
+  setTimeout(()=>fixInputFontSize(document.getElementById('onetime-modal')),50);
+}
+function closeOnetimeModal(e){
+  if(e&&e.target!==document.getElementById('onetime-modal'))return;
+  blurAll();
+  _closeModal('onetime-modal');
+}
+function saveOnetimeCust(){
+  blurAll();
+  const name=document.getElementById('om-name').value.trim();
+  if(!name){toast('お客様名を入力してください');return;}
+  const course=document.getElementById('om-course').value;
+  const qty=Math.max(0,parseInt(document.getElementById('om-count').value)||0);
+  const id='w'+nextId++;
+  const obj={
+    id,course,name,
+    yomi:'',
+    defaultCount:qty,
+    receipt:false,receiptType:'none',
+    kake:false,
+    memo:document.getElementById('om-memo').value.trim(),
+    address:document.getElementById('om-address').value.trim(),
+    phone:document.getElementById('om-phone').value.trim(),
+    deliveryTime:'',
+    email:'',receiptEmail:'',
+    closing:'',billname:'',staffId:'',
+    weekCounts:[null,null,null,null,null,null,null],
+    temporary:true,
+    addedDate:fmtDate(new Date()),
+  };
+  MASTER.push(obj);
+  counts[id]=qty;
+  updateHdrTotal();
+  saveToLocal();
+  const _area=document.getElementById('input-list-area');
+  if(_area) delete _area.dataset.built;
+  _closeModal('onetime-modal');
+  toast(name+'さんを本日の注文に追加しました');
+  renderInputList();
 }
 let custDelReady=false;
 function deleteCustStep(){
@@ -2053,14 +2384,11 @@ function deleteCustStep(){
   if(!id)return;
   const idx=MASTER.findIndex(m=>m.id===id);
   if(idx!==-1)MASTER.splice(idx,1);
-  delete counts[id];done.delete(id);
-  // bulkOrders / bulkMemos からも削除顧客のデータを除去
-  Object.keys(bulkOrders).forEach(dateKey=>{
-    if(bulkOrders[dateKey]) delete bulkOrders[dateKey][id];
-  });
-  Object.keys(bulkMemos).forEach(dateKey=>{
-    if(bulkMemos[dateKey]) delete bulkMemos[dateKey][id];
-  });
+  delete counts[id];done.delete(id);receiptSent.delete(id);
+  delete deliveryOrder[id];
+  // その顧客に紐づく予約データ(全日付分)も一緒に削除しておく
+  Object.keys(bulkOrders).forEach(dk=>{ if(bulkOrders[dk]) delete bulkOrders[dk][id]; });
+  Object.keys(bulkMemos).forEach(dk=>{ if(bulkMemos[dk]) delete bulkMemos[dk][id]; });
   custDelReady=false;
   saveToLocal();
   const _da=document.getElementById('input-list-area');
@@ -2080,7 +2408,7 @@ function renderStaff(){
       <span class="week-course-tag ctag-${c} ctag">${meta.label}</span>
       <select class="week-assign-select" onchange="setCourseAssign('${c}',this.value)">
         <option value="">未設定</option>
-        ${STAFF.map(s=>`<option value="${s.id}"${COURSE_ASSIGN[c]===s.id?' selected':''}>${escHtml(s.name)}</option>`).join('')}
+        ${STAFF.map(s=>`<option value="${s.id}"${COURSE_ASSIGN[c]===s.id?' selected':''}>${s.name}</option>`).join('')}
       </select>
     </div>`;
   });
@@ -2097,8 +2425,8 @@ function renderStaff(){
   } else {
     PINK_STAFF.forEach((s,i)=>{
       html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${i>0?'border-top:1px solid var(--border);':''}">
-        <span style="font-size:14px;font-weight:700;color:var(--text);">${escHtml(s.name)}</span>
-        <button class="cust-btn" style="color:#C0392B;background:#fff;" data-pid="${escHtml(s.id)}" data-pname="${escHtml(s.name)}" onclick="confirmDeletePinkStaff(this.dataset.pid,this.dataset.pname)">✕</button>
+        <span style="font-size:14px;font-weight:700;color:var(--text);">${s.name}</span>
+        <button class="cust-btn" style="color:#C0392B;background:#fff;" onclick="confirmDeletePinkStaff('${s.id}','${escJs(s.name)}')">✕</button>
       </div>`;
     });
   }
@@ -2114,8 +2442,8 @@ function renderStaff(){
 
   STAFF.forEach((s,i)=>{
     html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${i>0?'border-top:1px solid var(--border);':''}background:var(--surface);">
-      <span style="font-size:14px;font-weight:700;">${escHtml(s.name)}</span>
-      <button class="cust-btn" style="color:#C0392B;" data-sid="${s.id}" data-sname="${s.name.replace(/"/g,'&quot;')}" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>
+      <span style="font-size:14px;font-weight:700;">${s.name}</span>
+      <button class="cust-btn" style="color:#C0392B;" data-sid="${s.id}" data-sname="${escHtmlAttr(s.name)}" onclick="confirmDeleteStaff(this.dataset.sid,this.dataset.sname)">✕</button>
     </div>`;
   });
 
@@ -2309,7 +2637,7 @@ function renderSummary(){
         const sname=sid==='__none__'?'未設定':staffName(sid);
         const groupTotal=staffGroups[sid].reduce((s,m)=>s+(counts[m.id]||0),0);
         html+=`<div style="background:var(--pinku-bg);padding:6px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
-          <span style="font-size:11px;font-weight:800;color:var(--pinku-dk);">${escHtml(sname)}</span>
+          <span style="font-size:11px;font-weight:800;color:var(--pinku-dk);">${sname}</span>
           <span style="font-size:12px;font-weight:700;color:var(--pinku);">${groupTotal}食</span>
         </div>`;
         staffGroups[sid].filter(m=>counts[m.id]>0).forEach(m=>{
@@ -2322,7 +2650,7 @@ function renderSummary(){
               <select onchange="setPinkMemberStaff('${m.id}',this.value)"
                 style="font-size:13px;font-weight:700;padding:6px 10px;border-radius:20px;border:1.5px solid var(--pinku);background:var(--pinku-bg);color:var(--pinku-dk);font-family:inherit;appearance:none;cursor:pointer;">
                 <option value="">未設定</option>
-                ${PINK_STAFF.map(s=>`<option value="${s.id}"${m.staffId===s.id?' selected':''}>${escHtml(s.name)}</option>`).join('')}
+                ${PINK_STAFF.map(s=>`<option value="${s.id}"${m.staffId===s.id?' selected':''}>${s.name}</option>`).join('')}
               </select>
             </div>
             <div class="srow-cnt">${v}</div>
@@ -2381,8 +2709,22 @@ function renderCurrentTab(){
   else if(currentTab==='yoyaku')renderYoyaku();
 }
 
-const salesData={paypay:''};
-const UNIT_PRICE=650;
+let salesDataByDate={}; // 日付(YYYY-MM-DD)ごとの売上入力データ
+let salesData={paypay:''}; // 表示中の日付(selectedDate)に対応するsalesDataByDateの中身への参照
+// 金庫にある現金の残高（日付ごとではなく、店舗ごとに1つだけ持つ「今の残高」。
+// 数え終わったら実際の金額に書き換えて、翌日以降はそこから続ける）
+let cashSafeBalance=0;
+function ensureSalesData(dateKey){
+  const existed=!!salesDataByDate[dateKey];
+  if(!existed) salesDataByDate[dateKey]={paypay:''};
+  salesData=salesDataByDate[dateKey];
+  // 本体から間引かれた古い日付の可能性があるので、アーカイブに残っていれば取り直す
+  if(!existed && typeof _fetchArchivedSalesIfMissing==='function') _fetchArchivedSalesIfMissing(dateKey);
+  return salesData;
+}
+ensureSalesData(fmtDate(selectedDate));
+let UNIT_PRICE=650;
+const EXPENSE_PRESET_CATEGORIES=['消耗品','食材費','交通費','通信費','雑費','その他'];
 
 function renderSales(){
   const allItems=MASTER.filter(m=>counts[m.id]>0);
@@ -2398,6 +2740,7 @@ function renderSales(){
   const expTotal=(salesData.expenses||[]).reduce((s,e)=>s+(parseInt(e.amount)||0),0);
   const coinTotal=calcCoinTotal(salesData.coins||{});
   const afterDeposit=coinTotal-(parseInt(salesData.bankDeposit)||0);
+  const expectedSafeTotal=cashSafeBalance+actualCash;
   const dateLabel=document.getElementById('date-bar-label').textContent;
 
   const html=`<div class="sview">
@@ -2420,6 +2763,32 @@ function renderSales(){
           <div style="font-size:10px;font-weight:700;color:var(--ao-dk);margin-bottom:4px;">掛け売上</div>
           <div style="font-size:20px;font-weight:900;color:var(--ao);">${kakeSales.toLocaleString()}円</div>
           <div style="font-size:10px;color:var(--ao-dk);opacity:.6;margin-top:2px;">${kakeTotal}食</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 金庫の現金残高 -->
+    <div class="sblock" style="margin-bottom:8px;">
+      <div style="padding:14px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:14px;">🔒</span>
+          <span style="font-size:14px;font-weight:800;">金庫の現金残高</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">前回、数え終わった時点で金庫にあった金額です。今日数え終わったら、実際の金額に書き換えてください（次はそこから始まります）。</div>
+        <div style="position:relative;margin-bottom:12px;">
+          <input type="text" inputmode="numeric" id="safe-balance-input" placeholder="0" value="${cashSafeBalance?Number(cashSafeBalance).toLocaleString():''}"
+            onfocus="onYenFocus(event)"
+            onblur="onYenBlur(event);updateSafeBalance(this.value.replace(/,/g,''))"
+            oninput="updateSafeBalance(this.value.replace(/,/g,''))"
+            style="width:100%;padding:14px 44px 14px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:22px;font-weight:800;font-family:inherit;background:var(--bg);color:var(--text);text-align:center;">
+          <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);font-weight:700;">円</span>
+        </div>
+        <div style="background:#FFF8E6;border-radius:var(--radius-sm);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#8a6d00;">本日の見込み残高</div>
+            <div style="font-size:10px;color:#8a6d00;opacity:.7;">金庫残高 ＋ 手元に残る現金</div>
+          </div>
+          <div id="safe-expected-display" style="font-size:22px;font-weight:900;color:#8a6d00;">${expectedSafeTotal.toLocaleString()}円</div>
         </div>
       </div>
     </div>
@@ -2481,10 +2850,11 @@ function renderSales(){
           <div style="font-size:13px;font-weight:700;">数えた合計</div>
           <div id="coin-total" style="font-size:22px;font-weight:900;color:var(--text);">${coinTotal.toLocaleString()}円</div>
         </div>
-        <div id="cash-diff-display" style="border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f0efe9;">
+        <div id="cash-diff-display" style="border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f0efe9;margin-bottom:8px;">
           <div style="font-size:12px;font-weight:700;color:var(--muted);">システムとの差異</div>
           <div style="font-size:15px;font-weight:900;color:var(--muted);">－</div>
         </div>
+        <button onclick="applyCoinTotalToSafeBalance()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);background:#fff;color:var(--text);font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;">✓ 数え終わったら、この金額を金庫残高にする</button>
       </div>
     </div>
 
@@ -2501,11 +2871,13 @@ function renderSales(){
         <div id="expense-list">
           ${(salesData.expenses||[]).length===0
             ? `<div style="text-align:center;padding:10px 0;font-size:13px;color:var(--muted);">支出なし</div>`
-            : (salesData.expenses||[]).map((e,i)=>`
+            : (salesData.expenses||[]).map((e,i)=>{
+              const _isCustomCat = _customCatEditingIdx.has(i) || !!(e.category && !EXPENSE_PRESET_CATEGORIES.includes(e.category));
+              return `
             <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                 <!-- 勘定科目 -->
-                <select onchange="updateExpenseCategory(${i},this.value)"
+                <select onchange="onExpenseCategorySelectChange(${i},this.value)"
                   style="flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);">
                   <option value="消耗品" ${e.category==='消耗品'?'selected':''}>消耗品</option>
                   <option value="食材費" ${e.category==='食材費'?'selected':''}>食材費</option>
@@ -2513,6 +2885,7 @@ function renderSales(){
                   <option value="通信費" ${e.category==='通信費'?'selected':''}>通信費</option>
                   <option value="雑費"   ${e.category==='雑費'?'selected':''}>雑費</option>
                   <option value="その他" ${e.category==='その他'||!e.category?'selected':''}>その他</option>
+                  <option value="__custom__" ${_isCustomCat?'selected':''}>✏️ 自由入力…</option>
                 </select>
                 <!-- 金額 -->
                 <div style="position:relative;width:108px;flex-shrink:0;">
@@ -2525,6 +2898,10 @@ function renderSales(){
                 </div>
                 <button onclick="confirmRemoveExpense(${i})" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border-dark);background:#fff;cursor:pointer;font-size:13px;color:#C0392B;flex-shrink:0;">✕</button>
               </div>
+              ${_isCustomCat?`
+              <input type="text" id="exp-cat-custom-${i}" value="${e.category||''}" placeholder="勘定科目を入力（例：修繕費）"
+                oninput="updateExpenseCategory(${i},this.value)"
+                style="width:100%;margin-bottom:6px;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--ao);font-size:13px;font-family:inherit;background:#fff;color:var(--text);box-sizing:border-box;">`:''}
               <div style="display:flex;flex-direction:column;gap:6px;">
                 <!-- お店名 -->
                 <input type="text" value="${e.shop||''}" placeholder="お店（例：セブンイレブン）"
@@ -2536,7 +2913,7 @@ function renderSales(){
                   style="width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);box-sizing:border-box;">
               </div>
             </div>
-          `).join('')}
+          `;}).join('')}
         </div>
         ${(salesData.expenses||[]).length>0?`
         <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);margin-top:4px;">
@@ -2584,7 +2961,7 @@ function renderSales(){
         ${kakeItems.map(m=>`
           <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);">
             <div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.name)}</div>
-            <div style="font-size:12px;font-weight:700;color:var(--muted);margin:0 8px;flex-shrink:0;">${counts[m.id]||0}食</div>
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin:0 8px;flex-shrink:0;">${counts[m.id]}食</div>
             <div style="font-size:13px;font-weight:800;color:var(--ao);flex-shrink:0;margin-right:8px;">${(counts[m.id]*UNIT_PRICE).toLocaleString()}円</div>
             <button onclick="sendInvoice('${m.id}')"
               style="flex-shrink:0;padding:3px 8px;border-radius:12px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📄 請求</button>
@@ -2595,6 +2972,7 @@ function renderSales(){
 
   </div>`;
   document.getElementById('tab-sales').innerHTML=html;
+  _refreshCashDiff();
   setTimeout(()=>{
     document.querySelectorAll('#tab-sales input').forEach(el=>el.style.fontSize='16px');
   },50);
@@ -2641,8 +3019,8 @@ function doPrint(){
         <tbody>
           ${items.map(m=>`<tr>
             <td style="border:1px solid #ddd;padding:5px 8px;font-size:11px;">${escHtml(m.name)}</td>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;">${counts[m.id]||0}</td>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${m.memo||''}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;">${counts[m.id]}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${escHtml(m.memo||'')}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.kake?'●':''}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.receipt?'●':''}</td>
           </tr>`).join('')}
@@ -2684,12 +3062,14 @@ function doPrint(){
 function addExpense(){
   if(!salesData.expenses) salesData.expenses=[];
   salesData.expenses.push({category:'消耗品',shop:'',item:'',amount:''});
+  _customCatEditingIdx.clear(); // 行数が変わると行番号がずれるため、自由入力中の目印はクリアする
   saveToLocal();
   renderSales();
 }
 function confirmRemoveExpense(i){
   showDelConfirm('支出を削除しますか？','この支出記録を削除します',()=>{
     salesData.expenses.splice(i,1);
+    _customCatEditingIdx.clear(); // 行数が変わると行番号がずれるため、自由入力中の目印はクリアする
     saveToLocal();
     renderSales();
   });
@@ -2707,6 +3087,33 @@ function updateExpenseCategory(i,val){
   salesData.expenses[i].category=val;
   saveToLocal();
 }
+// 「✏️ 自由入力…」を選んだ直後(まだ何も入力していない間)は、勘定科目が空文字のままなので
+// プリセット一覧に該当なしと判定できず「その他」に戻ってしまう。そこで選択中の行番号を
+// ここに覚えておき、テキスト欄を表示し続ける目印にする(行の増減があれば作り直すので、
+// ページ内だけの一時的な目印でよい)。
+let _customCatEditingIdx=new Set();
+// 勘定科目のセレクトを操作した時の処理。「✏️ 自由入力…」を選んだ場合はテキスト欄を表示するため再描画し、
+// プリセットに戻した場合もテキスト欄を消すために再描画する。
+function onExpenseCategorySelectChange(i,val){
+  if(!salesData.expenses) salesData.expenses=[];
+  if(val==='__custom__'){
+    _customCatEditingIdx.add(i);
+    // 選んだ直後は「__custom__」という文字列がそのまま勘定科目として保存されないよう、
+    // 一旦空にしてテキスト欄の入力を待つ
+    salesData.expenses[i].category='';
+  } else {
+    _customCatEditingIdx.delete(i);
+    salesData.expenses[i].category=val;
+  }
+  saveToLocal();
+  renderSales();
+  if(val==='__custom__'){
+    setTimeout(()=>{
+      const el=document.getElementById('exp-cat-custom-'+i);
+      if(el) el.focus();
+    },50);
+  }
+}
 
 const COIN_UNITS={m10000:10000,m5000:5000,m1000:1000,m500:500,m100:100,m50:50,m10:10,m5:5,m1:1};
 function onYenBlur(e){
@@ -2721,17 +3128,46 @@ function onYenFocus(e){
 function calcCoinTotal(coins){
   return Object.entries(COIN_UNITS).reduce((s,[k,u])=>s+(parseInt(coins[k])||0)*u,0);
 }
+// 「本日の手元に残る現金」（現金売上－PayPay）を、renderSales()と同じ計算方法で求め直す。
+// STEP2(現金を数える)側の再計算で使うため、renderSales()内のローカル変数とは別に持っている。
+function _computeTodayNetCash(){
+  const allItems=MASTER.filter(m=>counts[m.id]>0);
+  const cashItems=allItems.filter(m=>!m.kake);
+  const cashTotal=cashItems.reduce((s,m)=>s+(counts[m.id]||0),0);
+  const cashSales=cashTotal*UNIT_PRICE;
+  const paypay=parseInt(salesData.paypay)||0;
+  return cashSales-paypay;
+}
+// 「金庫にもともとあった残高」＋「本日の手元に残る現金」＝ 数え終わった時に手元にあるはずの金額（システム側の想定）
+function _computeExpectedCash(){
+  return cashSafeBalance+_computeTodayNetCash();
+}
+// 「数えた合計」と「手元に残るはずの現金（システム側の想定）」を比べて、差額を表示する
+function _refreshCashDiff(){
+  const diffEl=document.getElementById('cash-diff-display');
+  if(!diffEl) return;
+  const coinTotal=calcCoinTotal(salesData.coins||{});
+  const expected=_computeExpectedCash();
+  const diff=coinTotal-expected;
+  let color='var(--muted)', label='±0円（ぴったり合っています）';
+  if(diff>0){ color='#B8860B'; label=`+${diff.toLocaleString()}円（数えた方が多い）`; }
+  else if(diff<0){ color='#C0392B'; label=`${diff.toLocaleString()}円（数えた方が少ない）`; }
+  diffEl.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--muted);">システムとの差異</div><div style="font-size:15px;font-weight:900;color:${color};">${label}</div>`;
+}
+// 「本日の見込み残高」（金庫残高＋本日の手元に残る現金）の表示を更新する
+function _refreshSafeExpectedDisplay(){
+  const el=document.getElementById('safe-expected-display');
+  if(!el) return;
+  const expectedSafeTotal=cashSafeBalance+_computeTodayNetCash();
+  el.textContent=expectedSafeTotal.toLocaleString()+'円';
+}
 function updateCoin(key,val){
   if(!salesData.coins) salesData.coins={};
   salesData.coins[key]=val;
   const total=calcCoinTotal(salesData.coins);
   const el=document.getElementById('coin-total');
   if(el) el.textContent=total.toLocaleString()+'円';
-  const diffEl=document.getElementById('cash-diff-display');
-  if(diffEl){
-    diffEl.style.background='var(--bg)';
-    diffEl.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--muted);">システムとの差異</div><div style="font-size:16px;font-weight:900;color:var(--muted);">－</div>`;
-  }
+  _refreshCashDiff();
   saveToLocal();
 }
 function updateSalesCalc(cashSales){
@@ -2742,7 +3178,27 @@ function updateSalesCalc(cashSales){
     el.textContent=actual.toLocaleString()+'円';
     el.style.color=actual>=0?'var(--midori)':'#C0392B';
   }
+  _refreshCashDiff(); // PayPay金額が変わると「システム側の想定」も変わるため、差異表示も更新する
+  _refreshSafeExpectedDisplay(); // 「本日の見込み残高」もPayPay金額に応じて変わるため更新する
   saveToLocal();
+}
+// 金庫残高（店舗ごとに1つだけ持つ、日付をまたいで続く残高）を更新する
+function updateSafeBalance(val){
+  cashSafeBalance=parseInt(val)||0;
+  _refreshSafeExpectedDisplay();
+  _refreshCashDiff(); // 金庫残高が変わると「システムとの差異」の想定も変わるため更新する
+  saveToLocal();
+}
+// STEP2で数えた合計を、そのまま金庫残高欄にコピーする（数え終わった後の書き換えの手間を減らすための補助ボタン）
+function applyCoinTotalToSafeBalance(){
+  const coinTotal=calcCoinTotal(salesData.coins||{});
+  cashSafeBalance=coinTotal;
+  const input=document.getElementById('safe-balance-input');
+  if(input) input.value=coinTotal>0?coinTotal.toLocaleString():'';
+  _refreshSafeExpectedDisplay();
+  _refreshCashDiff();
+  saveToLocal();
+  toast('金庫残高を更新しました');
 }
 function updateAfterDeposit(){
   const coinTotal=calcCoinTotal(salesData.coins||{});
@@ -2754,125 +3210,6 @@ function updateAfterDeposit(){
   saveToLocal();
 }
 
-// ── 一括予約 ──
- // デフォルト月〜金
-// bulkOrders・bulkMemosは起動時に上部で定義済み
-
-function closeBulkOrderModal(){
-  _closeModal('bulk-order-modal');
-}
-function updateBulkPreview(){
-  renderBulkWeekGrid();
-}
-function renderBulkWeekGrid(){
-  const grid=document.getElementById('bulk-week-grid');
-  if(!grid) return;
-  const custId=document.getElementById('bulk-customer')?.value||'';
-  if(!custId){ grid.innerHTML='<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted);">お客様を選択してください</div>'; return; }
-  const days2=['日','月','火','水','木','金','土'];
-  const today=new Date(); today.setHours(0,0,0,0);
-  let html='';
-  for(let w=0;w<3;w++){
-    const weekStart=new Date(today);
-    const dow=today.getDay();
-    weekStart.setDate(today.getDate()-(dow===0?6:dow-1)+w*7);
-    html+='<div style="font-size:11px;font-weight:700;color:var(--muted);padding:6px 2px 2px;">'+(weekStart.getMonth()+1)+'月'+weekStart.getDate()+'日の週</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">';
-    for(let d=0;d<5;d++){
-      const dt=new Date(weekStart);dt.setDate(weekStart.getDate()+d);
-      const key=fmtDate(dt);
-      const val=bulkOrders[key]?bulkOrders[key][custId]:'';
-      const isPast=dt<today;
-      html+='<div style="text-align:center;"><div style="font-size:10px;color:var(--muted);margin-bottom:2px;">'+days2[dt.getDay()]+(dt.getMonth()+1)+'/'+dt.getDate()+'</div>';
-      html+='<input type="number" min="0" max="99" value="'+(val||'')+'" placeholder="0" '+(isPast?'disabled style="opacity:.4;"':'')+' data-key="'+key+'" data-cid="'+custId+'"';
-      html+=' style="width:100%;padding:8px 2px;border-radius:6px;border:1.5px solid var(--border-dark);font-size:16px;font-weight:700;text-align:center;font-family:inherit;background:var(--bg);">';
-      html+='</div>';
-    }
-    html+='</div>';
-  }
-  grid.innerHTML=html;
-  grid.querySelectorAll('input').forEach(function(inp){
-    inp.addEventListener('input',function(){
-      const dateKey=this.dataset.key;
-      const cid=this.dataset.cid;
-      const n=parseInt(this.value);
-      if(isNaN(n)||this.value===''){
-        if(bulkOrders[dateKey]) delete bulkOrders[dateKey][cid];
-      } else {
-        if(!bulkOrders[dateKey]) bulkOrders[dateKey]={};
-        bulkOrders[dateKey][cid]=n;
-      }
-    });
-  });
-}
-let _bulkQuickMode='thisweek';
-function setBulkQuick(mode){
-  _bulkQuickMode=mode;
-  ['today','thisweek','nextweek','2weeks'].forEach(function(m){
-    const btn=document.getElementById('bq-'+m);
-    if(btn){
-      const active=m===mode;
-      btn.style.background=active?'var(--ao)':'var(--bg)';
-      btn.style.color=active?'#fff':'var(--muted)';
-      btn.style.borderColor=active?'var(--ao)':'var(--border-dark)';
-    }
-  });
-  renderBulkWeekGrid();
-}
-function saveBulkOrder(){
-  const custId=document.getElementById('bulk-customer')?.value||'';
-  if(!custId){toast('お客様を選択してください');return;}
-  saveToLocal();
-  initCounts(selectedDate);
-  updateHdrTotal();
-  const _area=document.getElementById('input-list-area');
-  if(_area) delete _area.dataset.built;
-  closeBulkOrderModal();
-  toast('予約を登録しました');
-}
-function onBulkCustSearch(e){
-  if(e.isComposing) return;
-  renderBulkCustList(e.target.value);
-}
-function onBulkCustSearchEnd(e){
-  renderBulkCustList(e.target.value);
-}
-function renderBulkCustList(q){
-  const list=document.getElementById('bulk-cust-list');
-  if(!q.trim()){list.style.display='none';return;}
-  const qn=normalizeKana(q.toLowerCase());
-  const matched=sortByKana(MASTER).filter(m=>normalizeKana(m.name.toLowerCase()).includes(qn));
-  if(matched.length===0){
-    list.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--muted);">見つかりません</div>';
-    list.style.display='block';
-    return;
-  }
-  list.innerHTML=matched.map(m=>`
-    <div data-bid="${escHtml(m.id)}" onclick="selectBulkCust(this.dataset.bid)"
-      style="padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-      <div style="width:8px;height:8px;border-radius:50%;background:${COURSE_COLORS_MAP[m.course]};flex-shrink:0;"></div>
-      ${escHtml(m.name)}
-    </div>
-  `).join('');
-  list.style.display='block';
-}
-function selectBulkCust(id){
-  const m=MASTER.find(x=>x.id===id);
-  if(!m) return;
-  document.getElementById('bulk-customer').value=id;
-  document.getElementById('bulk-cust-search').value='';
-  document.getElementById('bulk-cust-list').style.display='none';
-  const sel=document.getElementById('bulk-cust-selected');
-  sel.style.display='flex';
-  sel.innerHTML=`<span>${escHtml(m.name)}</span><button onclick="clearBulkCust()" style="border:none;background:none;color:var(--ao);font-size:12px;cursor:pointer;font-weight:700;">変更</button>`;
-  renderBulkWeekGrid();
-}
-function clearBulkCust(){
-  document.getElementById('bulk-customer').value='';
-  document.getElementById('bulk-cust-selected').style.display='none';
-  document.getElementById('bulk-cust-search').value='';
-  updateBulkPreview();
-}
 // ── 予約メモ ──
 let _memoDateKey=null;
 let _memoTimer=null;
@@ -2885,8 +3222,7 @@ let _yoyakuCustComposing=false;
 function onYoyakuCustSearchStart(){ _yoyakuCustComposing=true; }
 function onYoyakuCustSearchEnd(e){
   _yoyakuCustComposing=false;
-  // 少し遅延して再描画（タップイベントと競合しないよう）
-  setTimeout(()=>renderYoyakuCustList(e.target.value), 50);
+  renderYoyakuCustList(e.target.value);
 }
 function onYoyakuCustSearch(e){
   if(_yoyakuCustComposing) return;
@@ -2904,10 +3240,7 @@ function renderYoyakuCustList(q){
     return;
   }
   list.innerHTML=matched.map(m=>`
-    <div
-      data-yid="${escHtml(m.id)}"
-      onmousedown="event.preventDefault();selectYoyakuCust(this.dataset.yid)"
-      ontouchstart="event.preventDefault();selectYoyakuCust(this.dataset.yid)"
+    <div onclick="selectYoyakuCust('${m.id}','${escJs(m.name)}')"
       style="padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
       <div style="width:8px;height:8px;border-radius:50%;background:${COURSE_COLORS_MAP[m.course]};flex-shrink:0;"></div>
       ${escHtml(m.name)}
@@ -2915,9 +3248,7 @@ function renderYoyakuCustList(q){
   `).join('');
   list.style.display='block';
 }
-function selectYoyakuCust(id){
-  const m=MASTER.find(x=>x.id===id);
-  const name=m?m.name:'';
+function selectYoyakuCust(id, name){
   _currentYoyakuCustId=id;
   _currentYoyakuCustName=name;
   const searchEl=document.getElementById('yoyaku-cust-search');
@@ -2939,12 +3270,17 @@ function selectYoyakuCust(id){
     </div>`;
   }
   // グリッドのセルを顧客の予約データで更新（全再描画せずDOMを直接更新）
-  // ※ m は関数冒頭で宣言済み
+  const m=MASTER.find(x=>x.id===id);
   document.querySelectorAll('[id^="yoyaku-cell-"]').forEach(el=>{
     if(el.disabled) return;
     const key=el.dataset.key;
     let val=bulkOrders[key]?bulkOrders[key][id]:undefined;
-    // 予約登録済みの値のみ表示（デフォルト食数は自動入力しない）
+    // 予約未登録の場合はdefaultCount/weekCountsを初期値として表示
+    if((val===undefined||val===''||val===null) && m){
+      const dt=parseDateKey(key);
+      const dow=dt.getDay(); // 0=日,1=月,...,6=土
+      val=getDefaultCount(m, dow)||0;
+    }
     const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
     el.value=val||'';
     el.placeholder=val||'-';
@@ -2957,7 +3293,7 @@ function selectYoyakuCust(id){
     const key=el.id.replace('yoyaku-memo-row-','');
     const memo=bulkMemos[key]?bulkMemos[key][id]||'':'';
     if(memo){
-      el.outerHTML=`<div id="yoyaku-memo-row-${key}" data-mkey="${key}" onclick="openYoyakuMemo('${key}')" style="font-size:9px;color:var(--ao);font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:2px 1px;line-height:1.4;background:var(--ao-bg);border-radius:4px;">📝 ${escHtml(memo)}</div>`;
+      el.outerHTML=`<div id="yoyaku-memo-row-${key}" data-mkey="${key}" onclick="openYoyakuMemo('${key}')" style="font-size:9px;color:var(--ao);font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;padding:2px 1px;line-height:1.4;background:var(--ao-bg);border-radius:4px;">📝 ${memo}</div>`;
     }
   });
   // 保存エリアにメモボタンを表示
@@ -3043,8 +3379,8 @@ function renderYoyakuCal(){
   const days=['日','月','火','水','木','金','土'];
   const first=new Date(_yoyakuCalYear,_yoyakuCalMonth,1);
   const last=new Date(_yoyakuCalYear,_yoyakuCalMonth+1,0);
-  // 再来週の月曜以降のみ選択可能
-  const today=new Date();today.setHours(0,0,0,0);
+  // 再来週の月曜以降のみ選択可能(表示中の週グリッドと基準日を揃えるため、renderYoyaku()と同じく実際の今日(TODAY)を基準にする)
+  const today=new Date(TODAY);today.setHours(0,0,0,0);
   const dow=today.getDay();
   const thisMonday=new Date(today);thisMonday.setDate(today.getDate()-(dow===0?6:dow-1));
   const minDate=new Date(thisMonday);minDate.setDate(thisMonday.getDate()+14); // 再来週月曜以降
@@ -3105,7 +3441,7 @@ function openYoyakuMemo(dateKey){
   _memoDateKey=dateKey;
   const custId=document.getElementById('yoyaku-customer')?.value||'';
   if(!custId){toast('お客様を先に選択してください');return;}
-  const dt=new Date(dateKey);
+  const dt=parseDateKey(dateKey);
   const days2=['日','月','火','水','木','金','土'];
   document.getElementById('yoyaku-memo-date').textContent=
     `${dt.getMonth()+1}月${dt.getDate()}日（${days2[dt.getDay()]}）`;
@@ -3154,7 +3490,11 @@ function deleteYoyakuMemo(){
 
 function renderYoyaku(){
   const days2=['日','月','火','水','木','金','土'];
-  const today=new Date(selectedDate);today.setHours(0,0,0,0);
+  // 予約タブの「今週/来週/再来週」は、本日の注文タブでカレンダー移動して見ている日付(selectedDate)ではなく、
+  // 常に実際の「今日」(TODAY)を基準にする。selectedDateを基準にしてしまうと、本日の注文タブで別の日付を
+  // 見ている状態のまま予約タブを開いたときに、その日付の週が「今週」として表示され、
+  // 本来の今週・前の週の予約が触れなくなってしまう不具合があったため
+  const today=new Date(TODAY);today.setHours(0,0,0,0);
   const dow=today.getDay();
   const monday=new Date(today);
   monday.setDate(today.getDate()-(dow===0?6:dow-1));
@@ -3183,7 +3523,7 @@ function renderYoyaku(){
     html+='<div style="width:8px;height:36px;border-radius:4px;background:var(--ao);flex-shrink:0;"></div>';
     html+='<div style="flex:1;">';
     html+='<div style="font-size:10px;font-weight:700;color:var(--ao);margin-bottom:2px;">選択中のお客様</div>';
-    html+='<div style="font-size:16px;font-weight:900;color:var(--text);">'+cname+'</div>';
+    html+='<div style="font-size:16px;font-weight:900;color:var(--text);">'+escHtml(cname)+'</div>';
     html+='</div>';
     html+='<button onclick="clearYoyakuCust()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid var(--border-dark);background:#fff;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">変更</button>';
     html+='</div>';
@@ -3237,6 +3577,13 @@ function renderYoyaku(){
       const key=fmtDate(dt);
       const isPast=dt<today;
       let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
+      if((val===undefined||val===''||val===null)&&custId){
+        const cm=MASTER.find(x=>x.id===custId);
+        if(cm){
+          const dow2=dt.getDay();
+          val=getDefaultCount(cm, dow2)||0;
+        }
+      }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
@@ -3266,6 +3613,15 @@ function renderYoyaku(){
   html+='</div>';
 
   // 日付ボタンで選択した追加週グリッド
+  // (すでに表示されている3週間のいずれかと重複する場合は、id重複を避けるため表示しない)
+  if(_yoyakuExtraWeekStart){
+    const exTime=new Date(_yoyakuExtraWeekStart).setHours(0,0,0,0);
+    const isDuplicateWeek=[0,1,2].some(w=>{
+      const ws=new Date(monday);ws.setDate(monday.getDate()+w*7);
+      return ws.getTime()===exTime;
+    });
+    if(isDuplicateWeek) _yoyakuExtraWeekStart=null;
+  }
   if(_yoyakuExtraWeekStart){
     const exWeekDates=[];
     for(let d=0;d<5;d++){
@@ -3293,6 +3649,13 @@ function renderYoyaku(){
     exWeekDates.forEach(function(dt,i){
       const key=fmtDate(dt);
       let val=custId&&bulkOrders[key]?bulkOrders[key][custId]:undefined;
+      if((val===undefined||val===''||val===null)&&custId){
+        const cm=MASTER.find(x=>x.id===custId);
+        if(cm){
+          const dow2=dt.getDay();
+          val=getDefaultCount(cm, dow2)||0;
+        }
+      }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
       html+='<input type="number" min="0" max="99" placeholder="-"';
       html+=' id="yoyaku-cell-'+key+'"';
@@ -3334,7 +3697,7 @@ function renderYoyaku(){
     const _name=_currentYoyakuCustName;
     clearTimeout(window._yoyakuCustReapplyTimer);
     window._yoyakuCustReapplyTimer=setTimeout(()=>{
-      if(_currentYoyakuCustId===_id) selectYoyakuCust(_id);
+      if(_currentYoyakuCustId===_id) selectYoyakuCust(_id, _name);
     }, 0);
   }
 }
@@ -3343,7 +3706,7 @@ function onYoyakuCellInput(e, key, col){
   const custId=document.getElementById('yoyaku-customer')?.value||'';
   if(!custId) return;
   const n=parseInt(e.target.value);
-  if(!isNaN(n)&&n>=0){
+  if(!isNaN(n)&&n>=0&&n<=99){
     if(!bulkOrders[key]) bulkOrders[key]={};
     bulkOrders[key][custId]=n;
     e.target.style.borderColor='var(--ao)';
@@ -3389,22 +3752,79 @@ function highlightYoyakuWeek(w){
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function renderMonthlyReport(){
-  const SHOPS=[
-    {name:'西宮',target:220,color:'#1A6FD4',lightColor:'#A8C8F0',
-     months:[{m:'11月',v:207},{m:'12月',v:206},{m:'1月',v:201},{m:'2月',v:198},{m:'3月',v:195},{m:'4月',v:201}]},
-    {name:'杭瀬',target:220,color:'#C45C00',lightColor:'#F5C89A',
-     months:[{m:'11月',v:213},{m:'12月',v:222},{m:'1月',v:217},{m:'2月',v:210},{m:'3月',v:212},{m:'4月',v:213}]},
-    {name:'立花',target:170,color:'#1F8C35',lightColor:'#9FDA8A',
-     months:[{m:'11月',v:163},{m:'12月',v:167},{m:'1月',v:161},{m:'2月',v:168},{m:'3月',v:168},{m:'4月',v:168}]}
-  ];
+const REPORT_SHOP_COLORS={ '甲子園':{color:'#1A6FD4',lightColor:'#A8C8F0'}, '杭瀬':{color:'#C45C00',lightColor:'#F5C89A'}, '立花':{color:'#1F8C35',lightColor:'#9FDA8A'} };
+function _monthRangeKeys(y,m){ // m は0始まり(0=1月)
+  const start=y+'-'+String(m+1).padStart(2,'0')+'-01';
+  const lastDay=new Date(y,m+1,0).getDate();
+  const end=y+'-'+String(m+1).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
+  return {start,end};
+}
+// 指定店舗・指定期間のorderHistory(日別実績)を、1回のクエリでまとめて取得する
+async function fetchShopOrderHistoryRange(shop,startKey,endKey){
+  if(!window.__fb || !window.__fb.ready) return [];
+  const fb=window.__fb;
+  try{
+    const col=fb.collection(fb.db,'shops',shop,'orderHistory');
+    const q=fb.query(col, fb.where('dateKey','>=',startKey), fb.where('dateKey','<=',endKey));
+    const snap=await fb.getDocs(q);
+    const results=[];
+    snap.forEach(d=>{
+      const data=d.data();
+      const counts=data.counts||{};
+      const total=Object.values(counts).reduce((s,v)=>s+(parseInt(v)||0),0);
+      results.push({date:data.dateKey||d.id, total});
+    });
+    return results;
+  }catch(e){ console.error('月次レポート用データの取得に失敗しました', e); return []; }
+}
+// 月次レポートは、実際にたまった日別実績(orderHistory)から集計する。
+// 「先月分を報告する」という運用に合わせて、開いた時点の前月を基準に直近6ヶ月分を表示する
+// (例：9月に開くと、4月〜9月ではなく3月〜8月分が表示され、8月が「今回報告する月」になる)。
+async function renderMonthlyReport(){
+  const contentEl=document.getElementById('monthly-report-content');
+  contentEl.innerHTML='<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">読み込んでいます…</div>';
+
+  const SHOP_NAMES=['甲子園','杭瀬','立花'];
+  const now=new Date();
+  let reportY=now.getFullYear(), reportM=now.getMonth()-1; // 報告対象＝先月(0始まり)
+  if(reportM<0){ reportM=11; reportY--; }
+
+  const monthsList=[];
+  for(let i=5;i>=0;i--){
+    let y=reportY, m=reportM-i;
+    while(m<0){ m+=12; y--; }
+    monthsList.push({y,m});
+  }
+  const rangeStart=_monthRangeKeys(monthsList[0].y, monthsList[0].m).start;
+  const rangeEnd=_monthRangeKeys(monthsList[monthsList.length-1].y, monthsList[monthsList.length-1].m).end;
+  const targetByShop=GLOBAL_SETTINGS.targetByShop||{};
+
+  const perShop=await Promise.all(SHOP_NAMES.map(async name=>{
+    const rows=await fetchShopOrderHistoryRange(name, rangeStart, rangeEnd);
+    const byDate={};
+    rows.forEach(r=>{ byDate[r.date]=r.total; });
+    const months=monthsList.map(({y,m})=>{
+      const {start,end}=_monthRangeKeys(y,m);
+      const daysWithData=Object.keys(byDate).filter(dk=>dk>=start&&dk<=end);
+      if(daysWithData.length===0) return {label:(m+1)+'月', avg:null};
+      const sum=daysWithData.reduce((s,dk)=>s+byDate[dk],0);
+      return {label:(m+1)+'月', avg:Math.round(sum/daysWithData.length)};
+    });
+    const colors=REPORT_SHOP_COLORS[name]||{color:'#666',lightColor:'#ccc'};
+    const t=targetByShop[name];
+    return {name, target:(t!==null&&t!==undefined)?t:null, months, color:colors.color, lightColor:colors.lightColor};
+  }));
 
   function makeSvg(s){
+    const vals=s.months.map(d=>d.avg).filter(v=>v!==null);
+    if(vals.length===0){
+      return '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;">この期間のデータがまだありません</div>';
+    }
     const W=320,H=170,PT=32,PB=24,PL=30,PR=20;
-    const vals=s.months.map(d=>d.v);
-    const maxV=Math.max(...vals,s.target)+15;
-    const minV=Math.max(0,Math.min(...vals,s.target)-15);
-    const range=maxV-minV;
+    const forRange=s.target?[...vals,s.target]:vals;
+    const maxV=Math.max(...forRange)+15;
+    const minV=Math.max(0,Math.min(...forRange)-15);
+    const range=maxV-minV||1;
     const n=s.months.length;
     const barW=(W-PL-PR)/n;
     const bp=barW*0.18;
@@ -3416,113 +3836,166 @@ function renderMonthlyReport(){
       svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#f0efeb" stroke-width="1"/>';
       svg+='<text x="'+(PL-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="8" fill="#bbb">'+v+'</text>';
     });
-    const ty=yp(s.target);
-    svg+='<line x1="'+PL+'" y1="'+ty+'" x2="'+(W-PR)+'" y2="'+ty+'" stroke="#E53E3E" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.8"/>';
-    svg+='<text x="'+(W-PR+3)+'" y="'+(ty+3)+'" font-size="8" fill="#E53E3E" font-weight="700">目標</text>';
+    if(s.target){
+      const ty=yp(s.target);
+      svg+='<line x1="'+PL+'" y1="'+ty+'" x2="'+(W-PR)+'" y2="'+ty+'" stroke="#E53E3E" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.8"/>';
+      svg+='<text x="'+(W-PR+3)+'" y="'+(ty+3)+'" font-size="8" fill="#E53E3E" font-weight="700">目標</text>';
+    }
     s.months.forEach(function(d,i){
-      const achieved=d.v>=s.target;
-      const diff=d.v-s.target;
       const x=PL+i*barW+bp;
       const bw=barW-bp*2;
-      const yTop=yp(d.v);
+      if(d.avg===null){
+        svg+='<text x="'+(x+bw/2)+'" y="'+(PT+cH/2)+'" text-anchor="middle" font-size="8" fill="#ccc">ー</text>';
+        svg+='<text x="'+(x+bw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#999">'+d.label+'</text>';
+        return;
+      }
+      const achieved=s.target?d.avg>=s.target:true;
+      const diff=s.target?d.avg-s.target:null;
+      const yTop=yp(d.avg);
       const yBot=yp(minV);
       const bh=Math.max(2,yBot-yTop);
       svg+='<rect x="'+x+'" y="'+yTop+'" width="'+bw+'" height="'+bh+'" rx="3" fill="'+(achieved?s.color:s.lightColor)+'"/>';
-      svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-4)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="'+(achieved?s.color:'#999')+'">'+d.v+'</text>';
-      const dc=diff>=0?'#1F8C35':'#E53E3E';
-      svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-15)+'" text-anchor="middle" font-size="8" font-weight="700" fill="'+dc+'">'+(diff>=0?'+':'')+diff+'</text>';
-      svg+='<text x="'+(x+bw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#999">'+d.m+'</text>';
+      svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-4)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="'+(achieved?s.color:'#999')+'">'+d.avg+'</text>';
+      if(diff!==null){
+        const dc=diff>=0?'#1F8C35':'#E53E3E';
+        svg+='<text x="'+(x+bw/2)+'" y="'+(yTop-15)+'" text-anchor="middle" font-size="8" font-weight="700" fill="'+dc+'">'+(diff>=0?'+':'')+diff+'</text>';
+      }
+      svg+='<text x="'+(x+bw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="#999">'+d.label+'</text>';
     });
     svg+='</svg>';
     return svg;
   }
 
-  let html='';
+  let body='<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+reportY+'年'+(reportM+1)+'月分のご報告（直近6ヶ月の推移）</div>';
 
   // 達成カード
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
-  SHOPS.forEach(function(s){
-    const v=s.months[s.months.length-1].v;
-    const d=v-s.target;
-    html+='<div style="background:#fff;border-radius:12px;padding:10px 6px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid '+s.color+';">';
-    html+='<div style="font-size:10px;font-weight:700;color:#888;margin-bottom:3px;">'+s.name+'</div>';
-    html+='<div style="font-size:20px;font-weight:900;color:'+s.color+';line-height:1;">'+v+'</div>';
-    html+='<div style="font-size:8px;color:#aaa;margin-top:2px;">食／日</div>';
-    html+='<div style="font-size:11px;font-weight:800;margin-top:4px;color:'+(d>=0?'#1F8C35':'#E53E3E')+';">目標比 '+(d>=0?'+':'')+d+'</div>';
-    html+='</div>';
+  body+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+  perShop.forEach(function(s){
+    const last=s.months[s.months.length-1];
+    const d=(s.target&&last.avg!==null)?last.avg-s.target:null;
+    body+='<div style="background:#fff;border-radius:12px;padding:10px 6px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid '+s.color+';">';
+    body+='<div style="font-size:10px;font-weight:700;color:#888;margin-bottom:3px;">'+s.name+'</div>';
+    body+='<div style="font-size:20px;font-weight:900;color:'+s.color+';line-height:1;">'+(last.avg!==null?last.avg:'ー')+'</div>';
+    body+='<div style="font-size:8px;color:#aaa;margin-top:2px;">食／日</div>';
+    body+= d!==null ? ('<div style="font-size:11px;font-weight:800;margin-top:4px;color:'+(d>=0?'#1F8C35':'#E53E3E')+';">目標比 '+(d>=0?'+':'')+d+'</div>') : '<div style="font-size:10px;color:#ccc;margin-top:4px;">'+(s.target?'データなし':'目標未設定')+'</div>';
+    body+='</div>';
   });
-  html+='</div>';
+  body+='</div>';
 
   // 各店グラフ
-  SHOPS.forEach(function(s){
-    html+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
-    html+='<div style="font-size:13px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
-    html+='<span style="background:'+s.color+';color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;">'+s.name+'</span>月別推移</div>';
-    html+='<div style="display:flex;gap:10px;margin-bottom:6px;font-size:10px;">';
-    html+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.color+';display:inline-block;"></span>達成</span>';
-    html+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.lightColor+';display:inline-block;"></span>未達</span>';
-    html+='</div>';
-    html+=makeSvg(s);
-    html+='</div>';
+  perShop.forEach(function(s){
+    body+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
+    body+='<div style="font-size:13px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
+    body+='<span style="background:'+s.color+';color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;">'+s.name+'</span>月別推移</div>';
+    if(s.target){
+      body+='<div style="display:flex;gap:10px;margin-bottom:6px;font-size:10px;">';
+      body+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.color+';display:inline-block;"></span>達成</span>';
+      body+='<span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:'+s.lightColor+';display:inline-block;"></span>未達</span>';
+      body+='</div>';
+    }
+    body+=makeSvg(s);
+    body+='</div>';
   });
 
   // 表
-  html+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
-  html+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">📋 直近6ヶ月サマリー</div>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-  html+='<thead><tr><th style="padding:6px;background:#f5f4f1;text-align:left;">月</th>';
-  SHOPS.forEach(function(s){ html+='<th style="padding:6px;background:#f5f4f1;text-align:center;color:'+s.color+';">'+s.name+'</th>'; });
-  html+='</tr></thead><tbody>';
-  SHOPS[0].months.forEach(function(md,i){
-    html+='<tr>';
-    html+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;font-weight:600;">'+md.m+'</td>';
-    SHOPS.forEach(function(s){
-      const v=s.months[i].v;
-      const d=v-s.target;
-      html+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;text-align:center;"><strong>'+v+'</strong> <span style="font-size:10px;color:'+(d>=0?'#1F8C35':'#E53E3E')+'">'+(d>=0?'+':'')+d+'</span></td>';
+  body+='<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
+  body+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">📋 直近6ヶ月サマリー</div>';
+  body+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  body+='<thead><tr><th style="padding:6px;background:#f5f4f1;text-align:left;">月</th>';
+  perShop.forEach(function(s){ body+='<th style="padding:6px;background:#f5f4f1;text-align:center;color:'+s.color+';">'+s.name+'</th>'; });
+  body+='</tr></thead><tbody>';
+  perShop[0].months.forEach(function(md,i){
+    body+='<tr>';
+    body+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;font-weight:600;">'+md.label+'</td>';
+    perShop.forEach(function(s){
+      const v=s.months[i].avg;
+      if(v===null){ body+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;text-align:center;color:#ccc;">ー</td>'; return; }
+      const d=s.target?v-s.target:null;
+      body+='<td style="padding:7px 6px;border-bottom:1px solid #f0efeb;text-align:center;"><strong>'+v+'</strong>'+(d!==null?(' <span style="font-size:10px;color:'+(d>=0?'#1F8C35':'#E53E3E')+'">'+(d>=0?'+':'')+d+'</span>'):'')+'</td>';
     });
-    html+='</tr>';
+    body+='</tr>';
   });
-  html+='</tbody></table></div>';
+  body+='</tbody></table></div>';
 
-  // メール文面
-  const mailLines=SHOPS.map(function(s){
-    const v=s.months[s.months.length-1].v;
-    const d=v-s.target;
-    return '　'+s.name+'：'+v+'食／日（目標比 '+(d>=0?'+':'')+d+'）';
+  // メール文面（報告対象月は自動判定＝先月分）
+  const mailLines=perShop.map(function(s){
+    const last=s.months[s.months.length-1];
+    if(last.avg===null) return '　'+s.name+'：データなし';
+    const d=s.target?last.avg-s.target:null;
+    return '　'+s.name+'：'+last.avg+'食／日'+(d!==null?'（目標比 '+(d>=0?'+':'')+d+'）':'');
   }).join('\n');
-  const _latestMonth=SHOPS[0].months[SHOPS[0].months.length-1].m;
-  const mailStr='お疲れさまです。\n'+_latestMonth+'の平均食数の報告です。\n\n【'+_latestMonth+' 平均食数】\n'+mailLines+'\n\n目標食数\n　西宮・杭瀬：220食／日\n　立花：170食／日\n\nよろしくお願いいたします。';
+  const targetLines=perShop.filter(s=>s.target).map(s=>'　'+s.name+'：'+s.target+'食／日').join('\n');
+  const mailStr='お疲れさまです。\n'+(reportM+1)+'月の平均食数の報告です。\n\n【'+(reportM+1)+'月 平均食数】\n'+mailLines
+    +(targetLines?('\n\n目標食数\n'+targetLines):'')
+    +'\n\nよろしくお願いいたします。';
 
-  html+='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">';
-  html+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">✉️ 報告メール</div>';
-  html+='<div style="background:#f8f7f4;border-radius:10px;padding:14px;font-size:12px;line-height:1.9;color:#333;white-space:pre-wrap;border:1px solid #e5e4e0;">'+mailStr+'</div>';
+  // 報告メールは、画像として保存する範囲(monthly-report-capture)の「外」に置く。
+  // 画像にはグラフ・表までを保存し、メール文面は画像に含めない（本人の希望）。
+  let mailBody='<div style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-top:10px;">';
+  mailBody+='<div style="font-size:13px;font-weight:800;margin-bottom:10px;">✉️ 報告メール</div>';
+  mailBody+='<div style="background:#f8f7f4;border-radius:10px;padding:14px;font-size:12px;line-height:1.9;color:#333;white-space:pre-wrap;border:1px solid #e5e4e0;">'+mailStr+'</div>';
   window._reportMailStr=mailStr;
-  html+='<button onclick="copyReportMail(this)" ';
-  html+='style="width:100%;padding:12px;border-radius:10px;background:#1a1a1a;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;">📋 文面をコピー</button>';
-  html+='</div>';
+  mailBody+='<button onclick="copyReportMail(this)" ';
+  mailBody+='style="width:100%;padding:12px;border-radius:10px;background:#1a1a1a;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;">📋 文面をコピー</button>';
+  mailBody+='</div>';
 
-  document.getElementById('monthly-report-content').innerHTML=html;
+  // 画像として保存するのはグラフ・表まで（報告メール文面とボタンは画像に写り込まない）
+  const html='<div id="monthly-report-capture" style="background:var(--bg);">'+body+'</div>'
+    +'<button onclick="downloadReportImage()" style="width:100%;padding:13px;border-radius:10px;background:var(--ao);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:10px;">📷 画像として保存</button>'
+    +mailBody;
+
+  contentEl.innerHTML=html;
+}
+async function downloadReportImage(){
+  if(typeof html2canvas==='undefined'){ toast('画像化機能の読み込みに失敗しました。通信環境を確認してください'); return; }
+  const area=document.getElementById('monthly-report-capture');
+  if(!area) return;
+  toast('画像を作成しています…');
+  try{
+    const canvas=await html2canvas(area, {scale:2, backgroundColor:'#f5f4f1'});
+    const fileName='月次レポート_'+fmtDate(new Date())+'.png';
+    // iPhone(Safari)では<a download>によるダウンロードが反応しないことがあるため、
+    // 対応している端末ではまず「共有」画面を開く方式を使う。
+    // これなら「写真に保存」も「LINE WORKSに直接送る」もこの一つの画面から選べる。
+    let shared=false;
+    try{
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+      if(blob && navigator.canShare && navigator.share){
+        const file=new File([blob], fileName, {type:'image/png'});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file], title:'月次レポート'});
+          shared=true;
+        }
+      }
+    }catch(shareErr){
+      if(shareErr && shareErr.name==='AbortError'){ shared=true; } // 本人が共有画面を閉じただけなので、エラー扱いにしない
+      else console.error('共有に失敗しました。ダウンロード方式に切り替えます', shareErr);
+    }
+    if(shared) return;
+    // 共有に対応していない端末（パソコンのブラウザ等）では、従来通りダウンロードする
+    const link=document.createElement('a');
+    link.download=fileName;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){
+    console.error(e);
+    toast('画像の作成に失敗しました');
+  }
 }
 
 function saveYoyaku(){
   blurAll();
   const custId=document.getElementById('yoyaku-customer')?.value;
   if(!custId){toast('お客様を選択してください');return;}
+  // セルの値自体は入力のたびにonYoyakuCellInput()で既にbulkOrdersへ反映済み。
+  // ここで全セルの表示値(曜日別設定・毎日設定からの継承表示を含む)を丸ごと書き込み直すと、
+  // 一度も触っていない日付まで「予約確定」として保存されてしまうため、
+  // 実際にbulkOrdersへ登録済みの日数を数えて保存・通知するだけにとどめる。
   let registered=0;
   document.querySelectorAll('[id^="yoyaku-cell-"]').forEach(el=>{
-    if(el.disabled) return;
+    if(el.disabled)return;
     const dateKey=el.id.replace('yoyaku-cell-','');
-    if(el.value===''){
-      // 空欄の場合は既存登録を削除
-      if(bulkOrders[dateKey]) delete bulkOrders[dateKey][custId];
-      return;
-    }
-    const n=parseInt(el.value);
-    if(isNaN(n)||n<0) return;
-    if(!bulkOrders[dateKey]) bulkOrders[dateKey]={};
-    bulkOrders[dateKey][custId]=n;
-    registered++;
+    if(bulkOrders[dateKey]&&bulkOrders[dateKey][custId]!==undefined) registered++;
   });
   if(registered===0){toast('食数を入力してください');return;}
   const selKey=fmtDate(selectedDate);
@@ -3535,29 +4008,108 @@ function saveYoyaku(){
   renderInputList();
 }
 
-function sendInvoice(id){
+// ── 請求期間（締め日）の計算 ──
+function closingDateInMonth(year, monthIdx, closing){
+  if(closing==='end') return new Date(year, monthIdx+1, 0); // その月の最終日
+  return new Date(year, monthIdx, parseInt(closing));
+}
+function closingLabel(closing){
+  return closing==='end' ? '末日' : (closing?`${closing}日`:'未設定');
+}
+// todayKey以前で一番新しい締め日（＝直近で確定した請求期間の終わり）
+function mostRecentClosingDate(closing, todayKey){
+  const today=parseDateKey(todayKey);
+  let y=today.getFullYear(), mo=today.getMonth();
+  let cand=closingDateInMonth(y,mo,closing);
+  if(cand>today){ mo-=1; if(mo<0){mo=11;y-=1;} cand=closingDateInMonth(y,mo,closing); }
+  return cand;
+}
+// 指定した締め日の「1つ前」の締め日
+function previousClosingDate(closing, dateObj){
+  let y=dateObj.getFullYear(), mo=dateObj.getMonth()-1;
+  if(mo<0){mo=11;y-=1;}
+  return closingDateInMonth(y,mo,closing);
+}
+function addDaysToKey(dateKey, n){
+  const d=parseDateKey(dateKey);
+  d.setDate(d.getDate()+n);
+  return fmtDate(d);
+}
+// ── orderHistory(日別実績)から、指定期間のその顧客の実績を1日ずつ取得する ──
+async function fetchDailyCountsRange(shop, startKey, endKey, custId){
+  const fb=window.__fb;
+  const dates=[];
+  let d=parseDateKey(startKey);
+  const end=parseDateKey(endKey);
+  while(d<=end){ dates.push(fmtDate(d)); d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1); }
+  return Promise.all(dates.map(async dk=>{
+    try{
+      const snap=await fb.getDoc(fb.doc(fb.db,'shops',shop,'orderHistory',dk));
+      const c = snap.exists() ? ((snap.data().counts||{})[custId]||0) : 0;
+      return {date:dk, count:c};
+    }catch(e){ return {date:dk, count:0}; }
+  }));
+}
+// 日ごとの実績を、単価が変わった区切りごとにまとめる（月途中の単価変更に対応）
+function buildPriceRows(dailyResults){
+  const rows=[];
+  let cur=null;
+  dailyResults.forEach(r=>{
+    const p=priceOnDate(r.date);
+    if(!cur || cur.price!==p){ cur={price:p, from:r.date, to:r.date, qty:0}; rows.push(cur); }
+    cur.to=r.date;
+    cur.qty+=r.count;
+  });
+  return rows;
+}
+function fmtDateJp(dateKey){
+  const d=parseDateKey(dateKey);
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+let _invoiceCtx=null; // 直近に開いた請求書のプレビュー情報（PDF保存・メール用）
+
+async function sendInvoice(id){
   const m=MASTER.find(x=>x.id===id);
   if(!m) return;
-  const count=counts[m.id]||0;
-  const total=count*UNIT_PRICE;
-  const today=new Date();
-  const yyyy=today.getFullYear();
-  const mm=String(today.getMonth()+1).padStart(2,'0');
-  const dd=String(today.getDate()).padStart(2,'0');
-  const dateStr=`${yyyy}年${mm}月${dd}日`;
-  // 請求月（前月 or 当月）
-  const billMonth=`${yyyy}年${mm}月`;
-  // 締め日設定
-  const closing=m.closing||'末日';
-  // 支払期日（翌月末など）
-  const nextMonth=new Date(today.getFullYear(),today.getMonth()+1,0);
-  const dueDateStr=`${nextMonth.getFullYear()}年${nextMonth.getMonth()+1}月${nextMonth.getDate()}日`;
+  if(!m.closing){ toast('先に顧客編集で「締め日」を設定してください'); return; }
+  if(!window.__fb || !window.__fb.ready){ toast('通信できていません。少し待ってからもう一度お試しください'); return; }
 
+  document.getElementById('invoice-preview-body').innerHTML='<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">計算しています…</div>';
+  document.getElementById('invoice-modal').style.display='flex';
+  _openModal('invoice-modal');
+
+  const todayKey=fmtDate(new Date());
+  const closing=m.closing;
+  const periodEndDate=mostRecentClosingDate(closing, todayKey);
+  const periodEndKey=fmtDate(periodEndDate);
+  const periodStartKey=addDaysToKey(fmtDate(previousClosingDate(closing, periodEndDate)),1);
+  // 支払期限：期間終了の翌月末（正式なルールは未確定のため暫定）
+  const due=new Date(periodEndDate.getFullYear(), periodEndDate.getMonth()+2, 0);
+  const dueDateStr=`${due.getFullYear()}年${due.getMonth()+1}月${due.getDate()}日`;
+
+  const dailyResults=await fetchDailyCountsRange(currentShop, periodStartKey, periodEndKey, id);
+  const rows=buildPriceRows(dailyResults).filter(r=>r.qty>0);
+  const total=rows.reduce((s,r)=>s+r.qty*r.price,0);
+  const totalQty=rows.reduce((s,r)=>s+r.qty,0);
+
+  const today=new Date();
+  const invoiceNo=`${fmtDate(today).replace(/-/g,'')}-${periodEndKey.replace(/-/g,'')}-${m.id}`;
   const billName=m.billname||m.name;
-  const invoiceNo=`${yyyy}${mm}-${m.id}`;
+
+  _invoiceCtx={kind:'invoice', customerId:id, customerName:billName, email:m.email||'', invoiceNo, total, periodStartKey, periodEndKey};
+
+  const rowsHtml = rows.length ? rows.map(r=>`
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:10px 8px;">${fmtDateJp(r.from)}〜${fmtDateJp(r.to)}　弁当</td>
+            <td style="padding:10px 8px;text-align:center;">${r.qty}食</td>
+            <td style="padding:10px 8px;text-align:right;">¥${r.price.toLocaleString()}</td>
+            <td style="padding:10px 8px;text-align:right;font-weight:700;">¥${(r.qty*r.price).toLocaleString()}</td>
+          </tr>`).join('')
+    : `<tr><td colspan="4" style="padding:14px 8px;text-align:center;color:#999;">この期間の実績データがありません</td></tr>`;
 
   const html=`
-    <div id="invoice-print-area" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;">
+    <div id="invoice-print-area" style="width:640px;box-sizing:border-box;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;">
       <!-- ヘッダー -->
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:22px;font-weight:900;letter-spacing:.1em;margin-bottom:4px;">請　求　書</div>
@@ -3568,17 +4120,17 @@ function sendInvoice(id){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
         <div>
           <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${escHtml(billName)} 御中</div>
-          <div style="font-size:11px;color:#666;">締め日：${escHtml(closing)}</div>
+          <div style="font-size:11px;color:#666;">対象期間：${fmtDateJp(periodStartKey)}〜${fmtDateJp(periodEndKey)}（${closingLabel(closing)}締め）</div>
         </div>
         <div style="text-align:right;font-size:11px;color:#666;line-height:1.8;">
-          <div>発行日：${dateStr}</div>
+          <div>発行日：${fmtDateJp(fmtDate(today))}</div>
           <div>お支払期限：${dueDateStr}</div>
         </div>
       </div>
 
       <!-- 請求金額 -->
       <div style="background:#f0f4ff;border:2px solid #1A6FD4;border-radius:10px;padding:14px 18px;margin-bottom:20px;text-align:center;">
-        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">ご請求金額（税込）</div>
+        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">ご請求金額（税込・合計${totalQty}食）</div>
         <div style="font-size:28px;font-weight:900;color:#1A6FD4;">¥ ${total.toLocaleString()}<span style="font-size:14px;">円</span></div>
       </div>
 
@@ -3592,14 +4144,7 @@ function sendInvoice(id){
             <th style="padding:8px;text-align:right;font-weight:700;">金額</th>
           </tr>
         </thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:10px 8px;">${billMonth}分　弁当</td>
-            <td style="padding:10px 8px;text-align:center;">${count}食</td>
-            <td style="padding:10px 8px;text-align:right;">¥${UNIT_PRICE.toLocaleString()}</td>
-            <td style="padding:10px 8px;text-align:right;font-weight:700;">¥${total.toLocaleString()}</td>
-          </tr>
-        </tbody>
+        <tbody>${rowsHtml}</tbody>
         <tfoot>
           <tr style="border-top:2px solid #ddd;background:#fafafa;">
             <td colspan="3" style="padding:8px;text-align:right;font-weight:700;">合計（税込）</td>
@@ -3608,53 +4153,397 @@ function sendInvoice(id){
         </tfoot>
       </table>
 
-      <!-- 振込先 -->
+      <!-- 振込先（店舗ごと） -->
       <div style="border:1px solid #ddd;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:11px;">
         <div style="font-weight:800;margin-bottom:6px;">【お振込先】</div>
         <div style="color:#444;line-height:1.8;">
-          銀行名・支店名・口座番号はスプレッドシート連携後に自動入力されます
+          ${(()=>{ const b=(GLOBAL_SETTINGS.bankByShop&&GLOBAL_SETTINGS.bankByShop[currentShop])||{};
+            return (b.bankName||b.bankBranch||b.bankNumber)
+              ? `${b.bankName} ${b.bankBranch}<br>${b.bankType||'普通'} ${b.bankNumber}<br>${b.bankHolder}`
+              : '振込先が未設定です（店舗選択画面の「共通設定」から入力してください）'; })()}
         </div>
       </div>
 
       <!-- 発行元 -->
       <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
-        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">株式会社コンプリメント</div>
-        <div>${currentShop}店</div>
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${escHtml(GLOBAL_SETTINGS.companyName)}</div>
+        <div>${escHtml(GLOBAL_SETTINGS.postalCode)} ${escHtml(GLOBAL_SETTINGS.address)}</div>
+        <div>TEL ${escHtml(GLOBAL_SETTINGS.phone)}　登録番号：${escHtml(GLOBAL_SETTINGS.registrationNumber)}</div>
       </div>
     </div>
   `;
 
   document.getElementById('invoice-preview-body').innerHTML=html;
-  document.getElementById('invoice-modal').style.display='flex';
-  _openModal('invoice-modal');
+  _scaleInvoicePreview();
 }
+// 請求書プレビューは中身が640px幅で作られているため（PDF化した時にきれいに収まる寸法）、
+// 画面が狭いスマホでは、そのままだと横にはみ出して大きく表示されてしまう。
+// 表示欄の実際の幅に合わせて縮小し、画面内にきちんと収まるようにする。
+// (zoomプロパティはPDF化・印刷の直前に一時的に解除するので、保存される内容には影響しない)
+function _scaleInvoicePreview(){
+  const body=document.getElementById('invoice-preview-body');
+  const area=document.getElementById('invoice-print-area');
+  if(!body||!area) return;
+  // clientWidthには表示欄自体の左右padding分も含まれてしまうため、そのpadding分を差し引いた
+  // 「実際に中身を置けるスペースの幅」を基準にする(そうしないと縮小しても少しはみ出したままになる)
+  const cs=getComputedStyle(body);
+  const availWidth=body.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0);
+  area.style.zoom = (availWidth>0 && availWidth<640) ? (availWidth/640) : '';
+}
+window.addEventListener('resize', ()=>{ if(!document.getElementById('invoice-modal') || document.getElementById('invoice-modal').style.display==='none') return; _scaleInvoicePreview(); });
 function closeInvoiceModal(){
   _closeModal('invoice-modal');
   document.getElementById('invoice-modal').style.display='none';
 }
-function printInvoice(){
-  const body=document.getElementById('invoice-print-area')?.innerHTML||'';
-  const overlay=document.createElement('div');
-  overlay.id='invoice-print-overlay';
-  overlay.style.cssText='position:fixed;inset:0;z-index:1000;background:#fff;overflow-y:auto;padding:24px;';
-  overlay.innerHTML=`
-    <div id="invoice-print-content">${body}</div>
-    <style>
-      @media print{
-        body > *:not(#invoice-print-overlay){ display:none!important; }
-        #invoice-print-overlay{ position:static!important;overflow:visible!important;padding:0!important; }
-        @page{ margin:15mm; }
-      }
-    </style>
-    <button onclick="window.print();this.closest('#invoice-print-overlay').remove();" style="position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:10px;background:#17171A;color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;z-index:1001;">🖨 印刷</button>
-    <button onclick="this.closest('#invoice-print-overlay').remove();" style="position:fixed;bottom:20px;left:20px;padding:12px 20px;border-radius:10px;background:#f0efe9;color:#444;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;z-index:1001;">✕ 閉じる</button>
+// 指定した要素の見た目をそのまま画像化してPDFに埋め込む（共通処理）。
+// 日本語フォントをPDF側に個別組み込みする必要がなく、画面と同じ見た目で保存できる。
+async function _renderElementToPdf(area){
+  if(!area) return null;
+  const canvas=await html2canvas(area, {scale:2, backgroundColor:'#ffffff'});
+  const imgData=canvas.toDataURL('image/png');
+  const { jsPDF }=window.jspdf;
+  const pageWidth=210, pageHeight=297; // A4 (mm)
+  const imgWidth=pageWidth-20;
+  const imgHeight=canvas.height*imgWidth/canvas.width;
+  const pdf=new jsPDF('p','mm','a4');
+  pdf.addImage(imgData,'PNG',10,10,imgWidth, Math.min(imgHeight, pageHeight-20));
+  return pdf;
+}
+// プレビュー(#invoice-print-area)の見た目をそのまま画像化してPDFに埋め込む。
+// 画面表示用に縮小(zoom)している場合があるため、PDF化する直前だけ元の大きさに戻し、終わったら画面表示用の縮小に戻す
+// (そうしないと、スマホで見た時に縮小されたままの小さいPDFができてしまう)
+async function _renderPrintAreaToPdf(){
+  const area=document.getElementById('invoice-print-area');
+  if(!area) return null;
+  const prevZoom=area.style.zoom;
+  area.style.zoom='';
+  try{
+    return await _renderElementToPdf(area);
+  } finally {
+    area.style.zoom=prevZoom;
+  }
+}
+async function downloadInvoicePdf(){
+  if(typeof html2canvas==='undefined' || !window.jspdf){ toast('PDF機能の読み込みに失敗しました。通信環境を確認してください'); return; }
+  toast('PDFを作成しています…');
+  try{
+    const pdf=await _renderPrintAreaToPdf();
+    if(!pdf) return;
+    const name=_invoiceCtx ? `請求書_${_invoiceCtx.customerName}_${_invoiceCtx.periodEndKey}.pdf` : '請求書.pdf';
+    pdf.save(name);
+  }catch(e){
+    console.error('PDF作成に失敗しました', e);
+    toast('PDFの作成に失敗しました');
+  }
+}
+// 現時点ではメール本文の下書きを開くところまで（PDFはダウンロードしたものを手動で添付してもらう）
+function mailInvoice(){
+  if(!_invoiceCtx){ toast('請求書を開き直してください'); return; }
+  if(!_invoiceCtx.email){ toast('この顧客にメールアドレスが登録されていません（顧客編集から設定してください）'); return; }
+  const subject=encodeURIComponent(`【${GLOBAL_SETTINGS.companyName}】ご請求書（${fmtDateJp(_invoiceCtx.periodEndKey)}締め）`);
+  const body=encodeURIComponent(
+    `${_invoiceCtx.customerName} 様\n\nいつもお世話になっております。\n${fmtDateJp(_invoiceCtx.periodStartKey)}〜${fmtDateJp(_invoiceCtx.periodEndKey)}分のご請求書をお送りいたします。\nご請求金額：${_invoiceCtx.total.toLocaleString()}円\n\n先ほど保存したPDFファイルをこのメールに添付してご送信ください。\n\nよろしくお願いいたします。\n${GLOBAL_SETTINGS.companyName}`
+  );
+  window.location.href=`mailto:${_invoiceCtx.email}?subject=${subject}&body=${body}`;
+}
+
+// ── 請求書メールの自動送信（Brevo経由・Google Apps Script中継） ──
+// Google Apps ScriptをWebアプリとして公開した時に発行されるURLをここに貼り付ける
+const INVOICE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzxRrQJ0mGIEF37RnnfX2W7F7tlpZcq9oSwHZwnvr-s3oYXtGARmzpKPsY8DSrLnGK-/exec';
+// Google Apps Script側のSHARED_SECRETと必ず同じ値にする（本人がAppsScript側の値を変えない限り、ここも変更不要）
+const SEND_INVOICE_SECRET = 'raG3G239DLDiKIsQhkfODfMAsG6rlQxp';
+
+function autoSendInvoice(){
+  if(!_invoiceCtx){ toast('請求書を開き直してください'); return; }
+  if(!_invoiceCtx.email){ toast('この顧客にメールアドレスが登録されていません（顧客編集から設定してください）'); return; }
+  if(!INVOICE_WEBAPP_URL || INVOICE_WEBAPP_URL.indexOf('PASTE_YOUR')===0){
+    toast('自動送信の設定がまだ完了していません'); return;
+  }
+  document.getElementById('invoice-send-confirm-sub').textContent =
+    `${_invoiceCtx.customerName} 様（${_invoiceCtx.email}）に、ご請求金額 ${_invoiceCtx.total.toLocaleString()}円 の請求書メールを送信します`;
+  _openModal('invoice-send-confirm-modal');
+}
+function closeInvoiceSendConfirm(){
+  _closeModal('invoice-send-confirm-modal');
+}
+async function execAutoSendInvoice(){
+  closeInvoiceSendConfirm();
+  if(!_invoiceCtx) return;
+  const btn=document.getElementById('invoice-autosend-btn');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.6'; }
+  toast('請求書メールを送信しています…');
+  try{
+    const pdf=await _renderPrintAreaToPdf();
+    if(!pdf){ toast('PDFの作成に失敗しました'); return; }
+    const dataUri=pdf.output('datauristring');
+    const base64=dataUri.substring(dataUri.indexOf('base64,')+7);
+    const subject=`【${GLOBAL_SETTINGS.companyName}】ご請求書（${fmtDateJp(_invoiceCtx.periodEndKey)}締め）`;
+    const bodyText=`${_invoiceCtx.customerName} 様\n\nいつもお世話になっております。\n${fmtDateJp(_invoiceCtx.periodStartKey)}〜${fmtDateJp(_invoiceCtx.periodEndKey)}分のご請求書をお送りいたします。\nご請求金額：${_invoiceCtx.total.toLocaleString()}円\n\n添付のPDFをご確認ください。\n\nよろしくお願いいたします。\n${GLOBAL_SETTINGS.companyName}`;
+    const payload={
+      secretToken: SEND_INVOICE_SECRET,
+      shop: currentShop,
+      toEmail: _invoiceCtx.email,
+      toName: _invoiceCtx.customerName,
+      subject,
+      bodyText,
+      pdfBase64: base64,
+      pdfFilename: `請求書_${_invoiceCtx.customerName}_${_invoiceCtx.periodEndKey}.pdf`,
+    };
+    // Content-Typeをtext/plainにすることで、ブラウザによる余計な事前確認通信(プリフライト)を避け、
+    // Google Apps Script側にそのままJSON文字列を届ける（Apps Script側でJSON.parseする）
+    const res=await fetch(INVOICE_WEBAPP_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+    });
+    const result=await res.json();
+    if(result.success){
+      toast('請求書メールを送信しました');
+    } else {
+      console.error('請求書メールの送信に失敗しました', result.error);
+      toast('送信に失敗しました：'+(result.error||'不明なエラー'));
+    }
+  }catch(e){
+    console.error('自動送信エラー', e);
+    toast('送信中にエラーが発生しました。通信環境をご確認ください');
+  }finally{
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+  }
+}
+
+// ── 領収書（電子）の自動送信：配達完了チェックを入れた瞬間に送る ──
+// 領収書PDFを組み立てて画像化し、既存の請求書と同じGoogle Apps Script中継経由でメール送信する。
+// (Apps Script側は宛先・件名・本文・PDFを受け取って送るだけの汎用の仕組みなので、
+//  請求書用に作った同じWebアプリ・同じ合言葉をそのまま使い回せる)
+async function _buildReceiptPdfAndSend(m, todayKey, qty, price){
+  const total=qty*price;
+  const tax=Math.round(total*8/108); // 弁当はすべて軽減税率(8%)対象という前提
+  const receiptNo=`${todayKey.replace(/-/g,'')}-${m.id}`;
+  const billName=m.billname||m.name;
+  const dateJp=fmtDateJp(todayKey);
+
+  const html=`
+    <div style="width:640px;box-sizing:border-box;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;background:#fff;padding:8px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:22px;font-weight:900;letter-spacing:.1em;margin-bottom:4px;">領　収　書</div>
+        <div style="font-size:11px;color:#666;">No. ${receiptNo}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${escHtml(billName)} 様</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#666;">
+          <div>発行日：${dateJp}</div>
+        </div>
+      </div>
+      <div style="background:#f0f4ff;border:2px solid #1A6FD4;border-radius:10px;padding:14px 18px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">領収金額（税込）</div>
+        <div style="font-size:28px;font-weight:900;color:#1A6FD4;">¥ ${total.toLocaleString()}<span style="font-size:14px;">円</span></div>
+      </div>
+      <div style="font-size:12px;margin-bottom:16px;">但し、お弁当代として（${dateJp}分・${qty}食）上記正に領収いたしました。</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px;">
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:6px 8px;">8％対象（軽減税率）</td>
+            <td style="padding:6px 8px;text-align:right;">¥${total.toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;color:#666;">内消費税等（8％）</td>
+            <td style="padding:6px 8px;text-align:right;color:#666;">¥${tax.toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${escHtml(GLOBAL_SETTINGS.companyName)}</div>
+        <div>${escHtml(GLOBAL_SETTINGS.postalCode)} ${escHtml(GLOBAL_SETTINGS.address)}</div>
+        <div>TEL ${escHtml(GLOBAL_SETTINGS.phone)}　登録番号：${escHtml(GLOBAL_SETTINGS.registrationNumber)}</div>
+      </div>
+    </div>
   `;
-  document.body.appendChild(overlay);
+
+  // 画面には表示せず(画面外に置いて)画像化するための一時的な入れ物
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:-9999px;top:0;background:#fff;';
+  wrap.innerHTML=html;
+  document.body.appendChild(wrap);
+  let pdf=null;
+  try{
+    pdf=await _renderElementToPdf(wrap.firstElementChild);
+  } finally {
+    wrap.remove();
+  }
+  if(!pdf) return false;
+
+  const dataUri=pdf.output('datauristring');
+  const base64=dataUri.substring(dataUri.indexOf('base64,')+7);
+  const subject=`【${GLOBAL_SETTINGS.companyName}】領収書のご送付（${dateJp}）`;
+  const bodyText=`${billName} 様\n\nいつもお世話になっております。\n本日（${dateJp}）分のお弁当代の領収書をお送りいたします。\nご利用金額：${total.toLocaleString()}円\n\n添付のPDFをご確認ください。\n\nよろしくお願いいたします。\n${GLOBAL_SETTINGS.companyName}`;
+  const payload={
+    secretToken: SEND_INVOICE_SECRET,
+    shop: currentShop,
+    toEmail: m.receiptEmail,
+    toName: billName,
+    subject,
+    bodyText,
+    pdfBase64: base64,
+    pdfFilename: `領収書_${billName}_${todayKey}.pdf`,
+  };
+  try{
+    const res=await fetch(INVOICE_WEBAPP_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+    });
+    const result=await res.json();
+    if(!result.success) console.error('領収書メールの送信に失敗しました', result.error);
+    return !!result.success;
+  }catch(e){
+    console.error('領収書メール送信エラー', e);
+    return false;
+  }
+}
+// 配達完了チェックを入れた瞬間に呼ばれる。領収書「電子」＋メールアドレス登録済みの
+// お客様だけを対象に、その日の分の領収書を自動でメール送信する。
+async function maybeSendReceiptOnDelivery(id){
+  const m=MASTER.find(x=>x.id===id);
+  if(!m || m.receiptType!=='electronic' || !m.receiptEmail) return; // 対象外（紙・なし、またはメール未登録）
+  if(receiptSent.has(id)) return; // 本日すでに送信済み（二重送信防止）
+  if(!INVOICE_WEBAPP_URL || INVOICE_WEBAPP_URL.indexOf('PASTE_YOUR')===0) return;
+  if(!window.__fb || !window.__fb.ready) return; // 通信できていない時は静かに諦める（紙の控え等は別途運用）
+  const todayKey=fmtDate(new Date());
+  const qty=counts[id]||0;
+  if(qty<=0) return; // 食数が0のときは送らない
+  const price=priceOnDate(todayKey);
+  // 送信中に連打・別端末からの操作で二重に走らないよう、先に「送信済み」の印をつけておく
+  receiptSent.add(id);
+  saveToLocal();
+  const ok=await _buildReceiptPdfAndSend(m, todayKey, qty, price);
+  if(ok){
+    toast(m.name+'様に領収書メールを送信しました');
+  } else {
+    // 失敗した場合は印を戻し、もう一度チェックを入れ直せば再送を試せるようにする
+    receiptSent.delete(id);
+    saveToLocal();
+    toast(m.name+'様への領収書メール送信に失敗しました');
+  }
+}
+// 本日の注文画面の「⋯」メニューから、好きなタイミングで手動送信するためのボタン。
+// 自動送信(配達完了チェック時)が失敗した時の予備や、送り直したい時に使う。
+// 二重送信防止のチェックはしない(手動での送り直しが目的のため)が、本日分として送った場合はreceiptSentの印も更新しておく。
+async function manualSendReceiptFromInput(id){
+  const m=MASTER.find(x=>x.id===id);
+  if(!m) return;
+  if(m.receiptType!=='electronic' || !m.receiptEmail){ toast('この方は領収書「電子」の設定がありません'); return; }
+  if(!INVOICE_WEBAPP_URL || INVOICE_WEBAPP_URL.indexOf('PASTE_YOUR')===0){ toast('自動送信の設定がまだ完了していません'); return; }
+  const dateKey=fmtDate(selectedDate);
+  const qty=counts[id]||0;
+  if(qty<=0){ toast('この日の食数が0のため送信できません'); return; }
+  const price=priceOnDate(dateKey);
+  toast('領収書メールを送信しています…');
+  const ok=await _buildReceiptPdfAndSend(m, dateKey, qty, price);
+  if(ok){
+    if(dateKey===fmtDate(new Date())){ receiptSent.add(id); saveToLocal(); }
+    toast(m.name+'様に領収書メールを送信しました');
+  } else {
+    toast(m.name+'様への領収書メール送信に失敗しました');
+  }
+}
+
+// ── 本日の注文画面から、既存のお客様に「その日だけのメモ」を追加・編集する ──
+// 予約タブの日別メモ(bulkMemos)と同じデータをそのまま使うので、予約・配達タブとも連動する。
+// 日付が変われば「本日の注文」には出てこなくなるが、カレンダーでその日に戻れば残っている(完全削除ではない)。
+let _dailyMemoCustId=null;
+function openDailyMemoModal(id,name){
+  _dailyMemoCustId=id;
+  const dateKey=fmtDate(selectedDate);
+  const d=selectedDate;
+  const days=['日','月','火','水','木','金','土'];
+  document.getElementById('daily-memo-modal-title').textContent=`${name}さんのメモ`;
+  document.getElementById('daily-memo-date').textContent=`${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）だけのメモです`;
+  const existing=bulkMemos[dateKey]?bulkMemos[dateKey][id]||'':'';
+  document.getElementById('daily-memo-input').value=existing;
+  document.getElementById('daily-memo-del-btn').style.display=existing?'block':'none';
+  _openModal('daily-memo-modal');
+  setTimeout(()=>document.getElementById('daily-memo-input').focus(),100);
+}
+function closeDailyMemoModal(e){
+  if(e&&e.target!==document.getElementById('daily-memo-modal'))return;
+  blurAll();
+  _closeModal('daily-memo-modal');
+  _dailyMemoCustId=null;
+}
+function _refreshInputListAfterMemoChange(){
+  const area=document.getElementById('input-list-area');
+  if(area) delete area.dataset.built; // 📝バッジの表示更新のため、次回描画時にDOMを作り直す
+  renderInputList();
+}
+function saveDailyMemo(){
+  blurAll();
+  const id=_dailyMemoCustId;
+  if(!id){ closeDailyMemoModal(); return; }
+  const dateKey=fmtDate(selectedDate);
+  const memo=document.getElementById('daily-memo-input').value.trim();
+  if(memo){
+    if(!bulkMemos[dateKey]) bulkMemos[dateKey]={};
+    bulkMemos[dateKey][id]=memo;
+  } else if(bulkMemos[dateKey]){
+    delete bulkMemos[dateKey][id];
+  }
+  saveToLocal();
+  closeDailyMemoModal();
+  _refreshInputListAfterMemoChange();
+  toast('メモを保存しました');
+}
+function deleteDailyMemo(){
+  const id=_dailyMemoCustId;
+  const dateKey=fmtDate(selectedDate);
+  if(id && bulkMemos[dateKey]) delete bulkMemos[dateKey][id];
+  saveToLocal();
+  closeDailyMemoModal();
+  _refreshInputListAfterMemoChange();
+  toast('メモを削除しました');
+}
+
+// 請求書の印刷：画面をそのまま印刷しようとする方式(window.print())は、
+// スマホのブラウザだと背景の別の画面まで写り込んでしまったり、レイアウトが崩れたりすることがあったため、
+// PDF保存で使っているのと同じ仕組みでいったんPDFを作り、それを新しいタブで開く方式に変更した。
+// PDFとして開けば、そのままスマホの標準の印刷機能（共有→プリント）できれいに印刷できる。
+function printInvoice(){
+  if(typeof html2canvas==='undefined' || !window.jspdf){ toast('印刷用データの作成に失敗しました。通信環境を確認してください'); return; }
+  // PDFの作成(非同期処理)を待ってからタブを開こうとすると、スマホのブラウザに
+  // ポップアップとしてブロックされてしまうことがあるため、先に空のタブだけ開いておく。
+  const printTab=window.open('', '_blank');
+  toast('印刷用のデータを作成しています…');
+  _renderPrintAreaToPdf().then(pdf=>{
+    if(!pdf){
+      toast('印刷用データの作成に失敗しました');
+      if(printTab) printTab.close();
+      return;
+    }
+    const blobUrl=pdf.output('bloburl');
+    if(printTab && !printTab.closed){
+      printTab.location.href=blobUrl;
+    } else {
+      // ポップアップがブロックされていた場合は、その場でダウンロードする
+      const name=_invoiceCtx ? `請求書_${_invoiceCtx.customerName}_${_invoiceCtx.periodEndKey}.pdf` : '請求書.pdf';
+      pdf.save(name);
+    }
+  }).catch(e=>{
+    console.error('印刷用PDFの作成に失敗しました', e);
+    toast('印刷用データの作成に失敗しました');
+    if(printTab && !printTab.closed) printTab.close();
+  });
 }
 
 function gotoTab(tab){
   const prevTab=currentTab;
   currentTab=tab;
+  // カレンダーが開いていたら閉じる
+  if(calOpen){
+    calOpen=false;
+    const cal=document.getElementById('cal-dropdown');
+    if(cal) cal.classList.add('hidden');
+  }
   ['input','delivery','customer','staff','summary','sales','yoyaku'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('hidden',t!==tab);
     const nb=document.getElementById('nav-'+t);
@@ -3697,27 +4586,852 @@ const ADMIN_PW = '1111';
 // 店舗別キーを生成（currentShopが確定してから呼ぶ）
 function lsKey(base){ return base + '_' + currentShop; }
 
+let _loadedCountsDate=null; // loadFromLocal()が読み込んだcountsが「どの日付時点のものか」を保持
+// MASTER/STAFF/PINK_STAFFの既存id(接頭辞+数字)を走査し、nextIdが過去に発行済みの番号と衝突しないようにする
+function recalcNextId(){
+  let max=999;
+  const scan=(arr,prefix)=>{
+    (arr||[]).forEach(x=>{
+      if(x&&typeof x.id==='string'&&x.id.indexOf(prefix)===0){
+        const n=parseInt(x.id.slice(prefix.length),10);
+        if(!isNaN(n)&&n>max) max=n;
+      }
+    });
+  };
+  scan(MASTER,'c');
+  scan(MASTER,'w');
+  scan(STAFF,'s');
+  scan(PINK_STAFF,'ps');
+  nextId=max+1;
+}
+// 本日限りのお客様(一元さん)は、追加された日と違う日になったら顧客一覧から自動的に削除する
+function pruneExpiredOnetimeCustomers(){
+  const todayKey=fmtDate(new Date());
+  let changed=false;
+  for(let i=MASTER.length-1;i>=0;i--){
+    const m=MASTER[i];
+    if(m.temporary && m.addedDate && m.addedDate!==todayKey){
+      delete counts[m.id];
+      done.delete(m.id);
+      receiptSent.delete(m.id);
+      MASTER.splice(i,1);
+      changed=true;
+    }
+  }
+  return changed;
+}
 function saveToLocal(){
+  // 入力中で保留にされていた「他端末からの更新の反映」がまだ残っている場合、それを取り消す。
+  // (入力欄をぼかす(blur)と、そのタイミングで保留中の反映が少し遅れて実行される仕組みになっているため、
+  //  「登録する」ボタンを押した直後に、今まさに保存したばかりの最新の内容が、
+  //  それより古い保留中のデータで上書きされて元に戻ってしまう不具合があった。
+  //  今ここで保存する内容が一番新しいはずなので、古い保留分は破棄してよい)
+  _pendingRemoteRerender=false;
+  _pendingRemoteData=null;
   try{
     localStorage.setItem(lsKey('bentoMaster'), JSON.stringify(MASTER));
     localStorage.setItem(lsKey('bentoCounts'), JSON.stringify(counts));
+    localStorage.setItem(lsKey('bentoCountsDate'), fmtDate(selectedDate));
     localStorage.setItem(lsKey('bentoBulkOrders'), JSON.stringify(bulkOrders));
     localStorage.setItem(lsKey('bentoBulkMemos'), JSON.stringify(bulkMemos));
-    localStorage.setItem(lsKey('bentoSalesData'), JSON.stringify(salesData));
+    localStorage.setItem(lsKey('bentoSalesData'), JSON.stringify(salesDataByDate));
     localStorage.setItem(lsKey('bentoDeliveryOrder'), JSON.stringify(deliveryOrder));
+    localStorage.setItem(lsKey('bentoStaff'), JSON.stringify(STAFF));
+    localStorage.setItem(lsKey('bentoPinkStaff'), JSON.stringify(PINK_STAFF));
+    localStorage.setItem(lsKey('bentoCourseAssign'), JSON.stringify(COURSE_ASSIGN));
     const todayKey = fmtDate(new Date());
     localStorage.setItem(lsKey('bentoDone'), JSON.stringify([...done]));
     localStorage.setItem(lsKey('bentoDoneDate'), todayKey);
+    localStorage.setItem(lsKey('bentoReceiptSent'), JSON.stringify([...receiptSent]));
+    localStorage.setItem(lsKey('bentoReceiptSentDate'), todayKey);
+    localStorage.setItem(lsKey('bentoSafeBalance'), String(cashSafeBalance));
   }catch(e){}
+  pushToFirestore();
+  pushDailyHistory(currentShop, fmtDate(selectedDate), counts);
+  // 「予約・売上データの永久保存＋古いデータの間引き」は、保存対象の日付が多くなるほど
+  // (何十件・何百件もの日付ぶんタイマーを設定し直す)処理が重くなる。保存(saveToLocal)の
+  // たびに毎回そのまま実行すると、連続して入力している間ずっとこの重い処理が走り続け、
+  // 入力欄への文字入力がカクつく／画面が揺れて見える不具合の原因になっていた。
+  // 実行タイミングが多少遅れても支障はない処理なので、入力が一段落してからまとめて1回だけ
+  // 実行するようにする。
+  clearTimeout(_archivePruneTimer);
+  _archivePruneTimer=setTimeout(archiveAndPruneDailyRecords, 1200);
 }
+
+// ── 日別注文実績の永続記録（請求書計算のための土台） ──
+// 「今見ている1日分」のcountsは他の日に切り替えると上書きされてしまうため、
+// 保存のたびに、その日付専用のドキュメント(shops/{店舗}/orderHistory/{日付})へも
+// 別途書き込んでおく。こうすることで、過去の日にちの実績が消えずに積み上がっていく。
+// メインの店舗ドキュメントとは別の場所に置くことで、店舗ドキュメントが日々肥大化して
+// Firestoreのサイズ上限に近づいてしまう事態も避けられる。
+let _fbHistTimers={};
+let _archivePruneTimer=null;
+function pushDailyHistory(shop, dateKey, countsObj){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !dateKey) return;
+  const fb=window.__fb;
+  const payload=JSON.parse(JSON.stringify(countsObj||{}));
+  const timerKey=shop+'|'+dateKey;
+  clearTimeout(_fbHistTimers[timerKey]);
+  _fbHistTimers[timerKey]=setTimeout(()=>{
+    delete _fbHistTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    const ref=fb.doc(fb.db,'shops',shop,'orderHistory',dateKey);
+    fb.setDoc(ref, {counts:payload, dateKey:dateKey, updatedAt:fb.serverTimestamp()}, {merge:true}).catch(err=>{
+      console.error('日別実績の保存に失敗しました', err);
+    });
+  }, 800);
+}
+
+// ── 予約・売上データの永続アーカイブ ＋ 本体ドキュメントの肥大化防止 ──
+// bulkOrders(予約)・bulkMemos(予約メモ)・salesDataByDate(売上入力)は、日付ごとに
+// キーを持つオブジェクトとして「店舗1件分のドキュメント」の中にそのまま溜まっていく作りだった。
+// 日々の注文数(counts)と違って毎日上書きされるものではなく、日付が増えるたびにどんどん
+// 大きくなっていくため、このまま使い続けると将来Firestoreの1ドキュメントあたり1MBという
+// 上限に近づいてしまう恐れがある。
+// そこで、下記の日別実績(orderHistory)と同じ考え方で、日付ごとに別ドキュメント
+// (shops/{店舗}/reservations/{日付}, shops/{店舗}/salesRecords/{日付})へ複製保存(=永久保存)した上で、
+// 十分に古い日付は本体のオブジェクトから間引く。間引いても永久保存側にはデータが残るので消えない。
+const ARCHIVE_WINDOW_PAST_DAYS=14;   // これより新しい過去日は毎回アーカイブ対象にする
+const ARCHIVE_WINDOW_FUTURE_DAYS=200; // これより先の未来日はアーカイブ対象にしない(予約は数ヶ月先まで想定)
+const PRUNE_CUTOFF_DAYS=45; // これより過去の日付は、アーカイブ済みとみなして本体から削除する
+function _daysFromToday(dateKey){
+  const d=parseDateKey(dateKey);
+  const t=new Date(); t.setHours(0,0,0,0);
+  return Math.round((d-t)/86400000);
+}
+function pushDailyReservation(shop, dateKey, orders, memos){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !dateKey) return;
+  const fb=window.__fb;
+  const payload={orders:JSON.parse(JSON.stringify(orders||{})), memos:JSON.parse(JSON.stringify(memos||{}))};
+  const timerKey='resv|'+shop+'|'+dateKey;
+  clearTimeout(_fbHistTimers[timerKey]);
+  _fbHistTimers[timerKey]=setTimeout(()=>{
+    delete _fbHistTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    const ref=fb.doc(fb.db,'shops',shop,'reservations',dateKey);
+    fb.setDoc(ref, Object.assign({}, payload, {dateKey:dateKey, updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
+      console.error('予約データの保存に失敗しました', err);
+    });
+  }, 800);
+}
+function pushDailySalesRecord(shop, dateKey, salesObj){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !dateKey) return;
+  const fb=window.__fb;
+  const payload=JSON.parse(JSON.stringify(salesObj||{}));
+  const timerKey='sale|'+shop+'|'+dateKey;
+  clearTimeout(_fbHistTimers[timerKey]);
+  _fbHistTimers[timerKey]=setTimeout(()=>{
+    delete _fbHistTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    const ref=fb.doc(fb.db,'shops',shop,'salesRecords',dateKey);
+    fb.setDoc(ref, Object.assign({}, payload, {dateKey:dateKey, updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
+      console.error('売上記録の保存に失敗しました', err);
+    });
+  }, 800);
+}
+// 近い過去〜未来の日付をアーカイブし、十分に古い日付を本体から間引く。
+// 今まさに画面に表示中の日付(selectedDate)だけは、間引きの対象から必ず除外する
+// (表示中にデータが消えて空欄に見えてしまう事故を防ぐため)。
+function archiveAndPruneDailyRecords(){
+  if(pruneExpiredOnetimeCustomers()){
+    const _area=document.getElementById('input-list-area');
+    if(_area) delete _area.dataset.built;
+    try{ renderCurrentTab(); }catch(e){}
+  }
+  if(!window.__fb || !window.__fb.ready || !currentShop) return;
+  const shop=currentShop;
+  const currentKey=fmtDate(selectedDate);
+  const touchedForReservation=new Set([...Object.keys(bulkOrders), ...Object.keys(bulkMemos)]);
+  touchedForReservation.forEach(dk=>{
+    const diff=_daysFromToday(dk);
+    if(diff>=-ARCHIVE_WINDOW_PAST_DAYS && diff<=ARCHIVE_WINDOW_FUTURE_DAYS){
+      pushDailyReservation(shop, dk, bulkOrders[dk], bulkMemos[dk]);
+    }
+  });
+  Object.keys(salesDataByDate).forEach(dk=>{
+    const diff=_daysFromToday(dk);
+    if(diff>=-ARCHIVE_WINDOW_PAST_DAYS && diff<=ARCHIVE_WINDOW_FUTURE_DAYS){
+      pushDailySalesRecord(shop, dk, salesDataByDate[dk]);
+    }
+  });
+  Object.keys(bulkOrders).forEach(dk=>{ if(dk!==currentKey && _daysFromToday(dk)<-PRUNE_CUTOFF_DAYS) delete bulkOrders[dk]; });
+  Object.keys(bulkMemos).forEach(dk=>{ if(dk!==currentKey && _daysFromToday(dk)<-PRUNE_CUTOFF_DAYS) delete bulkMemos[dk]; });
+  Object.keys(salesDataByDate).forEach(dk=>{ if(dk!==currentKey && _daysFromToday(dk)<-PRUNE_CUTOFF_DAYS) delete salesDataByDate[dk]; });
+}
+// 本体から間引かれた(＝十分に古い)日付の売上データが再び必要になった場合
+// (カレンダーで古い日付に戻って売上タブを開いた場合など)に備えて、
+// アーカイブ側から取り直して復元する。売上タブはどの日付にも遡って表示できる作りのため、
+// 予約(bulkOrders/bulkMemos、将来日しか編集できない画面)と異なりこの復元処理を用意している。
+function _fetchArchivedSalesIfMissing(dateKey){
+  if(salesDataByDate[dateKey] && Object.keys(salesDataByDate[dateKey]).some(k=>k!=='paypay' || salesDataByDate[dateKey][k])) return;
+  if(!window.__fb || !window.__fb.ready || !currentShop) return;
+  const fb=window.__fb;
+  const shop=currentShop;
+  fb.getDoc(fb.doc(fb.db,'shops',shop,'salesRecords',dateKey)).then(snap=>{
+    if(!snap.exists()) return;
+    if(shop!==currentShop || dateKey!==fmtDate(selectedDate)) return; // その間に画面が変わっていたら何もしない
+    const data=snap.data();
+    delete data.dateKey; delete data.updatedAt;
+    salesDataByDate[dateKey]=data;
+    salesData=salesDataByDate[dateKey];
+    if(currentTab==='sales') renderCurrentTab();
+  }).catch(()=>{});
+}
+
+// ── 経理向けデータのCSV書き出し ──
+// 指定店舗・指定期間の日別実績(orderHistory)を、日付をキーにした「食数の内訳」オブジェクトで返す
+async function fetchShopOrderHistoryRangeCounts(shop,startKey,endKey){
+  if(!window.__fb || !window.__fb.ready) return {};
+  const fb=window.__fb;
+  try{
+    const col=fb.collection(fb.db,'shops',shop,'orderHistory');
+    const q=fb.query(col, fb.where('dateKey','>=',startKey), fb.where('dateKey','<=',endKey));
+    const snap=await fb.getDocs(q);
+    const byDate={};
+    snap.forEach(d=>{
+      const data=d.data();
+      byDate[data.dateKey||d.id]=data.counts||{};
+    });
+    return byDate;
+  }catch(e){ console.error('CSV書き出し用データ(日別実績)の取得に失敗しました', e); return {}; }
+}
+// 指定店舗・指定期間の日別売上記録(salesRecords：PayPay金額・支出記録)を、日付をキーにしたオブジェクトで返す
+async function fetchShopSalesRecordsRangeData(shop,startKey,endKey){
+  if(!window.__fb || !window.__fb.ready) return {};
+  const fb=window.__fb;
+  try{
+    const col=fb.collection(fb.db,'shops',shop,'salesRecords');
+    const q=fb.query(col, fb.where('dateKey','>=',startKey), fb.where('dateKey','<=',endKey));
+    const snap=await fb.getDocs(q);
+    const byDate={};
+    snap.forEach(d=>{
+      const data=d.data();
+      byDate[data.dateKey||d.id]={paypay:data.paypay||'', expenses:data.expenses||[]};
+    });
+    return byDate;
+  }catch(e){ console.error('CSV書き出し用データ(売上記録)の取得に失敗しました', e); return {}; }
+}
+// 指定店舗の顧客マスタ(現金／掛けの区別に使う)を取得する。今表示中の店舗なら、通信せずメモリ上のMASTERをそのまま使う
+async function fetchShopMasterForCsv(shop){
+  if(shop===currentShop) return MASTER;
+  if(!window.__fb || !window.__fb.ready) return [];
+  const fb=window.__fb;
+  try{
+    const snap=await fb.getDoc(fb.doc(fb.db,'shops',shop));
+    if(!snap.exists()) return [];
+    return snap.data().master||[];
+  }catch(e){ console.error('CSV書き出し用の顧客マスタ取得に失敗しました', e); return []; }
+}
+// 期間内の日付キー(YYYY-MM-DD)を、開始日から終了日まで1日ずつ並べた配列で返す
+function _dateKeyRange(startKey,endKey){
+  const out=[];
+  let d=parseDateKey(startKey);
+  const end=parseDateKey(endKey);
+  while(d<=end){
+    out.push(fmtDate(d));
+    d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);
+  }
+  return out;
+}
+// 選んだ期間(今月分／先月分／カスタム)に応じて、開始日・終了日(YYYY-MM-DD)を決める
+function onCsvPeriodChange(val){
+  const box=document.getElementById('csv-custom-range');
+  if(box) box.classList.toggle('hidden', val!=='custom');
+  if(val==='custom'){
+    const now=new Date();
+    const {start,end}=_monthRangeKeys(now.getFullYear(), now.getMonth());
+    if(!document.getElementById('csv-start-date').value) document.getElementById('csv-start-date').value=start;
+    if(!document.getElementById('csv-end-date').value) document.getElementById('csv-end-date').value=end;
+  }
+}
+function openCsvExportModal(){
+  const sel=document.getElementById('csv-period-select');
+  if(sel) sel.value='thisMonth';
+  const box=document.getElementById('csv-custom-range');
+  if(box) box.classList.add('hidden');
+  const status=document.getElementById('csv-status');
+  if(status) status.textContent='';
+  _openModal('csv-export-modal');
+}
+function closeCsvExportModal(){
+  _closeModal('csv-export-modal');
+}
+async function generateAndDownloadCsv(){
+  const periodSel=document.getElementById('csv-period-select')?.value||'thisMonth';
+  const now=new Date();
+  let startKey, endKey;
+  if(periodSel==='thisMonth'){
+    ({start:startKey, end:endKey}=_monthRangeKeys(now.getFullYear(), now.getMonth()));
+  } else if(periodSel==='lastMonth'){
+    let y=now.getFullYear(), m=now.getMonth()-1;
+    if(m<0){ m=11; y--; }
+    ({start:startKey, end:endKey}=_monthRangeKeys(y, m));
+  } else {
+    startKey=document.getElementById('csv-start-date')?.value;
+    endKey=document.getElementById('csv-end-date')?.value;
+    if(!startKey || !endKey){ toast('開始日と終了日を選んでください'); return; }
+    if(startKey>endKey){ toast('開始日は終了日より前にしてください'); return; }
+  }
+
+  const btn=document.getElementById('csv-download-btn');
+  const status=document.getElementById('csv-status');
+  if(btn) btn.disabled=true;
+  if(status) status.textContent='データを集めています…';
+
+  try{
+    const SHOP_NAMES=['甲子園','杭瀬','立花'];
+    const perShop={};
+    for(const shop of SHOP_NAMES){
+      const [counts, sales, master]=await Promise.all([
+        fetchShopOrderHistoryRangeCounts(shop, startKey, endKey),
+        fetchShopSalesRecordsRangeData(shop, startKey, endKey),
+        fetchShopMasterForCsv(shop),
+      ]);
+      const kakeSet=new Set((master||[]).filter(m=>m.kake).map(m=>m.id));
+      perShop[shop]={counts, sales, kakeSet};
+    }
+
+    if(typeof XLSX==='undefined'){
+      if(status) status.textContent='書き出し機能の読み込みに失敗しました。通信環境を確認してください';
+      toast('Excel書き出し機能の読み込みに失敗しました');
+      return;
+    }
+
+    const dateKeys=_dateKeyRange(startKey, endKey);
+    const header=['日付','現金売上（円）','現金食数','掛け売上（円）','掛け食数','PayPay金額（円）','支出合計（円）','支出内訳'];
+    const wb=XLSX.utils.book_new();
+
+    SHOP_NAMES.forEach(shop=>{
+      const {counts, sales, kakeSet}=perShop[shop];
+      const rows=[header];
+      dateKeys.forEach(dk=>{
+        const price=priceOnDate(dk);
+        const dayCounts=counts[dk]||{};
+        let cashQty=0, kakeQty=0;
+        Object.keys(dayCounts).forEach(custId=>{
+          const q=parseInt(dayCounts[custId])||0;
+          if(q<=0) return;
+          if(kakeSet.has(custId)) kakeQty+=q; else cashQty+=q;
+        });
+        const daySales=sales[dk]||{};
+        const paypay=parseInt(daySales.paypay)||0;
+        const expenses=daySales.expenses||[];
+        const expenseTotal=expenses.reduce((s,e)=>s+(parseInt(e.amount)||0),0);
+        const expenseDetail=expenses.filter(e=>e.category||e.amount).map(e=>(e.category||'（分類なし）')+':'+(parseInt(e.amount)||0)+'円').join(' / ');
+        rows.push([
+          dk,
+          cashQty*price, cashQty,
+          kakeQty*price, kakeQty,
+          paypay, expenseTotal, expenseDetail,
+        ]);
+      });
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:12},{wch:13},{wch:9},{wch:13},{wch:9},{wch:13},{wch:13},{wch:40}];
+      // シート名（タブの名前）には / \ ? * [ ] : が使えないため、店舗名をそのまま使う（該当記号を含まないため問題なし）
+      XLSX.utils.book_append_sheet(wb, ws, shop);
+    });
+
+    const fileName='経理データ_'+startKey+'_'+endKey+'.xlsx';
+    XLSX.writeFile(wb, fileName);
+
+    if(status) status.textContent='ダウンロードしました（'+startKey+'〜'+endKey+'）';
+    toast('Excelファイルをダウンロードしました');
+  }catch(e){
+    console.error('経理データの書き出しに失敗しました', e);
+    if(status) status.textContent='書き出しに失敗しました。通信環境を確認してもう一度お試しください';
+    toast('Excelファイルの作成に失敗しました');
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
+
+// ── 共通設定（単価履歴・振込先・会社情報）：全店舗共通、settings/global に保存 ──
+function _blankBankEntry(){ return {bankName:'', bankBranch:'', bankType:'普通', bankNumber:'', bankHolder:''}; }
+const GLOBAL_SETTINGS_DEFAULT = {
+  companyName:'株式会社コンプリメント',
+  postalCode:'〒660-0814',
+  address:'兵庫県尼崎市杭瀬本町1丁目2-5',
+  phone:'06-6423-8432',
+  registrationNumber:'T3140001110987',
+  // 振込先は店舗ごとに別々（会社情報は全店舗共通のまま）
+  bankByShop:{ '甲子園':_blankBankEntry(), '杭瀬':_blankBankEntry(), '立花':_blankBankEntry() },
+  // 月次レポートで使う、店舗ごとの目標食数／日（未設定＝null。設定されるまで目標比較は表示しない）
+  targetByShop:{ '甲子園':null, '杭瀬':null, '立花':null },
+  priceHistory:[{price:650, effectiveFrom:'2026-08-01'}],
+};
+let GLOBAL_SETTINGS=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT));
+let _gsUnsub=null;
+let _gsBankShop='甲子園'; // 共通設定画面で今選んでいる、振込先の編集対象の店舗
+
+function settingsDocRef(){
+  const fb=window.__fb;
+  return fb.doc(fb.db,'settings','global');
+}
+function applyGlobalSettings(data){
+  if(!data) return;
+  GLOBAL_SETTINGS=Object.assign({}, GLOBAL_SETTINGS_DEFAULT, data);
+  if(!Array.isArray(GLOBAL_SETTINGS.priceHistory) || GLOBAL_SETTINGS.priceHistory.length===0){
+    GLOBAL_SETTINGS.priceHistory=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.priceHistory));
+  }
+  if(!GLOBAL_SETTINGS.bankByShop || typeof GLOBAL_SETTINGS.bankByShop!=='object'){
+    GLOBAL_SETTINGS.bankByShop=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.bankByShop));
+  } else {
+    // 店舗が増えた場合などに備えて、まだ無い店舗分はデフォルト(空欄)で補っておく
+    Object.keys(GLOBAL_SETTINGS_DEFAULT.bankByShop).forEach(shop=>{
+      if(!GLOBAL_SETTINGS.bankByShop[shop]) GLOBAL_SETTINGS.bankByShop[shop]=_blankBankEntry();
+    });
+  }
+  if(!GLOBAL_SETTINGS.targetByShop || typeof GLOBAL_SETTINGS.targetByShop!=='object'){
+    GLOBAL_SETTINGS.targetByShop=JSON.parse(JSON.stringify(GLOBAL_SETTINGS_DEFAULT.targetByShop));
+  } else {
+    Object.keys(GLOBAL_SETTINGS_DEFAULT.targetByShop).forEach(shop=>{
+      if(!(shop in GLOBAL_SETTINGS.targetByShop)) GLOBAL_SETTINGS.targetByShop[shop]=null;
+    });
+  }
+  // 日々の売上表示・請求書プレビューで使う「現時点の単価」を更新
+  UNIT_PRICE = priceOnDate(fmtDate(new Date()));
+}
+// 共通設定モーダルを開いている間に他端末からの更新が届いても、今まさに入力中の項目を
+// 消してしまわないよう、フォーム全体の再描画だけ保留する(値そのものはapplyGlobalSettingsで
+// 先に取り込んでおくので、保存ボタンを押した時に古い値で上書きしてしまうことはない)。
+let _gsPendingRerender=false;
+function _applyGsPendingRerenderIfAny(){
+  if(!_gsPendingRerender) return;
+  if(!_canSafeRerenderNow()) return;
+  _gsPendingRerender=false;
+  const modalOpen=document.getElementById('global-settings-modal') && !document.getElementById('global-settings-modal').classList.contains('hidden');
+  if(modalOpen){ try{ renderGlobalSettingsForm(); }catch(e){} }
+}
+function setupGlobalSettingsListener(){
+  if(!window.__fb || !window.__fb.ready) return;
+  const fb=window.__fb;
+  if(_gsUnsub){ try{ _gsUnsub(); }catch(e){} }
+  const ref=settingsDocRef();
+  _gsUnsub=fb.onSnapshot(ref, (snap)=>{
+    if(snap.metadata.hasPendingWrites) return; // 自分自身の書き込みのエコーは無視（既に反映済みのため）
+    if(snap.exists()){
+      applyGlobalSettings(snap.data());
+      const modalOpen=document.getElementById('global-settings-modal') && !document.getElementById('global-settings-modal').classList.contains('hidden');
+      if(modalOpen){
+        if(_canSafeRerenderNow()){
+          renderGlobalSettingsForm();
+        } else {
+          // 入力欄にフォーカス中：今打っている内容を消さないよう、フォーム再描画はフォーカスが
+          // 外れてから行う(値自体は上のapplyGlobalSettingsで既に最新化済み)
+          _gsPendingRerender=true;
+        }
+      }
+    } else {
+      // クラウドにまだ設定が無い（初回導入時）→ デフォルト値を書き込んでおく
+      fb.setDoc(ref, GLOBAL_SETTINGS_DEFAULT).catch(err=>console.error('共通設定の初期作成に失敗しました', err));
+    }
+  }, (err)=>{ console.error('共通設定の取得に失敗しました', err); });
+}
+function saveGlobalSettingsPatch(patch){
+  if(!window.__fb || !window.__fb.ready){ toast('通信できていません。少し待ってからもう一度お試しください'); return; }
+  const fb=window.__fb;
+  // 予約タブの保存で見つかったのと同種の不具合(保存直後に、入力中で保留されていた古い更新の
+  // 反映が遅れて実行され、今保存した内容を上書きしてしまう)を防ぐため、ここでも保留分を破棄する
+  _gsPendingRerender=false;
+  _pendingRemoteRerender=false;
+  _pendingRemoteData=null;
+  Object.assign(GLOBAL_SETTINGS, patch);
+  fb.setDoc(settingsDocRef(), Object.assign({}, patch, {updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
+    console.error('共通設定の保存に失敗しました', err);
+    toast('保存に失敗しました');
+  });
+}
+// 指定した日付(YYYY-MM-DD)時点で有効な単価を返す（価格履歴から、その日以前で一番新しい適用開始日のものを探す）
+function priceOnDate(dateKey){
+  const hist=(GLOBAL_SETTINGS.priceHistory||[]).slice().sort((a,b)=>a.effectiveFrom<b.effectiveFrom?-1:1);
+  let price=hist.length?hist[0].price:650;
+  hist.forEach(h=>{ if(h.effectiveFrom<=dateKey) price=h.price; });
+  return price;
+}
+
+function openGlobalSettingsGate(){
+  document.getElementById('gs-pin-input').value='';
+  document.getElementById('gs-pin-error').classList.add('hidden');
+  _openModal('gs-pin-modal');
+  setTimeout(()=>document.getElementById('gs-pin-input').focus(),100);
+}
+function closeGsPinModal(){
+  blurAll();
+  _closeModal('gs-pin-modal');
+}
+function checkGsPin(){
+  const v=document.getElementById('gs-pin-input').value;
+  if(v===ADMIN_PW){
+    closeGsPinModal();
+    openGlobalSettingsModal();
+  } else {
+    document.getElementById('gs-pin-error').classList.remove('hidden');
+    document.getElementById('gs-pin-input').value='';
+  }
+}
+function openGlobalSettingsModal(){
+  if(['甲子園','杭瀬','立花'].includes(currentShop)) _gsBankShop=currentShop;
+  renderGlobalSettingsForm();
+  _openModal('global-settings-modal');
+}
+function closeGlobalSettingsModal(){
+  blurAll();
+  _closeModal('global-settings-modal');
+}
+function renderGlobalSettingsForm(){
+  const hist=(GLOBAL_SETTINGS.priceHistory||[]).slice().sort((a,b)=>a.effectiveFrom<b.effectiveFrom?1:-1);
+  document.getElementById('gs-price-history').innerHTML = hist.map(h=>
+    `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="color:var(--muted);">${h.effectiveFrom}〜</span>
+      <span style="font-weight:800;">¥${Number(h.price).toLocaleString()}</span>
+    </div>`
+  ).join('') || '<div style="color:var(--muted);font-size:12px;">単価がまだ設定されていません</div>';
+  document.getElementById('gs-new-price-date').value = fmtDate(new Date());
+  const targetByShop=GLOBAL_SETTINGS.targetByShop||{};
+  ['甲子園','杭瀬','立花'].forEach(s=>{
+    const el=document.getElementById('gs-target-'+s);
+    if(el) el.value = (targetByShop[s]!==null && targetByShop[s]!==undefined) ? targetByShop[s] : '';
+  });
+  if(!GLOBAL_SETTINGS.bankByShop || !GLOBAL_SETTINGS.bankByShop[_gsBankShop]) _gsBankShop='甲子園';
+  const shopTabsEl=document.getElementById('gs-bank-shop-tabs');
+  if(shopTabsEl){
+    shopTabsEl.innerHTML = ['甲子園','杭瀬','立花'].map(s=>
+      `<button type="button" class="chip ${s===_gsBankShop?'chip-ao-on':'chip-ao-off'}" onclick="switchGsBankShop('${s}')">${s}</button>`
+    ).join('');
+  }
+  const bankEntry=(GLOBAL_SETTINGS.bankByShop&&GLOBAL_SETTINGS.bankByShop[_gsBankShop])||_blankBankEntry();
+  document.getElementById('gs-bank-name').value = bankEntry.bankName||'';
+  document.getElementById('gs-bank-branch').value = bankEntry.bankBranch||'';
+  document.getElementById('gs-bank-type').value = bankEntry.bankType||'普通';
+  document.getElementById('gs-bank-number').value = bankEntry.bankNumber||'';
+  document.getElementById('gs-bank-holder').value = bankEntry.bankHolder||'';
+  document.getElementById('gs-co-name').value = GLOBAL_SETTINGS.companyName||'';
+  document.getElementById('gs-co-postal').value = GLOBAL_SETTINGS.postalCode||'';
+  document.getElementById('gs-co-address').value = GLOBAL_SETTINGS.address||'';
+  document.getElementById('gs-co-phone').value = GLOBAL_SETTINGS.phone||'';
+  document.getElementById('gs-co-regno').value = GLOBAL_SETTINGS.registrationNumber||'';
+}
+function saveTargets(){
+  const targetByShop={};
+  ['甲子園','杭瀬','立花'].forEach(s=>{
+    const raw=document.getElementById('gs-target-'+s).value;
+    const n=parseInt(raw);
+    targetByShop[s]=(raw===''||isNaN(n))?null:n;
+  });
+  saveGlobalSettingsPatch({targetByShop:targetByShop});
+  toast('目標食数を保存しました');
+}
+function addPriceHistoryEntry(){
+  const price=parseInt(document.getElementById('gs-new-price').value);
+  const dateStr=document.getElementById('gs-new-price-date').value;
+  if(isNaN(price)||price<=0){ toast('単価を入力してください'); return; }
+  if(!dateStr){ toast('適用開始日を選択してください'); return; }
+  const hist=(GLOBAL_SETTINGS.priceHistory||[]).filter(h=>h.effectiveFrom!==dateStr);
+  hist.push({price:price, effectiveFrom:dateStr});
+  saveGlobalSettingsPatch({priceHistory:hist});
+  document.getElementById('gs-new-price').value='';
+  renderGlobalSettingsForm();
+  toast('単価を追加しました');
+}
+function _captureBankEntryFromForm(){
+  return {
+    bankName:document.getElementById('gs-bank-name').value.trim(),
+    bankBranch:document.getElementById('gs-bank-branch').value.trim(),
+    bankType:document.getElementById('gs-bank-type').value,
+    bankNumber:document.getElementById('gs-bank-number').value.trim(),
+    bankHolder:document.getElementById('gs-bank-holder').value.trim(),
+  };
+}
+function switchGsBankShop(shop){
+  if(shop===_gsBankShop) return;
+  // 店舗タブを切り替える前に、今画面に入力されている内容を自動保存しておく
+  // （保存ボタンを押し忘れて切り替えても、入力した内容が消えないようにするため）
+  const bankByShop=Object.assign({}, GLOBAL_SETTINGS.bankByShop||{});
+  bankByShop[_gsBankShop]=_captureBankEntryFromForm();
+  saveGlobalSettingsPatch({bankByShop:bankByShop});
+  _gsBankShop=shop;
+  renderGlobalSettingsForm();
+}
+function saveBankInfo(){
+  const shop=_gsBankShop||'甲子園';
+  // 他店舗分を消してしまわないよう、店舗ごとのオブジェクト全体を組み直して送る
+  const bankByShop=Object.assign({}, GLOBAL_SETTINGS.bankByShop||{});
+  bankByShop[shop]=_captureBankEntryFromForm();
+  saveGlobalSettingsPatch({bankByShop:bankByShop});
+  toast(shop+'の振込先を保存しました');
+}
+function saveCompanyInfo(){
+  saveGlobalSettingsPatch({
+    companyName:document.getElementById('gs-co-name').value.trim(),
+    postalCode:document.getElementById('gs-co-postal').value.trim(),
+    address:document.getElementById('gs-co-address').value.trim(),
+    phone:document.getElementById('gs-co-phone').value.trim(),
+    registrationNumber:document.getElementById('gs-co-regno').value.trim(),
+  });
+  toast('会社情報を保存しました');
+}
+
+// ── ここからFirestore同期（複数端末リアルタイム反映） ──
+// ローカル保存(saveToLocal)は今まで通り即時・同期的に行い、
+// その内容を少し遅らせてまとめてクラウドへ送信する（連続入力時の書き込み回数を抑えるため）
+function shopDocRef(shop){
+  const fb=window.__fb;
+  return fb.doc(fb.db,'shops',shop);
+}
+function buildStateSnapshot(){
+  return {
+    master: MASTER,
+    counts: counts,
+    countsDate: fmtDate(selectedDate),
+    bulkOrders: bulkOrders,
+    bulkMemos: bulkMemos,
+    salesData: salesDataByDate,
+    deliveryOrder: deliveryOrder,
+    staff: STAFF,
+    pinkStaff: PINK_STAFF,
+    courseAssign: COURSE_ASSIGN,
+    done: [...done],
+    doneDate: fmtDate(new Date()),
+    receiptSent: [...receiptSent],
+    receiptSentDate: fmtDate(new Date()),
+    safeBalance: cashSafeBalance,
+  };
+}
+// 店舗ごとに個別のタイマーを持つ（甲子園の送信待ちが、直後に杭瀬へ切り替えた操作で
+// キャンセルされてしまう、といった事故を防ぐため）
+let _fbPushTimers={};
+// 直前に自分自身がFirestoreへ送信した内容(updatedAtを除く)。
+// 自分の書き込みがそのまま跳ね返ってきただけ(内容は同じ)の時に、
+// 無駄なフル再描画（＝ボタン操作直後に一瞬画面が揺れて見える不具合）をしないための目印。
+let _lastPushedSnapshotJson=null;
+function pushToFirestore(immediate){
+  if(!window.__fb || !window.__fb.ready) return; // 未初期化ならローカル保存のみ（次回保存時に再送される）
+  const shopAtCall=currentShop;
+  // 送信内容はここで即座に(ディープコピーで)確定させる。setTimeoutの発火を待ってから
+  // buildStateSnapshot()を呼ぶと、その間に店舗切替(selectShop)で MASTER/counts 等が
+  // 別店舗のデータに書き換わってしまい、古い店舗のドキュメントに新しい店舗のデータを
+  // 誤って書き込んでしまう恐れがあるため。
+  const payload=JSON.parse(JSON.stringify(buildStateSnapshot()));
+  const doPush=()=>{
+    delete _fbPushTimers[shopAtCall];
+    if(!window.__fb || !window.__fb.ready) return;
+    const fb=window.__fb;
+    _lastPushedSnapshotJson=JSON.stringify(payload);
+    payload.updatedAt=fb.serverTimestamp();
+    fb.setDoc(shopDocRef(shopAtCall), payload).catch(err=>{
+      console.error('Firestoreへのクラウド保存に失敗しました', err);
+    });
+  };
+  clearTimeout(_fbPushTimers[shopAtCall]);
+  if(immediate){ delete _fbPushTimers[shopAtCall]; doPush(); return; }
+  _fbPushTimers[shopAtCall]=setTimeout(doPush, 400);
+}
+
+// 入力中（テキスト入力欄にフォーカスがある間）は、リモートからの更新を
+// 一切反映しないようにする（画面の再描画だけでなく、裏側のデータの差し替え自体も
+// 保留する）。以前は再描画だけを保留していたが、それだと入力中でも裏側のsalesData等の
+// オブジェクトが丸ごと差し替わってしまい、入力欄の表示が一瞬揺れる／古い値に戻る
+// 不具合の原因になっていた（例：売上タブのPayPay金額入力中に画面がガタつく）。
+let _pendingRemoteRerender=false;
+let _pendingRemoteData=null;
+let _lastAppliedRemoteTs=null; // 直近に反映したFirestoreデータの更新時刻(ms)。同じ内容の再反映を防ぐ
+function _canSafeRerenderNow(){
+  const ae=document.activeElement;
+  return !(ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA'));
+}
+function _applyPendingRemoteIfAny(){
+  if(!_pendingRemoteRerender) return;
+  if(!_canSafeRerenderNow()) return;
+  _pendingRemoteRerender=false;
+  const data=_pendingRemoteData;
+  _pendingRemoteData=null;
+  if(data){ applyRemoteState(data); }
+  else {
+    try{ renderCurrentTab(); }catch(e){}
+    try{ updateHdrTotal(); }catch(e){}
+  }
+}
+document.addEventListener('focusout', function(e){
+  if(_pendingRemoteRerender){ setTimeout(_applyPendingRemoteIfAny, 50); }
+  if(_gsPendingRerender){ setTimeout(_applyGsPendingRerenderIfAny, 50); }
+}, true);
+
+// Firestoreから届いたデータ(1店舗分の状態)を、既存のメモリ上の変数に反映する
+// (loadFromLocal()のFirestore版に相当。ローカル保存の形式に合わせてある)
+function applyRemoteState(data){
+  if(!data) return;
+  // 内容が前回反映した時と変わっていなければ、何もしない。
+  // (2秒おきの保険の確認は、変化の有無に関わらず必ずここまで来ていたため、
+  //  タブを開いている間ずっと2秒ごとに画面全体が無条件に作り直され、
+  //  それが「開いた瞬間からずっと画面がガクガクする」不具合の原因になっていた)
+  const _remoteTs=(data.updatedAt && typeof data.updatedAt.toMillis==='function') ? data.updatedAt.toMillis() : null;
+  if(_remoteTs!==null && _remoteTs===_lastAppliedRemoteTs) return;
+  // 自分自身が直前に送信した内容がそのまま跳ね返ってきただけ(＝内容は既に画面に反映済み)であれば、
+  // 中身は同じなのに画面だけ丸ごと作り直してしまう(＝ボタン操作の直後に一瞬揺れて見える)のを防ぐ。
+  if(_lastPushedSnapshotJson!==null){
+    const _cmp=Object.assign({}, data);
+    delete _cmp.updatedAt;
+    if(JSON.stringify(_cmp)===_lastPushedSnapshotJson){
+      _lastAppliedRemoteTs=_remoteTs;
+      return;
+    }
+  }
+  if(!_canSafeRerenderNow()){
+    // 入力欄にフォーカス中：最新のデータだけ覚えておき、反映は入力が終わってから行う
+    _pendingRemoteData=data;
+    _pendingRemoteRerender=true;
+    return;
+  }
+  _lastAppliedRemoteTs=_remoteTs;
+  if(Array.isArray(data.master)) MASTER.splice(0,MASTER.length,...data.master);
+  if(data.counts && typeof data.counts==='object'){
+    Object.keys(counts).forEach(k=>delete counts[k]);
+    Object.assign(counts, data.counts);
+  }
+  if(typeof data.countsDate==='string') _loadedCountsDate=data.countsDate;
+  if(data.bulkOrders && typeof data.bulkOrders==='object'){
+    Object.keys(bulkOrders).forEach(k=>delete bulkOrders[k]);
+    Object.assign(bulkOrders, data.bulkOrders);
+  }
+  if(data.bulkMemos && typeof data.bulkMemos==='object'){
+    Object.keys(bulkMemos).forEach(k=>delete bulkMemos[k]);
+    Object.assign(bulkMemos, data.bulkMemos);
+  }
+  if(data.salesData && typeof data.salesData==='object'){
+    Object.keys(salesDataByDate).forEach(k=>delete salesDataByDate[k]);
+    Object.assign(salesDataByDate, data.salesData);
+  }
+  ensureSalesData(fmtDate(selectedDate));
+  if(data.deliveryOrder && typeof data.deliveryOrder==='object'){
+    Object.keys(deliveryOrder).forEach(k=>delete deliveryOrder[k]);
+    Object.assign(deliveryOrder, data.deliveryOrder);
+  }
+  if(Array.isArray(data.staff)){ STAFF.splice(0,STAFF.length,...data.staff); }
+  if(Array.isArray(data.pinkStaff)){ PINK_STAFF.splice(0,PINK_STAFF.length,...data.pinkStaff); }
+  if(data.courseAssign && typeof data.courseAssign==='object'){
+    Object.keys(COURSE_ASSIGN).forEach(k=>delete COURSE_ASSIGN[k]);
+    Object.assign(COURSE_ASSIGN, data.courseAssign);
+  }
+  const todayKey=fmtDate(new Date());
+  if(Array.isArray(data.done) && data.doneDate===todayKey){
+    done.clear();
+    data.done.forEach(id=>done.add(id));
+  } else if(data.doneDate && data.doneDate!==todayKey){
+    done.clear();
+  }
+  if(Array.isArray(data.receiptSent) && data.receiptSentDate===todayKey){
+    receiptSent.clear();
+    data.receiptSent.forEach(id=>receiptSent.add(id));
+  } else if(data.receiptSentDate && data.receiptSentDate!==todayKey){
+    receiptSent.clear();
+  }
+  if(data.safeBalance!==undefined) cashSafeBalance=Number(data.safeBalance)||0;
+  recalcNextId();
+  if(_loadedCountsDate !== fmtDate(selectedDate)){
+    initCounts(selectedDate);
+  }
+  // 反映した内容をローカルにも保存しておく（次回オフライン起動時の初期表示用）
+  try{
+    localStorage.setItem(lsKey('bentoMaster'), JSON.stringify(MASTER));
+    localStorage.setItem(lsKey('bentoCounts'), JSON.stringify(counts));
+    localStorage.setItem(lsKey('bentoCountsDate'), _loadedCountsDate||fmtDate(selectedDate));
+    localStorage.setItem(lsKey('bentoBulkOrders'), JSON.stringify(bulkOrders));
+    localStorage.setItem(lsKey('bentoBulkMemos'), JSON.stringify(bulkMemos));
+    localStorage.setItem(lsKey('bentoSalesData'), JSON.stringify(salesDataByDate));
+    localStorage.setItem(lsKey('bentoDeliveryOrder'), JSON.stringify(deliveryOrder));
+    localStorage.setItem(lsKey('bentoStaff'), JSON.stringify(STAFF));
+    localStorage.setItem(lsKey('bentoPinkStaff'), JSON.stringify(PINK_STAFF));
+    localStorage.setItem(lsKey('bentoCourseAssign'), JSON.stringify(COURSE_ASSIGN));
+    localStorage.setItem(lsKey('bentoDone'), JSON.stringify([...done]));
+    localStorage.setItem(lsKey('bentoDoneDate'), todayKey);
+  }catch(e){}
+  // コース変更や顧客の追加・削除など、カードの並び自体が変わりうる更新が
+  // 他端末から届いた場合に備えて、入力タブのDOMを次回描画時に必ず作り直させる
+  // (masterLenだけが変化検知の条件だと、件数が同じままコースだけ変わるケースを
+  //  見逃してしまい、カードが古いコースの場所に残り続けるバグになる)
+  const _inputArea=document.getElementById('input-list-area');
+  if(_inputArea) delete _inputArea.dataset.built;
+  _pendingRemoteRerender=false;
+  try{ renderCurrentTab(); }catch(e){}
+  try{ updateHdrTotal(); }catch(e){}
+}
+
+let _fbUnsub=null;
+function teardownRealtimeListener(){
+  if(_fbUnsub){ try{ _fbUnsub(); }catch(e){} _fbUnsub=null; }
+}
+function setupRealtimeListener(shop){
+  teardownRealtimeListener();
+  if(!window.__fb || !window.__fb.ready) return;
+  const fb=window.__fb;
+  _fbUnsub=fb.onSnapshot(shopDocRef(shop), (snap)=>{
+    if(shop!==currentShop) return; // 店舗切替後に届いた古いリスナーの通知は無視
+    if(snap.metadata.hasPendingWrites) return; // 自分自身の書き込みのエコーは無視（既に反映済みのため）
+    if(_fbPushTimers[shop]){
+      // この端末でまだクラウドへ送信していないローカルの変更が残っている間は、
+      // リモートの内容で上書きしない（未送信の編集が消えてしまうのを防ぐ）。
+      // 送信が完了すれば、その書き込み自体がこのリスナーに再度届く。
+      return;
+    }
+    if(!snap.exists()){
+      // クラウド側にまだこの店舗のデータが無い（初回導入時）→ 今のローカルデータを送信して作成する
+      pushToFirestore(true);
+      return;
+    }
+    applyRemoteState(snap.data());
+  }, (err)=>{
+    console.error('Firestoreリアルタイム同期でエラーが発生しました', err);
+  });
+}
+
+// iOS Safari等では、画面をロックしたりタブを非表示にすると、裏側の通信(リアルタイム同期の接続)が
+// 一時停止されることがある。タブが再び表示された時に、接続を張り直して最新の状態を取りに行くことで、
+// 「リロードしないと最新にならない」という状態を防ぐ。
+function _resyncRealtimeIfNeeded(){
+  if(window.__fb && window.__fb.ready && currentShop){
+    setupRealtimeListener(currentShop);
+    setupGlobalSettingsListener();
+  }
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible'){ _resyncRealtimeIfNeeded(); }
+});
+window.addEventListener('pageshow', function(e){
+  if(e.persisted){ _resyncRealtimeIfNeeded(); }
+});
+window.addEventListener('focus', _resyncRealtimeIfNeeded);
+
+// 保険：リアルタイム接続(onSnapshot)が何らかの理由で裏側で切れてしまっていても、
+// 一定間隔でクラウドの最新状態を取りに行くことで、長くても数秒〜十数秒以内には
+// 必ず最新の状態に追いつくようにする（自分がまだ送信していない編集がある間は上書きしない）。
+setInterval(function(){
+  if(!(window.__fb && window.__fb.ready && currentShop)) return;
+  if(_fbPushTimers[currentShop]) return; // 未送信のローカル編集がある間はスキップ
+  if(!_canSafeRerenderNow()) return; // 入力欄にフォーカス中は、裏側のデータを差し替えない
+                                      // (以前は画面の再描画だけガードしていたが、フォーカス中でも
+                                      //  salesData等のデータ自体を丸ごと入れ替えてしまっていたため、
+                                      //  入力中の数値がクラウドの少し古い値に一瞬置き換わり、
+                                      //  カンマ区切り表示等で見た目が揺れる不具合の原因になっていた)
+  const fb=window.__fb;
+  fb.getDoc(shopDocRef(currentShop)).then(function(snap){
+    if(snap.exists() && !_fbPushTimers[currentShop] && _canSafeRerenderNow()){
+      applyRemoteState(snap.data());
+    }
+  }).catch(function(){ /* オフライン等は無視。次の周期で再試行される */ });
+}, 2000);
+
 function loadFromLocal(){
   try{
     const d = localStorage.getItem(lsKey('bentoMaster'));
-    if(d){ const m=JSON.parse(d); if(Array.isArray(m)&&m.length>0){ MASTER.splice(0,MASTER.length,...m); } }
+    if(d){ const m=JSON.parse(d); if(Array.isArray(m)){ MASTER.splice(0,MASTER.length,...m); } }
   }catch(e){ try{localStorage.removeItem(lsKey('bentoMaster'));}catch(_){} }
   try{
     const c = localStorage.getItem(lsKey('bentoCounts'));
     if(c){ const parsed=JSON.parse(c); if(parsed&&typeof parsed==='object') Object.assign(counts, parsed); }
+    _loadedCountsDate = localStorage.getItem(lsKey('bentoCountsDate'));
   }catch(e){ try{localStorage.removeItem(lsKey('bentoCounts'));}catch(_){} }
   try{
     const bo = localStorage.getItem(lsKey('bentoBulkOrders'));
@@ -3729,7 +5443,19 @@ function loadFromLocal(){
   }catch(e){ try{localStorage.removeItem(lsKey('bentoBulkMemos'));}catch(_){} }
   try{
     const sd = localStorage.getItem(lsKey('bentoSalesData'));
-    if(sd){ const parsed=JSON.parse(sd); if(parsed&&typeof parsed==='object') Object.assign(salesData, parsed); }
+    if(sd){
+      const parsed=JSON.parse(sd);
+      if(parsed&&typeof parsed==='object'){
+        // 旧形式(日付を持たないフラットな1日分のデータ)からの移行対応：
+        // paypayキーが直接あれば旧形式とみなし、本日分として取り込む
+        if(Object.prototype.hasOwnProperty.call(parsed,'paypay')&&typeof parsed.paypay!=='object'){
+          salesDataByDate[fmtDate(new Date())]=parsed;
+        } else {
+          Object.assign(salesDataByDate, parsed);
+        }
+      }
+    }
+    ensureSalesData(fmtDate(selectedDate));
   }catch(e){ try{localStorage.removeItem(lsKey('bentoSalesData'));}catch(_){} }
   try{
     const dord = localStorage.getItem(lsKey('bentoDeliveryOrder'));
@@ -3743,6 +5469,31 @@ function loadFromLocal(){
       if(dn){ JSON.parse(dn).forEach(id=>done.add(id)); }
     }
   }catch(e){ try{localStorage.removeItem(lsKey('bentoDone'));}catch(_){} }
+  try{
+    const savedReceiptSentDate = localStorage.getItem(lsKey('bentoReceiptSentDate'));
+    const todayKey2 = fmtDate(new Date());
+    if(savedReceiptSentDate === todayKey2){
+      const rs = localStorage.getItem(lsKey('bentoReceiptSent'));
+      if(rs){ JSON.parse(rs).forEach(id=>receiptSent.add(id)); }
+    }
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoReceiptSent'));}catch(_){} }
+  try{
+    const sb = localStorage.getItem(lsKey('bentoSafeBalance'));
+    if(sb!==null) cashSafeBalance=Number(sb)||0;
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoSafeBalance'));}catch(_){} }
+  try{
+    const st = localStorage.getItem(lsKey('bentoStaff'));
+    if(st){ const parsed=JSON.parse(st); if(Array.isArray(parsed)){ STAFF.splice(0,STAFF.length,...parsed); } }
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoStaff'));}catch(_){} }
+  try{
+    const ps = localStorage.getItem(lsKey('bentoPinkStaff'));
+    if(ps){ const parsed=JSON.parse(ps); if(Array.isArray(parsed)){ PINK_STAFF.splice(0,PINK_STAFF.length,...parsed); } }
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoPinkStaff'));}catch(_){} }
+  try{
+    const ca = localStorage.getItem(lsKey('bentoCourseAssign'));
+    if(ca){ const parsed=JSON.parse(ca); if(parsed&&typeof parsed==='object') Object.assign(COURSE_ASSIGN, parsed); }
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoCourseAssign'));}catch(_){} }
+  recalcNextId();
   try{ updateHdrTotal(); }catch(e){}
 }
 
@@ -3770,12 +5521,28 @@ function selectShop(shop){
   Object.keys(counts).forEach(k=>delete counts[k]);
   Object.keys(bulkOrders).forEach(k=>delete bulkOrders[k]);
   Object.keys(bulkMemos).forEach(k=>delete bulkMemos[k]);
-  Object.keys(salesData).forEach(k=>delete salesData[k]);
-  salesData.paypay='';
+  salesDataByDate={};
+  ensureSalesData(fmtDate(selectedDate));
   Object.keys(deliveryOrder).forEach(k=>delete deliveryOrder[k]);
+  STAFF.splice(0, STAFF.length, ...STAFF_DEFAULT());
+  PINK_STAFF.splice(0, PINK_STAFF.length, ...PINK_STAFF_DEFAULT());
+  Object.keys(COURSE_ASSIGN).forEach(k=>delete COURSE_ASSIGN[k]);
+  Object.assign(COURSE_ASSIGN, COURSE_ASSIGN_DEFAULT());
   done.clear();
+  receiptSent.clear();
+  cashSafeBalance=0;
   loadFromLocal();
-  initCounts(selectedDate);
+  // 起動時ブートストラップと同じ判定：保存されていたcountsが本日分ならそのまま使い、
+  // 別の日付のものであれば(または保存がなければ)MASTER/bulkOrdersを元に再計算する
+  if(_loadedCountsDate !== fmtDate(selectedDate)){
+    initCounts(selectedDate);
+  }
+  // クラウド同期のリスナーを、選択された店舗用に張り直す
+  if(window.__fb && window.__fb.ready){
+    setupRealtimeListener(shop);
+  } else {
+    waitForFirebase().then(()=>{ if(currentShop===shop) setupRealtimeListener(shop); }).catch(()=>{});
+  }
 }
 function showRoleSelect(){
   document.getElementById('lc-role').classList.remove('hidden');
@@ -4008,20 +5775,11 @@ function toggleHdrMenu(){
     m.style.display='none';
     return;
   }
-  // 配達タブ中は切替のみ表示
-  if(currentTab==='delivery'){
-    m.innerHTML=`<div style="padding:6px 0;">
-      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
-    </div>`;
-  } else {
-    m.innerHTML=`<div style="padding:6px 0;">
-      <button onclick="gotoTab('staff');closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">👥 配達メンバー</button>
-      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="openMonthlyReport()" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">📊 月次レポート</button>
-      <div style="height:1px;background:var(--border);margin:0 12px;"></div>
-      <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
-    </div>`;
-  }
+  // 配達メンバー・配達は、配達員としてログインすれば自動でその画面に入るため、
+  // 管理者用のこのメニューでは「店舗・役割を切替」のみを表示するようにしている
+  m.innerHTML=`<div style="padding:6px 0;">
+    <button onclick="showSettingMenu();closeHdrMenu();" style="width:100%;padding:13px 16px;border:none;background:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;color:var(--text);">🔄 店舗・役割を切替</button>
+  </div>`;
   m.style.display='block';
 }
 function closeHdrMenu(){
@@ -4065,7 +5823,7 @@ function doLogout(){
   try{
     localStorage.removeItem(LS_ROLE);
     localStorage.removeItem(LS_COURSE);
-    localStorage.removeItem(LS_SHOP);
+    localStorage.removeItem('bentoShop');
   }catch(e){}
   location.reload();
 }
@@ -4075,7 +5833,12 @@ function closeLogoutModal(){
 
 const savedRole = (() => { try{ return localStorage.getItem(LS_ROLE); }catch(e){ return null; } })();
 const savedCourse = (() => { try{ return localStorage.getItem(LS_COURSE)||'all'; }catch(e){ return 'all'; } })();
-const savedShop = (() => { try{ return localStorage.getItem(LS_SHOP)||''; }catch(e){ return ''; } })();
+let savedShop = (() => { try{ return localStorage.getItem(LS_SHOP)||''; }catch(e){ return ''; } })();
+// 店舗名変更(西宮→甲子園)前に保存されていた端末向けの読み替え
+if(savedShop==='西宮'){
+  savedShop='甲子園';
+  try{ localStorage.setItem(LS_SHOP, savedShop); }catch(e){}
+}
 
 // 店舗を先に確定させてからデータ読み込み
 if(savedShop){
@@ -4086,19 +5849,15 @@ if(savedShop){
 }
 
 loadFromLocal();
-// 既存顧客でyomiが空のものを自動生成
-let _yomiBatchChanged=false;
-MASTER.forEach(m=>{ if(!m.yomi){ m.yomi=kanjiToHira(m.name); _yomiBatchChanged=true; } });
-if(_yomiBatchChanged) saveToLocal();
-// nextIdをMASTER/STAFF/PINK_STAFFの既存IDの最大値+1に設定（衝突防止）
-(function(){
-  const allIds=[...MASTER,...STAFF,...PINK_STAFF].map(x=>x.id||'');
-  allIds.forEach(id=>{
-    const n=parseInt(String(id).replace(/\D/g,''));
-    if(!isNaN(n)&&n>=nextId) nextId=n+1;
-  });
-})();
-
+// 本日限りのお客様(一元さん)で、追加された日と違う日になっているものを削除する
+// (前回保存時のcountsを再計算するinitCounts()より必ず先に行う)
+const _onetimePruned=pruneExpiredOnetimeCustomers();
+// 前回保存時と表示日付が違う場合のみ、MASTER/bulkOrdersを元に食数を再計算する
+// (同じ日のうちに閉じて開き直した場合は、手動で調整した個数をそのまま維持する)
+if(_loadedCountsDate !== fmtDate(selectedDate)){
+  initCounts(selectedDate);
+}
+if(_onetimePruned) saveToLocal();
 
 if(savedRole === 'admin'){
   currentRole = 'admin';
@@ -4119,6 +5878,15 @@ if(savedRole === 'admin'){
 } else {
   showShopSelect();
 }
+
+// Firebase(匿名ログイン)の準備が整い次第、現在の店舗のクラウド同期を開始する
+// （ここまでの表示はローカル保存データで即座に行われており、通信を待つ必要はない）
+waitForFirebase().then(()=>{
+  setupRealtimeListener(currentShop);
+  setupGlobalSettingsListener();
+}).catch(err=>{
+  console.error('Firebaseへの接続に失敗しました。このデバイスはオフラインのローカル保存のみで動作します。', err);
+});
 </script>
 </body>
 </html>
