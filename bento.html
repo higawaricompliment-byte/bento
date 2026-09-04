@@ -401,7 +401,6 @@ body.modal-open #main{overflow:hidden;}
     <div class="hdr-shop" id="hdr-shop-name" style="flex-shrink:0;">甲子園</div>
     <!-- 中央：‹ 日付ブロック › -->
     <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;justify-content:flex-start;margin-left:1.4em;">
-      <button class="date-nav-btn" onclick="shiftDay(-1)" style="width:26px;height:26px;font-size:14px;">‹</button>
       <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0;">
         <div style="display:flex;align-items:center;gap:5px;white-space:nowrap;">
           <span id="date-bar-sub" style="font-size:10px;font-weight:800;color:var(--ao);letter-spacing:.03em;"></span>
@@ -413,7 +412,6 @@ body.modal-open #main{overflow:hidden;}
           <span id="hdr-total" style="font-size:10px;font-weight:800;color:var(--text);">0食</span>
         </div>
       </div>
-      <button class="date-nav-btn" onclick="shiftDay(1)" style="width:26px;height:26px;font-size:14px;">›</button>
       <!-- カレンダーボタン -->
       <button id="cal-toggle-btn" onclick="toggleCal()"
         style="width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s;">
@@ -434,14 +432,16 @@ body.modal-open #main{overflow:hidden;}
 <!-- 請求書プレビューモーダル -->
 <div id="invoice-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:800;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;width:92%;max-width:420px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
-      <div style="font-size:14px;font-weight:800;">📄 請求書プレビュー</div>
-      <div style="display:flex;gap:8px;">
-        <button id="invoice-pdf-btn" onclick="downloadInvoicePdf()" style="padding:6px 14px;border-radius:8px;background:#1A6FD4;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📥 PDF保存</button>
-        <button id="invoice-mail-btn" onclick="mailInvoice()" style="padding:6px 14px;border-radius:8px;background:#1F8C35;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✉ メール</button>
-        <button id="invoice-autosend-btn" onclick="autoSendInvoice()" style="padding:6px 14px;border-radius:8px;background:#E5A100;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📧 自動送信</button>
-        <button onclick="printInvoice()" style="padding:6px 14px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🖨 印刷</button>
-        <button onclick="closeInvoiceModal()" style="padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
+    <div style="padding:12px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:800;white-space:nowrap;">📄 請求書プレビュー</div>
+        <button onclick="closeInvoiceModal()" style="flex-shrink:0;padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="invoice-pdf-btn" onclick="downloadInvoicePdf()" style="padding:6px 12px;border-radius:8px;background:#1A6FD4;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📥 PDF保存</button>
+        <button id="invoice-mail-btn" onclick="mailInvoice()" style="padding:6px 12px;border-radius:8px;background:#1F8C35;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">✉ メール</button>
+        <button id="invoice-autosend-btn" onclick="autoSendInvoice()" style="padding:6px 12px;border-radius:8px;background:#E5A100;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">📧 自動送信</button>
+        <button onclick="printInvoice()" style="padding:6px 12px;border-radius:8px;background:#17171A;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">🖨 印刷</button>
       </div>
     </div>
     <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;overflow-x:auto;flex:1;"></div>
@@ -1148,6 +1148,9 @@ function getDefaultCount(m, dow){
     const v = m.weekCounts[dow];
     if(v !== null && v !== undefined && v !== '') return Number(v);
   }
+  // 土日(dow:0=日,6=土)は、個別にweekCountsで指定されていない限り、
+  // 「毎日○食」のデフォルト値を適用しない（通常配達が無いため、請求額が過大になるのを防ぐ）
+  if(dow === 0 || dow === 6) return 0;
   return m.defaultCount;
 }
 function initCounts(date){
@@ -1258,25 +1261,6 @@ function updateDateBar(){
   }
   requestAnimationFrame(adjustMainPadding);
 }
-function shiftDay(d){
-  const next=new Date(selectedDate);
-  next.setDate(next.getDate()+d);
-  selectedDate=next;
-  initCounts(selectedDate);
-  ensureSalesData(fmtDate(selectedDate));
-  updateDateBar();
-  if(currentTab==='input'){
-    iSearch='';
-    inputCollapsed={};
-    const area=document.getElementById('input-list-area');
-    if(area) delete area.dataset.built;
-    document.getElementById('tab-input').innerHTML='';
-    const main=document.getElementById('main');
-    if(main) main.scrollTop=0;
-  }
-  renderCurrentTab();
-  if(calOpen)renderCal();
-}
 function adjustMainPadding(){
   const hdr=document.querySelector('.hdr');
   const main=document.getElementById('main');
@@ -1343,7 +1327,7 @@ function selectDate(y,m,d){selectedDate=new Date(y,m,d);initCounts(selectedDate)
 function shiftMonth(d){calViewMonth+=d;if(calViewMonth<0){calViewMonth=11;calViewYear--;}if(calViewMonth>11){calViewMonth=0;calViewYear++;}renderCal();}
 
 function badges(m){return (m.receipt?'<span class="badge-r">領収</span>':'')+(m.kake?'<span class="badge-k">掛</span>':'');}
-function staffBadge(m){const n=staffName(getAssignedStaff(m));return n?`<span class="badge-staff">${n}</span>`:'';};
+function staffBadge(m){const n=staffName(getAssignedStaff(m));return n?`<span class="badge-staff">${escHtml(n)}</span>`:'';};
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1600);}
 // 顧客名・スタッフ名などをonclick="...('...')"のJS文字列引数として埋め込む際に使う共通エスケープ
 // (バックスラッシュ→シングルクォート→ダブルクォートの順で処理。ダブルクォートはHTML属性の区切り崩れを防ぐため実体参照化)
@@ -1353,6 +1337,17 @@ function escJs(str){
 // data-*属性などプレーンなHTML属性値に埋め込む際に使う共通エスケープ(ダブルクォートのみ対策)
 function escHtmlAttr(str){
   return String(str==null?'':str).replace(/"/g,'&quot;');
+}
+// 顧客名・メモ・宛名など、自由入力の文字列を画面の文章として(innerHTMLで)表示する際に使う共通エスケープ。
+// "&"や"<"を含む名前（例：「田中&佐藤商店」）がそのまま埋め込まれると、意図しないタグとして解釈されて
+// 表示が崩れたり、請求書・領収書のPDFでレイアウトが崩れてしまうため、表示直前に必ずこれを通す。
+function escHtml(str){
+  return String(str==null?'':str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
 }
 
 function sortByKana(arr){
@@ -1506,11 +1501,11 @@ function _buildInputListDOM(area){
         <div class="icard-bar bar-${todayCourse}"></div>
         <div class="icard-name">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span>${m.name}</span>
+            <span>${escHtml(m.name)}</span>
             ${isChanged?`<span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;background:${COURSE_COLORS_MAP[todayCourse]};color:#fff;">${COURSE_LABELS_MAP[todayCourse]}</span>`:''}
           </div>
-          ${m.memo?`<div class="icard-sub">${m.memo}</div>`:''}
-          ${hasDailyMemo?`<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${bulkMemos[_selDateKey][m.id]}</div>`:''}
+          ${m.memo?`<div class="icard-sub">${escHtml(m.memo)}</div>`:''}
+          ${hasDailyMemo?`<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${escHtml(bulkMemos[_selDateKey][m.id])}</div>`:''}
         </div>
         <button onclick="showCourseMenu('${m.id}','${safeName}')"
           style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1;letter-spacing:-1px;">⋯</button>
@@ -1837,14 +1832,14 @@ function renderDelivery(){
         <div class="dcard-body" style="padding:8px 8px;grid-column:${showDeliveryOrder?3:2}">
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:${(isReceipt||hasTime)&&!isDone?'5':'0'}px;">
             ${isReceipt&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E53E3E;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">🧾 領収書</span>`:''}
-            ${hasTime&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E8A020;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">⏰ ${m.deliveryTime}まで</span>`:''}
+            ${hasTime&&!isDone?`<span style="font-size:10px;font-weight:800;color:#fff;background:#E8A020;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;">⏰ ${escHtml(m.deliveryTime)}まで</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
-            <span class="dcard-name" style="flex:1;font-size:13px;">${m.name}</span>
+            <span class="dcard-name" style="flex:1;font-size:13px;">${escHtml(m.name)}</span>
             ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
           </div>
           <div class="dcard-badges" style="margin-top:3px;">${badges(m)}${staffBadge(m)}</div>
-          ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${m.memo}</div>`:''}
+          ${m.memo?`<div class="dcard-memo" style="font-size:10px;margin-top:3px;">${escHtml(m.memo)}</div>`:''}
           ${getDailyMemo(m.id)}
         </div>
         <div class="dcard-right" style="padding:6px 8px;grid-column:${showDeliveryOrder?4:3}">
@@ -1903,7 +1898,7 @@ function getDailyMemo(custId){
   const selKey=fmtDate(selectedDate);
   const pm=bulkMemos[selKey]&&bulkMemos[selKey][custId]?bulkMemos[selKey][custId]:'';
   if(!pm) return '';
-  return `<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${pm}</div>`;
+  return `<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${escHtml(pm)}</div>`;
 }
 function setDeliveryOrder(id,v){
   const n=parseInt(v);
@@ -2007,10 +2002,11 @@ function renderCustList(){
   filtered.forEach(m=>{if(!groups[m.course])groups[m.course]=[];groups[m.course].push(m);});
 
   const hl=txt=>{
-    if(!q) return txt;
+    const safe=escHtml(txt);
+    if(!q) return safe;
     return normalizeKana(txt).includes(normalizeKana(q))
-      ? `<mark style="background:#FFF3B0;border-radius:2px;">${txt}</mark>`
-      : txt;
+      ? `<mark style="background:#FFF3B0;border-radius:2px;">${safe}</mark>`
+      : safe;
   };
 
   let html=`<div class="cview">
@@ -2641,7 +2637,7 @@ function renderSummary(){
         staffGroups[sid].filter(m=>counts[m.id]>0).forEach(m=>{
           const v=counts[m.id]||0;
           html+=`<div class="srow">
-            <div class="srow-name">${m.name}</div>
+            <div class="srow-name">${escHtml(m.name)}</div>
             <div class="srow-badges">
               ${m.kake?'<span class="badge-k">掛</span>':''}
               ${m.receipt?'<span class="badge-r">領収</span>':''}
@@ -2659,7 +2655,7 @@ function renderSummary(){
       items.filter(m=>counts[m.id]>0).forEach(m=>{
         const v=counts[m.id]||0;
         html+=`<div class="srow">
-          <div class="srow-name">${m.name}</div>
+          <div class="srow-name">${escHtml(m.name)}</div>
           <div class="srow-badges">
             ${m.kake?'<span class="badge-k">掛</span>':''}
             ${m.receipt?'<span class="badge-r">領収</span>':''}
@@ -2958,7 +2954,7 @@ function renderSales(){
         ${kakeItems.length===0?`<div style="padding:14px;text-align:center;font-size:13px;color:var(--muted);">該当なし</div>`:''}
         ${kakeItems.map(m=>`
           <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);">
-            <div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
+            <div style="flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(m.name)}</div>
             <div style="font-size:12px;font-weight:700;color:var(--muted);margin:0 8px;flex-shrink:0;">${counts[m.id]}食</div>
             <div style="font-size:13px;font-weight:800;color:var(--ao);flex-shrink:0;margin-right:8px;">${(counts[m.id]*UNIT_PRICE).toLocaleString()}円</div>
             <button onclick="sendInvoice('${m.id}')"
@@ -3016,9 +3012,9 @@ function doPrint(){
         </tr></thead>
         <tbody>
           ${items.map(m=>`<tr>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:11px;">${m.name}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:11px;">${escHtml(m.name)}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;font-size:13px;font-weight:700;text-align:center;">${counts[m.id]}</td>
-            <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${m.memo||''}</td>
+            <td style="border:1px solid #ddd;padding:5px 8px;font-size:10px;color:#555;">${escHtml(m.memo||'')}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.kake?'●':''}</td>
             <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;">${m.receipt?'●':''}</td>
           </tr>`).join('')}
@@ -3241,7 +3237,7 @@ function renderYoyakuCustList(q){
     <div onclick="selectYoyakuCust('${m.id}','${escJs(m.name)}')"
       style="padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
       <div style="width:8px;height:8px;border-radius:50%;background:${COURSE_COLORS_MAP[m.course]};flex-shrink:0;"></div>
-      ${m.name}
+      ${escHtml(m.name)}
     </div>
   `).join('');
   list.style.display='block';
@@ -3262,7 +3258,7 @@ function selectYoyakuCust(id, name){
       <div style="width:8px;height:36px;border-radius:4px;background:var(--ao);flex-shrink:0;"></div>
       <div style="flex:1;">
         <div style="font-size:10px;font-weight:700;color:var(--ao);margin-bottom:2px;">選択中のお客様</div>
-        <div style="font-size:16px;font-weight:900;color:var(--text);">${name}</div>
+        <div style="font-size:16px;font-weight:900;color:var(--text);">${escHtml(name)}</div>
       </div>
       <button onclick="clearYoyakuCust()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid var(--border-dark);background:#fff;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">変更</button>
     </div>`;
@@ -3277,11 +3273,7 @@ function selectYoyakuCust(id, name){
     if((val===undefined||val===''||val===null) && m){
       const dt=parseDateKey(key);
       const dow=dt.getDay(); // 0=日,1=月,...,6=土
-      if(m.weekCounts&&Array.isArray(m.weekCounts)&&m.weekCounts[dow]!==null&&m.weekCounts[dow]!==undefined&&m.weekCounts[dow]!==''){
-        val=Number(m.weekCounts[dow]);
-      } else {
-        val=m.defaultCount||0;
-      }
+      val=getDefaultCount(m, dow)||0;
     }
     const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
     el.value=val||'';
@@ -3521,7 +3513,7 @@ function renderYoyaku(){
     html+='<div style="width:8px;height:36px;border-radius:4px;background:var(--ao);flex-shrink:0;"></div>';
     html+='<div style="flex:1;">';
     html+='<div style="font-size:10px;font-weight:700;color:var(--ao);margin-bottom:2px;">選択中のお客様</div>';
-    html+='<div style="font-size:16px;font-weight:900;color:var(--text);">'+cname+'</div>';
+    html+='<div style="font-size:16px;font-weight:900;color:var(--text);">'+escHtml(cname)+'</div>';
     html+='</div>';
     html+='<button onclick="clearYoyakuCust()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid var(--border-dark);background:#fff;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">変更</button>';
     html+='</div>';
@@ -3579,11 +3571,7 @@ function renderYoyaku(){
         const cm=MASTER.find(x=>x.id===custId);
         if(cm){
           const dow2=dt.getDay();
-          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
-            val=Number(cm.weekCounts[dow2]);
-          } else {
-            val=cm.defaultCount||0;
-          }
+          val=getDefaultCount(cm, dow2)||0;
         }
       }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
@@ -3655,11 +3643,7 @@ function renderYoyaku(){
         const cm=MASTER.find(x=>x.id===custId);
         if(cm){
           const dow2=dt.getDay();
-          if(cm.weekCounts&&Array.isArray(cm.weekCounts)&&cm.weekCounts[dow2]!==null&&cm.weekCounts[dow2]!==undefined&&cm.weekCounts[dow2]!==''){
-            val=Number(cm.weekCounts[dow2]);
-          } else {
-            val=cm.defaultCount||0;
-          }
+          val=getDefaultCount(cm, dow2)||0;
         }
       }
       const hasVal=val!==undefined&&val!==''&&val!==null&&val!==0;
@@ -4125,7 +4109,7 @@ async function sendInvoice(id){
       <!-- 宛先と発行日 -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
         <div>
-          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${billName} 御中</div>
+          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${escHtml(billName)} 御中</div>
           <div style="font-size:11px;color:#666;">対象期間：${fmtDateJp(periodStartKey)}〜${fmtDateJp(periodEndKey)}（${closingLabel(closing)}締め）</div>
         </div>
         <div style="text-align:right;font-size:11px;color:#666;line-height:1.8;">
@@ -4172,9 +4156,9 @@ async function sendInvoice(id){
 
       <!-- 発行元 -->
       <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
-        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${GLOBAL_SETTINGS.companyName}</div>
-        <div>${GLOBAL_SETTINGS.postalCode} ${GLOBAL_SETTINGS.address}</div>
-        <div>TEL ${GLOBAL_SETTINGS.phone}　登録番号：${GLOBAL_SETTINGS.registrationNumber}</div>
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${escHtml(GLOBAL_SETTINGS.companyName)}</div>
+        <div>${escHtml(GLOBAL_SETTINGS.postalCode)} ${escHtml(GLOBAL_SETTINGS.address)}</div>
+        <div>TEL ${escHtml(GLOBAL_SETTINGS.phone)}　登録番号：${escHtml(GLOBAL_SETTINGS.registrationNumber)}</div>
       </div>
     </div>
   `;
@@ -4336,7 +4320,7 @@ async function _buildReceiptPdfAndSend(m, todayKey, qty, price){
       </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
         <div>
-          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${billName} 様</div>
+          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${escHtml(billName)} 様</div>
         </div>
         <div style="text-align:right;font-size:11px;color:#666;">
           <div>発行日：${dateJp}</div>
@@ -4360,9 +4344,9 @@ async function _buildReceiptPdfAndSend(m, todayKey, qty, price){
         </tbody>
       </table>
       <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
-        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${GLOBAL_SETTINGS.companyName}</div>
-        <div>${GLOBAL_SETTINGS.postalCode} ${GLOBAL_SETTINGS.address}</div>
-        <div>TEL ${GLOBAL_SETTINGS.phone}　登録番号：${GLOBAL_SETTINGS.registrationNumber}</div>
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${escHtml(GLOBAL_SETTINGS.companyName)}</div>
+        <div>${escHtml(GLOBAL_SETTINGS.postalCode)} ${escHtml(GLOBAL_SETTINGS.address)}</div>
+        <div>TEL ${escHtml(GLOBAL_SETTINGS.phone)}　登録番号：${escHtml(GLOBAL_SETTINGS.registrationNumber)}</div>
       </div>
     </div>
   `;
@@ -4627,6 +4611,13 @@ function pruneExpiredOnetimeCustomers(){
   return changed;
 }
 function saveToLocal(){
+  // 入力中で保留にされていた「他端末からの更新の反映」がまだ残っている場合、それを取り消す。
+  // (入力欄をぼかす(blur)と、そのタイミングで保留中の反映が少し遅れて実行される仕組みになっているため、
+  //  「登録する」ボタンを押した直後に、今まさに保存したばかりの最新の内容が、
+  //  それより古い保留中のデータで上書きされて元に戻ってしまう不具合があった。
+  //  今ここで保存する内容が一番新しいはずなので、古い保留分は破棄してよい)
+  _pendingRemoteRerender=false;
+  _pendingRemoteData=null;
   try{
     localStorage.setItem(lsKey('bentoMaster'), JSON.stringify(MASTER));
     localStorage.setItem(lsKey('bentoCounts'), JSON.stringify(counts));
@@ -4647,7 +4638,14 @@ function saveToLocal(){
   }catch(e){}
   pushToFirestore();
   pushDailyHistory(currentShop, fmtDate(selectedDate), counts);
-  archiveAndPruneDailyRecords();
+  // 「予約・売上データの永久保存＋古いデータの間引き」は、保存対象の日付が多くなるほど
+  // (何十件・何百件もの日付ぶんタイマーを設定し直す)処理が重くなる。保存(saveToLocal)の
+  // たびに毎回そのまま実行すると、連続して入力している間ずっとこの重い処理が走り続け、
+  // 入力欄への文字入力がカクつく／画面が揺れて見える不具合の原因になっていた。
+  // 実行タイミングが多少遅れても支障はない処理なので、入力が一段落してからまとめて1回だけ
+  // 実行するようにする。
+  clearTimeout(_archivePruneTimer);
+  _archivePruneTimer=setTimeout(archiveAndPruneDailyRecords, 1200);
 }
 
 // ── 日別注文実績の永続記録（請求書計算のための土台） ──
@@ -4657,6 +4655,7 @@ function saveToLocal(){
 // メインの店舗ドキュメントとは別の場所に置くことで、店舗ドキュメントが日々肥大化して
 // Firestoreのサイズ上限に近づいてしまう事態も避けられる。
 let _fbHistTimers={};
+let _archivePruneTimer=null;
 function pushDailyHistory(shop, dateKey, countsObj){
   if(!window.__fb || !window.__fb.ready) return;
   if(!shop || !dateKey) return;
@@ -4985,16 +4984,35 @@ function applyGlobalSettings(data){
   // 日々の売上表示・請求書プレビューで使う「現時点の単価」を更新
   UNIT_PRICE = priceOnDate(fmtDate(new Date()));
 }
+// 共通設定モーダルを開いている間に他端末からの更新が届いても、今まさに入力中の項目を
+// 消してしまわないよう、フォーム全体の再描画だけ保留する(値そのものはapplyGlobalSettingsで
+// 先に取り込んでおくので、保存ボタンを押した時に古い値で上書きしてしまうことはない)。
+let _gsPendingRerender=false;
+function _applyGsPendingRerenderIfAny(){
+  if(!_gsPendingRerender) return;
+  if(!_canSafeRerenderNow()) return;
+  _gsPendingRerender=false;
+  const modalOpen=document.getElementById('global-settings-modal') && !document.getElementById('global-settings-modal').classList.contains('hidden');
+  if(modalOpen){ try{ renderGlobalSettingsForm(); }catch(e){} }
+}
 function setupGlobalSettingsListener(){
   if(!window.__fb || !window.__fb.ready) return;
   const fb=window.__fb;
   if(_gsUnsub){ try{ _gsUnsub(); }catch(e){} }
   const ref=settingsDocRef();
   _gsUnsub=fb.onSnapshot(ref, (snap)=>{
+    if(snap.metadata.hasPendingWrites) return; // 自分自身の書き込みのエコーは無視（既に反映済みのため）
     if(snap.exists()){
       applyGlobalSettings(snap.data());
-      if(document.getElementById('global-settings-modal') && !document.getElementById('global-settings-modal').classList.contains('hidden')){
-        renderGlobalSettingsForm();
+      const modalOpen=document.getElementById('global-settings-modal') && !document.getElementById('global-settings-modal').classList.contains('hidden');
+      if(modalOpen){
+        if(_canSafeRerenderNow()){
+          renderGlobalSettingsForm();
+        } else {
+          // 入力欄にフォーカス中：今打っている内容を消さないよう、フォーム再描画はフォーカスが
+          // 外れてから行う(値自体は上のapplyGlobalSettingsで既に最新化済み)
+          _gsPendingRerender=true;
+        }
       }
     } else {
       // クラウドにまだ設定が無い（初回導入時）→ デフォルト値を書き込んでおく
@@ -5005,6 +5023,11 @@ function setupGlobalSettingsListener(){
 function saveGlobalSettingsPatch(patch){
   if(!window.__fb || !window.__fb.ready){ toast('通信できていません。少し待ってからもう一度お試しください'); return; }
   const fb=window.__fb;
+  // 予約タブの保存で見つかったのと同種の不具合(保存直後に、入力中で保留されていた古い更新の
+  // 反映が遅れて実行され、今保存した内容を上書きしてしまう)を防ぐため、ここでも保留分を破棄する
+  _gsPendingRerender=false;
+  _pendingRemoteRerender=false;
+  _pendingRemoteData=null;
   Object.assign(GLOBAL_SETTINGS, patch);
   fb.setDoc(settingsDocRef(), Object.assign({}, patch, {updatedAt:fb.serverTimestamp()}), {merge:true}).catch(err=>{
     console.error('共通設定の保存に失敗しました', err);
@@ -5222,8 +5245,8 @@ function _applyPendingRemoteIfAny(){
   }
 }
 document.addEventListener('focusout', function(e){
-  if(!_pendingRemoteRerender) return;
-  setTimeout(_applyPendingRemoteIfAny, 50);
+  if(_pendingRemoteRerender){ setTimeout(_applyPendingRemoteIfAny, 50); }
+  if(_gsPendingRerender){ setTimeout(_applyGsPendingRerenderIfAny, 50); }
 }, true);
 
 // Firestoreから届いたデータ(1店舗分の状態)を、既存のメモリ上の変数に反映する
