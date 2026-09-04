@@ -83,7 +83,7 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .bnav-btn.on svg{stroke:var(--ao);}
 
 /* ── MAIN ── */
-.main{padding-top:0;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
+.main{padding-top:0;padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px));height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
 .main.cal-open{}
 
 /* ── FILTER CHIPS ── */
@@ -1864,10 +1864,16 @@ function renderDelivery(){
     if(progFill) progFill.style.width=`${pct}%`;
   }
 
-  // tab-deliveryのpadding-topを進捗バー分追加
+  // tab-deliveryのpadding-topを進捗バー分追加（固定の44pxだと機種によって実際の進捗バーの高さとズレて
+  // 一覧の一番上のカードが進捗バーの下に隠れてしまうことがあるため、実際の高さを測って正確に合わせる）
   const tabDel=document.getElementById('tab-delivery');
-  if(tabDel) tabDel.style.paddingTop='44px';
-  if(tabDel) tabDel.style.paddingBottom='';
+  if(tabDel){
+    const progH=progBar?progBar.offsetHeight:44;
+    tabDel.style.paddingTop=(progH||44)+'px';
+    // 一番下の配達先が、画面下部の固定ナビ（本日注文/集計/予約/顧客/売上）の下に隠れて見切れないよう、
+    // 余白を持たせておく
+    tabDel.style.paddingBottom='20px';
+  }
 }
 function toggleDeliveryOrder(){
   showDeliveryOrder=!showDeliveryOrder;
