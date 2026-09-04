@@ -1712,6 +1712,12 @@ function closeCourseMenu(){
 
 function setC(id,v){
   const n=parseInt(v);counts[id]=isNaN(n)||n<0?0:Math.min(n,999);
+  // 「本日の注文」タブでの変更も、予約タブと同じ場所(bulkOrders＝日付ごとの個数)に書き込んでおく。
+  // こうしないと、日付を切り替えて戻った時に「毎日◯食」の設定に戻ってしまったり、
+  // 予約タブのカレンダーに反映されなかったりする(予約タブ側はbulkOrdersしか見ていないため)。
+  const _dateKey=fmtDate(selectedDate);
+  if(!bulkOrders[_dateKey]) bulkOrders[_dateKey]={};
+  bulkOrders[_dateKey][id]=counts[id];
   _updateCardValue(id);
   updateHdrTotal();
   const m=MASTER.find(x=>x.id===id);
@@ -4174,7 +4180,23 @@ async function sendInvoice(id){
   `;
 
   document.getElementById('invoice-preview-body').innerHTML=html;
+  _scaleInvoicePreview();
 }
+// 請求書プレビューは中身が640px幅で作られているため（PDF化した時にきれいに収まる寸法）、
+// 画面が狭いスマホでは、そのままだと横にはみ出して大きく表示されてしまう。
+// 表示欄の実際の幅に合わせて縮小し、画面内にきちんと収まるようにする。
+// (zoomプロパティはPDF化・印刷の直前に一時的に解除するので、保存される内容には影響しない)
+function _scaleInvoicePreview(){
+  const body=document.getElementById('invoice-preview-body');
+  const area=document.getElementById('invoice-print-area');
+  if(!body||!area) return;
+  // clientWidthには表示欄自体の左右padding分も含まれてしまうため、そのpadding分を差し引いた
+  // 「実際に中身を置けるスペースの幅」を基準にする(そうしないと縮小しても少しはみ出したままになる)
+  const cs=getComputedStyle(body);
+  const availWidth=body.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0);
+  area.style.zoom = (availWidth>0 && availWidth<640) ? (availWidth/640) : '';
+}
+window.addEventListener('resize', ()=>{ if(!document.getElementById('invoice-modal') || document.getElementById('invoice-modal').style.display==='none') return; _scaleInvoicePreview(); });
 function closeInvoiceModal(){
   _closeModal('invoice-modal');
   document.getElementById('invoice-modal').style.display='none';
@@ -4194,8 +4216,18 @@ async function _renderElementToPdf(area){
   return pdf;
 }
 // プレビュー(#invoice-print-area)の見た目をそのまま画像化してPDFに埋め込む。
+// 画面表示用に縮小(zoom)している場合があるため、PDF化する直前だけ元の大きさに戻し、終わったら画面表示用の縮小に戻す
+// (そうしないと、スマホで見た時に縮小されたままの小さいPDFができてしまう)
 async function _renderPrintAreaToPdf(){
-  return _renderElementToPdf(document.getElementById('invoice-print-area'));
+  const area=document.getElementById('invoice-print-area');
+  if(!area) return null;
+  const prevZoom=area.style.zoom;
+  area.style.zoom='';
+  try{
+    return await _renderElementToPdf(area);
+  } finally {
+    area.style.zoom=prevZoom;
+  }
 }
 async function downloadInvoicePdf(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ toast('PDF機能の読み込みに失敗しました。通信環境を確認してください'); return; }
@@ -4478,24 +4510,35 @@ function deleteDailyMemo(){
   toast('メモを削除しました');
 }
 
+// 請求書の印刷：画面をそのまま印刷しようとする方式(window.print())は、
+// スマホのブラウザだと背景の別の画面まで写り込んでしまったり、レイアウトが崩れたりすることがあったため、
+// PDF保存で使っているのと同じ仕組みでいったんPDFを作り、それを新しいタブで開く方式に変更した。
+// PDFとして開けば、そのままスマホの標準の印刷機能（共有→プリント）できれいに印刷できる。
 function printInvoice(){
-  const body=document.getElementById('invoice-print-area')?.innerHTML||'';
-  const overlay=document.createElement('div');
-  overlay.id='invoice-print-overlay';
-  overlay.style.cssText='position:fixed;inset:0;z-index:1000;background:#fff;overflow-y:auto;padding:24px;';
-  overlay.innerHTML=`
-    <div id="invoice-print-content">${body}</div>
-    <style>
-      @media print{
-        body > *:not(#invoice-print-overlay){ display:none!important; }
-        #invoice-print-overlay{ position:static!important;overflow:visible!important;padding:0!important; }
-        @page{ margin:15mm; }
-      }
-    </style>
-    <button onclick="window.print();this.closest('#invoice-print-overlay').remove();" style="position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:10px;background:#17171A;color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;z-index:1001;">🖨 印刷</button>
-    <button onclick="this.closest('#invoice-print-overlay').remove();" style="position:fixed;bottom:20px;left:20px;padding:12px 20px;border-radius:10px;background:#f0efe9;color:#444;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;z-index:1001;">✕ 閉じる</button>
-  `;
-  document.body.appendChild(overlay);
+  if(typeof html2canvas==='undefined' || !window.jspdf){ toast('印刷用データの作成に失敗しました。通信環境を確認してください'); return; }
+  // PDFの作成(非同期処理)を待ってからタブを開こうとすると、スマホのブラウザに
+  // ポップアップとしてブロックされてしまうことがあるため、先に空のタブだけ開いておく。
+  const printTab=window.open('', '_blank');
+  toast('印刷用のデータを作成しています…');
+  _renderPrintAreaToPdf().then(pdf=>{
+    if(!pdf){
+      toast('印刷用データの作成に失敗しました');
+      if(printTab) printTab.close();
+      return;
+    }
+    const blobUrl=pdf.output('bloburl');
+    if(printTab && !printTab.closed){
+      printTab.location.href=blobUrl;
+    } else {
+      // ポップアップがブロックされていた場合は、その場でダウンロードする
+      const name=_invoiceCtx ? `請求書_${_invoiceCtx.customerName}_${_invoiceCtx.periodEndKey}.pdf` : '請求書.pdf';
+      pdf.save(name);
+    }
+  }).catch(e=>{
+    console.error('印刷用PDFの作成に失敗しました', e);
+    toast('印刷用データの作成に失敗しました');
+    if(printTab && !printTab.closed) printTab.close();
+  });
 }
 
 function gotoTab(tab){
