@@ -448,6 +448,15 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- お客様の写真ビューアー（顧客編集フォーム・配達タブ共通） -->
+<div id="photo-viewer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:900;align-items:center;justify-content:center;flex-direction:column;" onclick="closePhotoViewer(event)">
+  <div style="position:relative;max-width:92vw;max-height:76vh;" onclick="event.stopPropagation()">
+    <img id="photo-viewer-img" style="max-width:92vw;max-height:76vh;border-radius:12px;display:block;object-fit:contain;">
+  </div>
+  <div id="photo-viewer-thumbs" style="display:flex;gap:8px;margin-top:14px;"></div>
+  <button onclick="closePhotoViewer()" style="margin-top:16px;padding:8px 18px;border-radius:20px;border:none;background:#fff;color:#111;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">閉じる</button>
+</div>
+
 <div class="cal-dropdown hidden" id="cal-dropdown">
   <div class="cal-month-row">
     <button class="cal-nav" onclick="shiftMonth(-1)">‹</button>
@@ -606,6 +615,13 @@ body.modal-open #main{overflow:hidden;}
     <div class="form-row">
       <div class="form-lbl">📍 住所</div>
       <input class="form-input" id="cm-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
+    </div>
+
+    <div class="form-row">
+      <div class="form-lbl">📷 写真（駐車場所・地図など、最大3枚）</div>
+      <div id="cm-photos-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
+      <input type="file" id="cm-photo-input" accept="image/*" style="display:none;" onchange="onCmPhotoSelected(event)">
+      <button type="button" id="cm-photo-add-btn" onclick="triggerCmPhotoPick()" style="margin-top:8px;padding:8px 14px;border-radius:20px;border:1.5px solid var(--border-dark);background:var(--bg);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);display:inline-flex;align-items:center;gap:4px;">＋ 写真を追加</button>
     </div>
 
     <div id="cm-receipt-section" style="display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
@@ -1143,6 +1159,12 @@ let MASTER = MASTER_DEFAULT();
 const counts={};
 let bulkOrders={}; // initCountsより前に定義必須
 let bulkMemos={};
+// お客様ごとの写真（配達先の目印・地図等、最大3枚）。{custId: [dataURL, ...]}
+// MASTER本体には含めず、別のFirestoreサブコレクション(customerPhotos)に保存する。
+// 理由: MASTER(店舗のメインドキュメント)は入力のたびに丸ごと保存し直す作りのため、
+// ここに写真データ(容量が大きい)を混ぜると、毎回の保存が重くなり、
+// また店舗ドキュメントがFirestoreの1MB上限に近づきやすくなってしまうため。
+let customerPhotos={};
 function getDefaultCount(m, dow){
   if(m.weekCounts && Array.isArray(m.weekCounts)){
     const v = m.weekCounts[dow];
@@ -1836,6 +1858,7 @@ function renderDelivery(){
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
             <span class="dcard-name" style="flex:1;font-size:13px;">${escHtml(m.name)}</span>
+            ${(customerPhotos[m.id]&&customerPhotos[m.id].length)?`<button type="button" onclick="event.stopPropagation();openPhotoViewerForCust('${m.id}')" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid #8B5CF6;background:#F3EEFF;color:#8B5CF6;font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer;">📷 写真</button>`:''}
             ${m.address?`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" rel="noopener" style="flex-shrink:0;padding:2px 6px;border-radius:10px;border:1px solid var(--ao);background:var(--ao-bg);color:var(--ao);font-size:9px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none;">地図</a>`:''}
           </div>
           <div class="dcard-badges" style="margin-top:3px;">${badges(m)}${staffBadge(m)}</div>
@@ -2140,6 +2163,110 @@ function fixInputFontSize(container){
     el.style.fontSize='16px';
   });
 }
+// ── お客様の写真（配達先の目印・地図など、最大3枚） ──
+let _cmPhotos=[]; // 顧客編集フォームで今まさに編集中の写真一覧（保存を押すまでcustomerPhotosには反映しない）
+const CM_PHOTO_MAX=3;
+// 選んだ画像ファイルを、Firestoreに保存しても問題ない大きさまで縮小・圧縮する
+function compressPhotoFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(reader.error||new Error('読み込みに失敗しました'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('画像の読み込みに失敗しました'));
+      img.onload=()=>{
+        const MAX_DIM=640;
+        let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        if(w>MAX_DIM || h>MAX_DIM){
+          if(w>=h){ h=Math.round(h*MAX_DIM/w); w=MAX_DIM; }
+          else { w=Math.round(w*MAX_DIM/h); h=MAX_DIM; }
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        const MAX_LEN=180*1024; // base64文字列としてのおおよその上限（複数枚保存してもFirestoreの1ドキュメント上限に収まるように）
+        let quality=0.7;
+        let dataUrl=canvas.toDataURL('image/jpeg', quality);
+        let tries=0;
+        while(dataUrl.length>MAX_LEN && quality>0.25 && tries<6){
+          quality-=0.12;
+          dataUrl=canvas.toDataURL('image/jpeg', quality);
+          tries++;
+        }
+        resolve(dataUrl);
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function renderCmPhotos(){
+  const el=document.getElementById('cm-photos-list');
+  if(!el) return;
+  el.innerHTML=_cmPhotos.map((src,i)=>`
+    <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+      <img src="${src}" onclick="openPhotoViewer(_cmPhotos, ${i})" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--border-dark);cursor:pointer;display:block;">
+      <button type="button" onclick="removeCmPhoto(${i})" title="削除" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:#C0392B;color:#fff;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;">✕</button>
+    </div>
+  `).join('');
+  const addBtn=document.getElementById('cm-photo-add-btn');
+  if(addBtn) addBtn.style.display=(_cmPhotos.length>=CM_PHOTO_MAX)?'none':'inline-flex';
+}
+function triggerCmPhotoPick(){
+  if(_cmPhotos.length>=CM_PHOTO_MAX){ toast('写真は最大'+CM_PHOTO_MAX+'枚までです'); return; }
+  const input=document.getElementById('cm-photo-input');
+  if(input) input.click();
+}
+async function onCmPhotoSelected(e){
+  const file=e.target.files && e.target.files[0];
+  e.target.value=''; // 同じファイルを続けて選べるようにリセット
+  if(!file) return;
+  if(!file.type || !file.type.startsWith('image/')){ toast('画像ファイルを選んでください'); return; }
+  if(_cmPhotos.length>=CM_PHOTO_MAX){ toast('写真は最大'+CM_PHOTO_MAX+'枚までです'); return; }
+  try{
+    const dataUrl=await compressPhotoFile(file);
+    _cmPhotos.push(dataUrl);
+    renderCmPhotos();
+  }catch(err){
+    console.error('写真の読み込みに失敗しました', err);
+    toast('写真の読み込みに失敗しました');
+  }
+}
+function removeCmPhoto(i){
+  _cmPhotos.splice(i,1);
+  renderCmPhotos();
+}
+// ── 写真ビューアー（顧客フォーム・配達タブ共通） ──
+let _photoViewerList=[];
+let _photoViewerIdx=0;
+function openPhotoViewer(list, idx){
+  _photoViewerList=list||[];
+  _photoViewerIdx=idx||0;
+  if(!_photoViewerList.length) return;
+  renderPhotoViewer();
+  document.getElementById('photo-viewer-modal').style.display='flex';
+}
+function openPhotoViewerForCust(custId){
+  openPhotoViewer(customerPhotos[custId]||[], 0);
+}
+function renderPhotoViewer(){
+  const img=document.getElementById('photo-viewer-img');
+  if(img) img.src=_photoViewerList[_photoViewerIdx]||'';
+  const thumbs=document.getElementById('photo-viewer-thumbs');
+  if(!thumbs) return;
+  if(_photoViewerList.length>1){
+    thumbs.style.display='flex';
+    thumbs.innerHTML=_photoViewerList.map((src,i)=>`<img src="${src}" onclick="event.stopPropagation();_photoViewerIdx=${i};renderPhotoViewer();" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:2px solid ${i===_photoViewerIdx?'#fff':'transparent'};cursor:pointer;">`).join('');
+  } else {
+    thumbs.style.display='none';
+    thumbs.innerHTML='';
+  }
+}
+function closePhotoViewer(e){
+  if(e && e.target!==document.getElementById('photo-viewer-modal')) return;
+  document.getElementById('photo-viewer-modal').style.display='none';
+}
 function openCustModal(id){
   _openModal('cust-modal');
   setTimeout(()=>fixInputFontSize(document.getElementById('cust-modal')),50);
@@ -2173,6 +2300,7 @@ function openCustModal(id){
     document.getElementById('cm-del-confirm').style.display='none';
     document.getElementById('cm-del-btn').textContent='この顧客を削除';
     document.getElementById('cm-del-btn').style.background='#C0392B';
+    _cmPhotos=(customerPhotos[id]||[]).slice();
   } else {
     document.getElementById('cust-modal-title').textContent='顧客を追加';
     document.getElementById('cm-edit-id').value='';
@@ -2193,11 +2321,13 @@ function openCustModal(id){
     document.getElementById('cm-staff-row').classList.add('hidden');
     for(let i=1;i<=5;i++){const el=document.getElementById('cm-w'+i);if(el)el.value='';}
     document.getElementById('cm-del-wrap').classList.add('hidden');
+    _cmPhotos=[];
   }
   onCourseChange(document.getElementById('cm-course').value);
   onKakeChange();
   onReceiptChange();
   selectCourse(document.getElementById('cm-course').value);
+  renderCmPhotos();
 }
 function genYomi(silent){
   const name=document.getElementById('cm-name').value.trim();
@@ -2313,6 +2443,11 @@ function saveCust(){
   };
   if(editId){const idx=MASTER.findIndex(m=>m.id===editId);if(idx!==-1)MASTER[idx]=obj;toast('更新しました');}
   else{MASTER.push(obj);toast('追加しました');}
+  // 写真は店舗のメインデータとは別に保存する（MASTER本体には含めない）
+  if(_cmPhotos.length>0){ customerPhotos[obj.id]=_cmPhotos.slice(); }
+  else { delete customerPhotos[obj.id]; }
+  saveCustomerPhotosLocal();
+  pushCustomerPhotos(currentShop, obj.id, customerPhotos[obj.id]||[]);
   initCounts(selectedDate);
   updateHdrTotal();
   saveToLocal();
@@ -2389,6 +2524,9 @@ function deleteCustStep(){
   // その顧客に紐づく予約データ(全日付分)も一緒に削除しておく
   Object.keys(bulkOrders).forEach(dk=>{ if(bulkOrders[dk]) delete bulkOrders[dk][id]; });
   Object.keys(bulkMemos).forEach(dk=>{ if(bulkMemos[dk]) delete bulkMemos[dk][id]; });
+  // 紐づく写真も削除しておく
+  if(customerPhotos[id]){ delete customerPhotos[id]; saveCustomerPhotosLocal(); }
+  pushCustomerPhotos(currentShop, id, []);
   custDelReady=false;
   saveToLocal();
   const _da=document.getElementById('input-list-area');
@@ -3379,8 +3517,8 @@ function renderYoyakuCal(){
   const days=['日','月','火','水','木','金','土'];
   const first=new Date(_yoyakuCalYear,_yoyakuCalMonth,1);
   const last=new Date(_yoyakuCalYear,_yoyakuCalMonth+1,0);
-  // 再来週の月曜以降のみ選択可能(表示中の週グリッドと基準日を揃えるため、実際の今日ではなくselectedDateを基準にする)
-  const today=new Date(selectedDate);today.setHours(0,0,0,0);
+  // 再来週の月曜以降のみ選択可能(表示中の週グリッドと基準日を揃えるため、renderYoyaku()と同じく実際の今日(TODAY)を基準にする)
+  const today=new Date(TODAY);today.setHours(0,0,0,0);
   const dow=today.getDay();
   const thisMonday=new Date(today);thisMonday.setDate(today.getDate()-(dow===0?6:dow-1));
   const minDate=new Date(thisMonday);minDate.setDate(thisMonday.getDate()+14); // 再来週月曜以降
@@ -3490,7 +3628,11 @@ function deleteYoyakuMemo(){
 
 function renderYoyaku(){
   const days2=['日','月','火','水','木','金','土'];
-  const today=new Date(selectedDate);today.setHours(0,0,0,0);
+  // 予約タブの「今週/来週/再来週」は、本日の注文タブでカレンダー移動して見ている日付(selectedDate)ではなく、
+  // 常に実際の「今日」(TODAY)を基準にする。selectedDateを基準にしてしまうと、本日の注文タブで別の日付を
+  // 見ている状態のまま予約タブを開いたときに、その日付の週が「今週」として表示され、
+  // 本来の今週・前の週の予約が触れなくなってしまう不具合があったため
+  const today=new Date(TODAY);today.setHours(0,0,0,0);
   const dow=today.getDay();
   const monday=new Date(today);
   monday.setDate(today.getDate()-(dow===0?6:dow-1));
@@ -5170,6 +5312,14 @@ function saveCompanyInfo(){
   toast('会社情報を保存しました');
 }
 
+// お客様の写真データ(customerPhotos)をローカル保存する。
+// 頻繁に呼ばれる保存(saveToLocal)とは別で、写真を追加・削除した時だけ呼ぶ
+function saveCustomerPhotosLocal(){
+  try{
+    localStorage.setItem(lsKey('bentoCustomerPhotos'), JSON.stringify(customerPhotos));
+  }catch(e){}
+}
+
 // ── ここからFirestore同期（複数端末リアルタイム反映） ──
 // ローカル保存(saveToLocal)は今まで通り即時・同期的に行い、
 // その内容を少し遅らせてまとめてクラウドへ送信する（連続入力時の書き込み回数を抑えるため）
@@ -5383,6 +5533,69 @@ function setupRealtimeListener(shop){
   });
 }
 
+// ── お客様の写真(customerPhotos)の同期 ──
+// 店舗のメインドキュメントとは別の場所(shops/{店舗}/customerPhotos/{顧客ID})に
+// 1人ずつ保存する。写真を追加・削除した時だけ書き込むため、メインドキュメントのように
+// 毎回丸ごと保存し直す必要が無く、サイズも肥大化しにくい。
+function customerPhotoDocRef(shop, custId){
+  const fb=window.__fb;
+  return fb.doc(fb.db,'shops',shop,'customerPhotos',custId);
+}
+let _fbPhotoTimers={};
+function pushCustomerPhotos(shop, custId, photos){
+  if(!window.__fb || !window.__fb.ready) return;
+  if(!shop || !custId) return;
+  const fb=window.__fb;
+  const payload=(photos||[]).slice();
+  const timerKey=shop+'|'+custId;
+  clearTimeout(_fbPhotoTimers[timerKey]);
+  _fbPhotoTimers[timerKey]=setTimeout(()=>{
+    delete _fbPhotoTimers[timerKey];
+    if(!window.__fb || !window.__fb.ready) return;
+    fb.setDoc(customerPhotoDocRef(shop, custId), {photos:payload, updatedAt:fb.serverTimestamp()}).catch(err=>{
+      console.error('お客様の写真の保存に失敗しました', err);
+    });
+  }, 500);
+}
+let _fbPhotosUnsub=null;
+function teardownCustomerPhotosListener(){
+  if(_fbPhotosUnsub){ try{ _fbPhotosUnsub(); }catch(e){} _fbPhotosUnsub=null; }
+}
+function setupCustomerPhotosListener(shop){
+  teardownCustomerPhotosListener();
+  if(!window.__fb || !window.__fb.ready) return;
+  const fb=window.__fb;
+  const col=fb.collection(fb.db,'shops',shop,'customerPhotos');
+  _fbPhotosUnsub=fb.onSnapshot(col, (snap)=>{
+    if(shop!==currentShop) return;
+    if(snap.metadata.hasPendingWrites) return; // 自分自身の書き込みのエコーは無視
+    let changed=false;
+    snap.docChanges().forEach(change=>{
+      const custId=change.doc.id;
+      if(_fbPhotoTimers[shop+'|'+custId]) return; // まだ送信していないローカル編集がある間は上書きしない
+      if(change.type==='removed'){
+        if(customerPhotos[custId]){ delete customerPhotos[custId]; changed=true; }
+      } else {
+        const photos=(change.doc.data()||{}).photos||[];
+        customerPhotos[custId]=photos;
+        changed=true;
+      }
+    });
+    if(changed){
+      saveCustomerPhotosLocal();
+      // 顧客編集フォームを開いたまま別端末の更新が届いた場合に備えて再描画
+      try{
+        const editId=document.getElementById('cm-edit-id');
+        const modalOpen=document.getElementById('cust-modal') && !document.getElementById('cust-modal').classList.contains('hidden');
+        if(modalOpen && editId && editId.value){ _cmPhotos=(customerPhotos[editId.value]||[]).slice(); renderCmPhotos(); }
+      }catch(e){}
+      if(currentTab==='delivery'){ try{ renderDelivery(); }catch(e){} }
+    }
+  }, (err)=>{
+    console.error('お客様の写真の同期でエラーが発生しました', err);
+  });
+}
+
 // iOS Safari等では、画面をロックしたりタブを非表示にすると、裏側の通信(リアルタイム同期の接続)が
 // 一時停止されることがある。タブが再び表示された時に、接続を張り直して最新の状態を取りに行くことで、
 // 「リロードしないと最新にならない」という状態を防ぐ。
@@ -5390,6 +5603,7 @@ function _resyncRealtimeIfNeeded(){
   if(window.__fb && window.__fb.ready && currentShop){
     setupRealtimeListener(currentShop);
     setupGlobalSettingsListener();
+    setupCustomerPhotosListener(currentShop);
   }
 }
 document.addEventListener('visibilitychange', function(){
@@ -5489,6 +5703,10 @@ function loadFromLocal(){
     const ca = localStorage.getItem(lsKey('bentoCourseAssign'));
     if(ca){ const parsed=JSON.parse(ca); if(parsed&&typeof parsed==='object') Object.assign(COURSE_ASSIGN, parsed); }
   }catch(e){ try{localStorage.removeItem(lsKey('bentoCourseAssign'));}catch(_){} }
+  try{
+    const cp = localStorage.getItem(lsKey('bentoCustomerPhotos'));
+    if(cp){ const parsed=JSON.parse(cp); if(parsed&&typeof parsed==='object') Object.assign(customerPhotos, parsed); }
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoCustomerPhotos'));}catch(_){} }
   recalcNextId();
   try{ updateHdrTotal(); }catch(e){}
 }
@@ -5520,6 +5738,7 @@ function selectShop(shop){
   salesDataByDate={};
   ensureSalesData(fmtDate(selectedDate));
   Object.keys(deliveryOrder).forEach(k=>delete deliveryOrder[k]);
+  Object.keys(customerPhotos).forEach(k=>delete customerPhotos[k]);
   STAFF.splice(0, STAFF.length, ...STAFF_DEFAULT());
   PINK_STAFF.splice(0, PINK_STAFF.length, ...PINK_STAFF_DEFAULT());
   Object.keys(COURSE_ASSIGN).forEach(k=>delete COURSE_ASSIGN[k]);
@@ -5536,8 +5755,9 @@ function selectShop(shop){
   // クラウド同期のリスナーを、選択された店舗用に張り直す
   if(window.__fb && window.__fb.ready){
     setupRealtimeListener(shop);
+    setupCustomerPhotosListener(shop);
   } else {
-    waitForFirebase().then(()=>{ if(currentShop===shop) setupRealtimeListener(shop); }).catch(()=>{});
+    waitForFirebase().then(()=>{ if(currentShop===shop){ setupRealtimeListener(shop); setupCustomerPhotosListener(shop); } }).catch(()=>{});
   }
 }
 function showRoleSelect(){
@@ -5880,6 +6100,7 @@ if(savedRole === 'admin'){
 waitForFirebase().then(()=>{
   setupRealtimeListener(currentShop);
   setupGlobalSettingsListener();
+  setupCustomerPhotosListener(currentShop);
 }).catch(err=>{
   console.error('Firebaseへの接続に失敗しました。このデバイスはオフラインのローカル保存のみで動作します。', err);
 });
