@@ -9,6 +9,8 @@
      日本語フォントをPDFライブラリ側に別途組み込む必要がなく、画面表示と完全に同じ見た目でPDF化できる） -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- 経理向けデータ書き出し（店舗ごとにタブ(シート)を分けたExcelファイルを作るためのライブラリ） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --ao:#1A6FD4;--ao-bg:#EBF3FD;--ao-dk:#0A3570;
@@ -113,7 +115,8 @@ html,body{height:100%;font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',san
 .igroup-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;overflow:hidden;box-shadow:var(--shadow);}
 .igroup-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;background:var(--surface);}
 .igroup-header:active{background:var(--bg);}
-.icard{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;margin-bottom:5px;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;-webkit-touch-callout:none;}
+.icard{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;margin-bottom:5px;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s,opacity .2s;-webkit-touch-callout:none;}
+.icard.icard-done{opacity:.4;}
 .icard.lifting{transform:scale(1.02) translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12);border-color:var(--border-dark);z-index:10;position:relative;}
 .icard-bar{width:3px;flex-shrink:0;align-self:stretch;}
 .bar-ao{background:var(--ao)}.bar-midori{background:var(--midori)}.bar-orenji{background:var(--orenji)}.bar-pinku{background:var(--pinku)}.bar-iero{background:var(--iero)}.bar-shop{background:var(--shop)}
@@ -419,10 +422,8 @@ body.modal-open #main{overflow:hidden;}
     </div>
     <div class="hdr-right">
       <div style="position:relative;">
-        <button onclick="toggleHdrMenu()" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0;">
-          <span style="display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;"></span>
-          <span style="display:block;width:16px;height:2px;background:var(--muted);border-radius:2px;"></span>
-          <span style="display:block;width:10px;height:2px;background:var(--muted);border-radius:2px;align-self:flex-start;margin-left:10px;"></span>
+        <button onclick="showSettingMenu()" title="店舗・役割を切替" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border-dark);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
         </button>
         <div id="hdr-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:14px;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:500;overflow:hidden;"></div>
       </div>
@@ -443,7 +444,7 @@ body.modal-open #main{overflow:hidden;}
         <button onclick="closeInvoiceModal()" style="padding:6px 12px;border-radius:8px;background:#f0efe9;color:#444;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">✕</button>
       </div>
     </div>
-    <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;flex:1;"></div>
+    <div id="invoice-preview-body" style="padding:20px;overflow-y:auto;overflow-x:auto;flex:1;"></div>
   </div>
 </div>
 
@@ -529,8 +530,7 @@ body.modal-open #main{overflow:hidden;}
 
     <div class="form-row">
       <div class="form-lbl">お客様名</div>
-      <input class="form-input" id="cm-name" type="text" placeholder="例：〇〇株式会社"
-        oninput="onCmNameInput()">
+      <input class="form-input" id="cm-name" type="text" placeholder="例：〇〇株式会社">
     </div>
     <div class="form-row" style="margin-top:-6px;">
       <div class="form-lbl">よみがな</div>
@@ -554,7 +554,7 @@ body.modal-open #main{overflow:hidden;}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
       <div>
         <div class="form-lbl">領収書</div>
-        <select class="form-select" id="cm-receipt"><option value="false">なし</option><option value="true">あり</option></select>
+        <select class="form-select" id="cm-receipt" onchange="onReceiptChange()"><option value="none">なし</option><option value="paper">紙</option><option value="electronic">電子</option></select>
       </div>
       <div>
         <div class="form-lbl">掛け払い</div>
@@ -608,6 +608,14 @@ body.modal-open #main{overflow:hidden;}
       <input class="form-input" id="cm-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
     </div>
 
+    <div id="cm-receipt-section" style="display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">🧾 領収書設定</div>
+      <div class="form-row">
+        <div class="form-lbl">メールアドレス</div>
+        <input class="form-input" id="cm-receipt-email" type="email" placeholder="例：info@example.com">
+      </div>
+    </div>
+
     <div id="cm-invoice-section" style="display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">📄 請求書設定</div>
       <div class="form-row">
@@ -638,6 +646,51 @@ body.modal-open #main{overflow:hidden;}
     <div class="hidden" id="cm-del-wrap" style="margin-top:8px;">
       <div id="cm-del-confirm" class="del-confirm-msg" style="display:none;">本当に削除しますか？</div>
       <button class="btn-del-full" id="cm-del-btn" onclick="deleteCustStep()">この顧客を削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 本日限りのお客様（一元さん）追加モーダル -->
+<div class="modal-overlay hidden" id="onetime-modal" onclick="closeOnetimeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">本日限りのお客様を追加</div>
+    <div style="font-size:11px;color:var(--muted);margin:-8px 0 12px;">顧客管理には登録されません。今日1日だけ本日の注文に表示され、日付が変わると自動的に削除されます。</div>
+    <div class="form-row">
+      <div class="form-lbl">お客様名</div>
+      <input class="form-input" id="om-name" type="text" placeholder="例：〇〇様">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <div class="form-lbl">コース</div>
+        <select class="form-select" id="om-course">
+          <option value="ao">青</option>
+          <option value="midori">緑</option>
+          <option value="orenji">オレンジ</option>
+          <option value="iero">黄色</option>
+          <option value="pinku">ピンク</option>
+          <option value="shop">店頭</option>
+        </select>
+      </div>
+      <div>
+        <div class="form-lbl">食数</div>
+        <input class="form-input" id="om-count" type="number" min="0" max="99" value="1" style="font-size:16px;font-weight:900;">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">電話番号</div>
+      <input class="form-input" id="om-phone" type="tel" placeholder="例：090-1234-5678">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">📍 住所</div>
+      <input class="form-input" id="om-address" type="text" placeholder="例：兵庫県西宮市〇〇町1-2-3">
+    </div>
+    <div class="form-row">
+      <div class="form-lbl">メモ</div>
+      <textarea class="form-input" id="om-memo" rows="2" style="resize:none;height:auto;"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeOnetimeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveOnetimeCust()">追加</button>
     </div>
   </div>
 </div>
@@ -765,6 +818,21 @@ body.modal-open #main{overflow:hidden;}
   </div>
 </div>
 
+<!-- 本日の注文画面から追加する「その日だけのメモ」モーダル -->
+<div class="modal-overlay hidden" id="daily-memo-modal" onclick="closeDailyMemoModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="padding:20px 18px 32px;">
+    <div style="font-size:15px;font-weight:800;margin-bottom:4px;" id="daily-memo-modal-title">メモ</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;" id="daily-memo-date"></div>
+    <textarea id="daily-memo-input" placeholder="例：本日は不在のため裏口へお願いします" rows="3"
+      style="width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;background:var(--bg);resize:none;color:var(--text);"></textarea>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn-cancel" onclick="closeDailyMemoModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveDailyMemo()">保存</button>
+    </div>
+    <button id="daily-memo-del-btn" onclick="deleteDailyMemo()" style="display:none;width:100%;margin-top:8px;padding:12px;border-radius:var(--radius-sm);border:none;background:#FFF0EE;color:#C0392B;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">メモを削除</button>
+  </div>
+</div>
+
 <!-- 月次レポートモーダル -->
 <div class="modal-overlay hidden" id="monthly-report-modal" style="z-index:1100;overflow-y:auto;align-items:flex-start;padding:0;">
   <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
@@ -773,6 +841,31 @@ body.modal-open #main{overflow:hidden;}
       <button onclick="closeMonthlyReport()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
     </div>
     <div id="monthly-report-content"></div>
+  </div>
+</div>
+
+<!-- 経理データCSV書き出しモーダル -->
+<div class="modal-overlay hidden" id="csv-export-modal" style="z-index:1100;overflow-y:auto;align-items:flex-start;padding:0;">
+  <div style="width:100%;max-width:480px;min-height:100%;background:var(--bg);padding:16px 12px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:10;border-bottom:1px solid var(--border);">
+      <div style="font-size:16px;font-weight:900;">🧾 経理データの書き出し</div>
+      <button onclick="closeCsvExportModal()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
+    </div>
+    <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">日ごとの現金売上・掛け売上・PayPay金額・支出記録を、店舗ごとにタブ（シート）を分けたExcelファイル（.xlsx）として書き出します。Excel・Googleスプレッドシートどちらでも開けます。</div>
+      <div style="font-size:12px;font-weight:800;margin-bottom:8px;">期間を選ぶ</div>
+      <select class="form-select" id="csv-period-select" onchange="onCsvPeriodChange(this.value)" style="width:100%;margin-bottom:10px;">
+        <option value="thisMonth">今月分</option>
+        <option value="lastMonth">先月分</option>
+        <option value="custom">期間を指定する</option>
+      </select>
+      <div id="csv-custom-range" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px;">開始日</div><input class="form-input" id="csv-start-date" type="date"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px;">終了日</div><input class="form-input" id="csv-end-date" type="date"></div>
+      </div>
+    </div>
+    <button id="csv-download-btn" onclick="generateAndDownloadCsv()" style="width:100%;padding:14px;border-radius:var(--radius);border:none;background:var(--ao);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 3px 10px rgba(0,0,0,.12);">📥 Excelファイルをダウンロード</button>
+    <div id="csv-status" style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px;"></div>
   </div>
 </div>
 
@@ -821,7 +914,9 @@ body.modal-open #main{overflow:hidden;}
       <button onclick="closeGlobalSettingsModal()" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border-dark);background:var(--surface);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--muted);">✕ 閉じる</button>
     </div>
 
-    <button onclick="closeGlobalSettingsModal();openMonthlyReport();" style="width:100%;padding:15px 16px;border-radius:var(--radius);border:none;background:var(--ao);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.12);">📊 月次レポートを見る</button>
+    <button onclick="closeGlobalSettingsModal();openMonthlyReport();" style="width:100%;padding:15px 16px;border-radius:var(--radius);border:none;background:var(--ao);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.12);">📊 月次レポートを見る</button>
+
+    <button onclick="closeGlobalSettingsModal();openCsvExportModal();" style="width:100%;padding:15px 16px;border-radius:var(--radius);border:1.5px solid var(--ao);background:#fff;color:var(--ao);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;">🧾 経理データを書き出す（Excel）</button>
 
     <div style="font-size:11px;font-weight:800;color:var(--muted);margin:0 4px 8px;letter-spacing:.03em;">📅 月次レポート関連</div>
     <div style="background:#fff;border-radius:var(--radius);padding:14px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.05);border-top:3px solid var(--ao);">
@@ -1069,6 +1164,8 @@ function initCounts(date){
 }
 initCounts(new Date());
 const done=new Set();
+// 「電子」領収書のメールを、その日すでに自動送信したお客様のID一覧（二重送信防止用。doneと同じく「本日分」のみ意味を持つ）
+const receiptSent=new Set();
 let iFilter='all',dFilter='all',dFilterSet=new Set(),dStaff='all',cFilter='all';
 let deliveryOrder={}; // {custId: number}
 let showDeliveryOrder=false;
@@ -1124,9 +1221,9 @@ function _closeModal(id){
   if(_modalCount===0) document.body.classList.remove('modal-open');
 }
 function _closeAllModals(){
-  ['cust-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
-   'yoyaku-memo-modal','invoice-send-confirm-modal',
-   'monthly-report-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
+  ['cust-modal','onetime-modal','staff-modal','pink-staff-modal','del-confirm-modal','num-picker-modal',
+   'yoyaku-memo-modal','daily-memo-modal','invoice-send-confirm-modal',
+   'monthly-report-modal','csv-export-modal','logout-modal','print-modal','invoice-modal'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.classList.add('hidden'); if(id==='invoice-modal') el.style.display='none'; }
   });
@@ -1329,12 +1426,15 @@ function renderInputList(){
   }
 
   // 各カードのdisplay切り替え（DOMを書き換えない）
+  const _isTodaySelected=sameDay(selectedDate,TODAY);
   MASTER.forEach(m=>{
     const card=document.getElementById('icard-'+m.id);
     if(!card) return;
     // 食数を最新に同期する（他端末からのクラウド反映など、setC/spin以外の経路で
     // countsが変わった場合でもここで必ず表示が追いつくようにする）
     _updateCardValue(m.id);
+    // 配達完了（本日分のみ意味を持つ）済みのお客様は、カードを薄く表示する
+    card.classList.toggle('icard-done', _isTodaySelected && done.has(m.id));
     let visible=true;
     if(iFilter!=='all' && (m.todayCourse||m.course)!==iFilter) visible=false;
     if(q){
@@ -1377,6 +1477,7 @@ function renderInputList(){
 
 function _buildInputListDOM(area){
   let html=`<div class="iview">`;
+  const _selDateKey=fmtDate(selectedDate);
   COURSE_ORDER.forEach(c=>{
     const meta=COURSE_META[c];
     const assignedName=c==='pinku'?'':staffName(COURSE_ASSIGN[c]||'');
@@ -1399,6 +1500,7 @@ function _buildInputListDOM(area){
       const safeName=escJs(m.name);
       const todayCourse=m.todayCourse||m.course;
       const isChanged=m.todayCourse&&m.todayCourse!==m.course;
+      const hasDailyMemo=!!(bulkMemos[_selDateKey]&&bulkMemos[_selDateKey][m.id]);
       html+=`<div class="icard" id="icard-${m.id}"
         style="border-radius:0;border-left:none;border-right:none;border-top:none;box-shadow:none;${isChanged?'border-left:3px solid '+COURSE_COLORS_MAP[todayCourse]+';':''}">
         <div class="icard-bar bar-${todayCourse}"></div>
@@ -1408,6 +1510,7 @@ function _buildInputListDOM(area){
             ${isChanged?`<span style="font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;background:${COURSE_COLORS_MAP[todayCourse]};color:#fff;">${COURSE_LABELS_MAP[todayCourse]}</span>`:''}
           </div>
           ${m.memo?`<div class="icard-sub">${m.memo}</div>`:''}
+          ${hasDailyMemo?`<div class="dcard-memo" style="background:#EBF3FD;color:#0A3570;border-left:3px solid var(--ao);">📝 本日メモ：${bulkMemos[_selDateKey][m.id]}</div>`:''}
         </div>
         <button onclick="showCourseMenu('${m.id}','${safeName}')"
           style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border-dark);background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;line-height:1;letter-spacing:-1px;">⋯</button>
@@ -1456,6 +1559,7 @@ function renderInput(){
             style="width:100%;padding:11px 36px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:16px;font-family:inherit;color:var(--text);outline:none;font-weight:500;background:var(--bg);">
           <button id="input-search-clear" onclick="clearInputSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;font-size:17px;color:var(--muted);cursor:pointer;padding:0;">×</button>
         </div>
+        <button onclick="openOnetimeModal()" style="width:100%;margin-top:8px;padding:9px;border-radius:var(--radius-sm);border:1.5px dashed var(--border-dark);background:var(--bg);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">＋ 本日限りのお客様を追加</button>
       </div>
       <div class="frow" id="input-chip-row"></div>
     </div>
@@ -1564,9 +1668,22 @@ function showCourseMenu(id,name){
       <span>${COURSE_LABELS_MAP[c]}${isCurrent?' ✓':''}</span>
     </div>`;
   });
+  const _selDateKey=fmtDate(selectedDate);
+  const hasDailyMemo=!!(bulkMemos[_selDateKey]&&bulkMemos[_selDateKey][id]);
+  const receiptEligible = m.receiptType==='electronic' && m.receiptEmail;
+  const actionsHtml =
+    (receiptEligible?`<div class="course-menu-item" style="padding:14px 20px;font-size:15px;" onclick="closeCourseMenu();manualSendReceiptFromInput('${id}')">
+      <span>🧾</span><span>領収書を送信</span>
+    </div>`:'') +
+    `<div class="course-menu-item" style="padding:14px 20px;font-size:15px;" onclick="closeCourseMenu();openDailyMemoModal('${id}','${escJs(name)}')">
+      <span>📝</span><span>${hasDailyMemo?'今日だけのメモを編集':'今日だけのメモを追加'}</span>
+    </div>`;
   menu.innerHTML=`<div style="background:var(--surface);border-radius:22px 22px 0 0;padding:12px 8px calc(24px + env(safe-area-inset-bottom,0px));width:100%;">
     <div style="width:36px;height:4px;background:var(--border-dark);border-radius:2px;margin:0 auto 14px;"></div>
-    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${name}のコースを変更</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;padding:0 12px 12px;text-align:center;">${name}</div>
+    ${actionsHtml}
+    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700;padding:0 12px 8px;text-align:center;">コースを変更</div>
     ${html}
     <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
     <div class="course-menu-item" style="color:var(--muted);justify-content:center;font-size:15px;" onclick="closeCourseMenu()">キャンセル</div>
@@ -1803,7 +1920,17 @@ function onDeliveryOrderBlur(id){
   renderDelivery();
 }
 
-function toggleDone(id){if(done.has(id))done.delete(id);else{done.add(id);toast('配達完了 ✓');}saveToLocal();renderDelivery();}
+function toggleDone(id){
+  if(done.has(id)){
+    done.delete(id);
+  } else {
+    done.add(id);
+    toast('配達完了 ✓');
+    maybeSendReceiptOnDelivery(id); // 領収書「電子」設定のお客様には、この瞬間に自動でメール送信を試みる
+  }
+  saveToLocal();
+  renderDelivery();
+}
 
 let cSearch='';
 let isComposing=false;
@@ -1859,7 +1986,8 @@ function renderCustList(){
   const q = cSearch.trim();
   const qNorm = normalizeKana(q.toLowerCase());
 
-  let filtered = cFilter==='all' ? MASTER : MASTER.filter(m=>m.course===cFilter);
+  let filtered = MASTER.filter(m=>!m.temporary);
+  if(cFilter!=='all') filtered = filtered.filter(m=>m.course===cFilter);
   if(q){
     filtered = filtered.filter(m=>{
       const name = normalizeKana(m.name.toLowerCase());
@@ -2017,12 +2145,13 @@ function openCustModal(id){
     document.getElementById('cm-yomi').value=m.yomi||'';
     document.getElementById('cm-course').value=m.course;
     document.getElementById('cm-count').value=(m.defaultCount!=null?m.defaultCount:0);
-    document.getElementById('cm-receipt').value=String(m.receipt);
+    document.getElementById('cm-receipt').value=m.receiptType||(m.receipt?'paper':'none');
     document.getElementById('cm-kake').value=String(m.kake);
     document.getElementById('cm-memo').value=m.memo;
     document.getElementById('cm-address').value=m.address||'';
     document.getElementById('cm-time-input').value=m.deliveryTime||'';
     document.getElementById('cm-email').value=m.email||'';
+    document.getElementById('cm-receipt-email').value=m.receiptEmail||'';
     document.getElementById('cm-closing').value=m.closing||'';
     document.getElementById('cm-billname').value=m.billname||'';
     document.getElementById('cm-staff').value=m.staffId||'';
@@ -2043,12 +2172,13 @@ function openCustModal(id){
     document.getElementById('cm-yomi').value='';
     document.getElementById('cm-course').value='ao';
     document.getElementById('cm-count').value='0';
-    document.getElementById('cm-receipt').value='false';
+    document.getElementById('cm-receipt').value='none';
     document.getElementById('cm-kake').value='false';
     document.getElementById('cm-memo').value='';
     document.getElementById('cm-address').value='';
     document.getElementById('cm-time-input').value='';
     document.getElementById('cm-email').value='';
+    document.getElementById('cm-receipt-email').value='';
     document.getElementById('cm-closing').value='';
     document.getElementById('cm-billname').value='';
     document.getElementById('cm-staff').value='';
@@ -2058,14 +2188,8 @@ function openCustModal(id){
   }
   onCourseChange(document.getElementById('cm-course').value);
   onKakeChange();
+  onReceiptChange();
   selectCourse(document.getElementById('cm-course').value);
-}
-function onCmNameInput(){
-  const yomiEl=document.getElementById('cm-yomi');
-  if(yomiEl && !yomiEl.value){
-    clearTimeout(window._yomiTimer);
-    window._yomiTimer=setTimeout(()=>genYomi(true),600);
-  }
 }
 function genYomi(silent){
   const name=document.getElementById('cm-name').value.trim();
@@ -2140,6 +2264,10 @@ function onKakeChange(){
   const isKake=document.getElementById('cm-kake').value==='true';
   document.getElementById('cm-invoice-section').style.display=isKake?'block':'none';
 }
+function onReceiptChange(){
+  const isElectronic=document.getElementById('cm-receipt').value==='electronic';
+  document.getElementById('cm-receipt-section').style.display=isElectronic?'block':'none';
+}
 function blurAll(){
   if(document.activeElement && document.activeElement.blur){
     document.activeElement.blur();
@@ -2162,12 +2290,14 @@ function saveCust(){
     id:editId||'c'+nextId++,course,name,
     yomi:document.getElementById('cm-yomi').value.trim(),
     defaultCount:Math.max(0,parseInt(document.getElementById('cm-count').value)||0),
-    receipt:document.getElementById('cm-receipt').value==='true',
+    receiptType:document.getElementById('cm-receipt').value,
+    receipt:document.getElementById('cm-receipt').value!=='none',
     kake:document.getElementById('cm-kake').value==='true',
     memo:document.getElementById('cm-memo').value.trim(),
     address:document.getElementById('cm-address').value.trim(),
     deliveryTime:document.getElementById('cm-time-input').value||'',
     email:document.getElementById('cm-email').value.trim(),
+    receiptEmail:document.getElementById('cm-receipt-email').value.trim(),
     closing:document.getElementById('cm-closing').value,
     billname:document.getElementById('cm-billname').value.trim(),
     staffId:course==='pinku'?document.getElementById('cm-staff').value:'',
@@ -2182,7 +2312,56 @@ function saveCust(){
   const _area=document.getElementById('input-list-area');
   if(_area) delete _area.dataset.built;
   _closeModal('cust-modal');
+
   renderCustomer();
+}
+function openOnetimeModal(){
+  document.getElementById('om-name').value='';
+  document.getElementById('om-course').value=iFilter!=='all'?iFilter:'ao';
+  document.getElementById('om-count').value='1';
+  document.getElementById('om-phone').value='';
+  document.getElementById('om-address').value='';
+  document.getElementById('om-memo').value='';
+  _openModal('onetime-modal');
+  setTimeout(()=>fixInputFontSize(document.getElementById('onetime-modal')),50);
+}
+function closeOnetimeModal(e){
+  if(e&&e.target!==document.getElementById('onetime-modal'))return;
+  blurAll();
+  _closeModal('onetime-modal');
+}
+function saveOnetimeCust(){
+  blurAll();
+  const name=document.getElementById('om-name').value.trim();
+  if(!name){toast('お客様名を入力してください');return;}
+  const course=document.getElementById('om-course').value;
+  const qty=Math.max(0,parseInt(document.getElementById('om-count').value)||0);
+  const id='w'+nextId++;
+  const obj={
+    id,course,name,
+    yomi:'',
+    defaultCount:qty,
+    receipt:false,receiptType:'none',
+    kake:false,
+    memo:document.getElementById('om-memo').value.trim(),
+    address:document.getElementById('om-address').value.trim(),
+    phone:document.getElementById('om-phone').value.trim(),
+    deliveryTime:'',
+    email:'',receiptEmail:'',
+    closing:'',billname:'',staffId:'',
+    weekCounts:[null,null,null,null,null,null,null],
+    temporary:true,
+    addedDate:fmtDate(new Date()),
+  };
+  MASTER.push(obj);
+  counts[id]=qty;
+  updateHdrTotal();
+  saveToLocal();
+  const _area=document.getElementById('input-list-area');
+  if(_area) delete _area.dataset.built;
+  _closeModal('onetime-modal');
+  toast(name+'さんを本日の注文に追加しました');
+  renderInputList();
 }
 let custDelReady=false;
 function deleteCustStep(){
@@ -2197,7 +2376,7 @@ function deleteCustStep(){
   if(!id)return;
   const idx=MASTER.findIndex(m=>m.id===id);
   if(idx!==-1)MASTER.splice(idx,1);
-  delete counts[id];done.delete(id);
+  delete counts[id];done.delete(id);receiptSent.delete(id);
   delete deliveryOrder[id];
   // その顧客に紐づく予約データ(全日付分)も一緒に削除しておく
   Object.keys(bulkOrders).forEach(dk=>{ if(bulkOrders[dk]) delete bulkOrders[dk][id]; });
@@ -2524,6 +2703,9 @@ function renderCurrentTab(){
 
 let salesDataByDate={}; // 日付(YYYY-MM-DD)ごとの売上入力データ
 let salesData={paypay:''}; // 表示中の日付(selectedDate)に対応するsalesDataByDateの中身への参照
+// 金庫にある現金の残高（日付ごとではなく、店舗ごとに1つだけ持つ「今の残高」。
+// 数え終わったら実際の金額に書き換えて、翌日以降はそこから続ける）
+let cashSafeBalance=0;
 function ensureSalesData(dateKey){
   const existed=!!salesDataByDate[dateKey];
   if(!existed) salesDataByDate[dateKey]={paypay:''};
@@ -2534,6 +2716,7 @@ function ensureSalesData(dateKey){
 }
 ensureSalesData(fmtDate(selectedDate));
 let UNIT_PRICE=650;
+const EXPENSE_PRESET_CATEGORIES=['消耗品','食材費','交通費','通信費','雑費','その他'];
 
 function renderSales(){
   const allItems=MASTER.filter(m=>counts[m.id]>0);
@@ -2549,6 +2732,7 @@ function renderSales(){
   const expTotal=(salesData.expenses||[]).reduce((s,e)=>s+(parseInt(e.amount)||0),0);
   const coinTotal=calcCoinTotal(salesData.coins||{});
   const afterDeposit=coinTotal-(parseInt(salesData.bankDeposit)||0);
+  const expectedSafeTotal=cashSafeBalance+actualCash;
   const dateLabel=document.getElementById('date-bar-label').textContent;
 
   const html=`<div class="sview">
@@ -2571,6 +2755,32 @@ function renderSales(){
           <div style="font-size:10px;font-weight:700;color:var(--ao-dk);margin-bottom:4px;">掛け売上</div>
           <div style="font-size:20px;font-weight:900;color:var(--ao);">${kakeSales.toLocaleString()}円</div>
           <div style="font-size:10px;color:var(--ao-dk);opacity:.6;margin-top:2px;">${kakeTotal}食</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 金庫の現金残高 -->
+    <div class="sblock" style="margin-bottom:8px;">
+      <div style="padding:14px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:14px;">🔒</span>
+          <span style="font-size:14px;font-weight:800;">金庫の現金残高</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">前回、数え終わった時点で金庫にあった金額です。今日数え終わったら、実際の金額に書き換えてください（次はそこから始まります）。</div>
+        <div style="position:relative;margin-bottom:12px;">
+          <input type="text" inputmode="numeric" id="safe-balance-input" placeholder="0" value="${cashSafeBalance?Number(cashSafeBalance).toLocaleString():''}"
+            onfocus="onYenFocus(event)"
+            onblur="onYenBlur(event);updateSafeBalance(this.value.replace(/,/g,''))"
+            oninput="updateSafeBalance(this.value.replace(/,/g,''))"
+            style="width:100%;padding:14px 44px 14px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);font-size:22px;font-weight:800;font-family:inherit;background:var(--bg);color:var(--text);text-align:center;">
+          <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);font-weight:700;">円</span>
+        </div>
+        <div style="background:#FFF8E6;border-radius:var(--radius-sm);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#8a6d00;">本日の見込み残高</div>
+            <div style="font-size:10px;color:#8a6d00;opacity:.7;">金庫残高 ＋ 手元に残る現金</div>
+          </div>
+          <div id="safe-expected-display" style="font-size:22px;font-weight:900;color:#8a6d00;">${expectedSafeTotal.toLocaleString()}円</div>
         </div>
       </div>
     </div>
@@ -2632,10 +2842,11 @@ function renderSales(){
           <div style="font-size:13px;font-weight:700;">数えた合計</div>
           <div id="coin-total" style="font-size:22px;font-weight:900;color:var(--text);">${coinTotal.toLocaleString()}円</div>
         </div>
-        <div id="cash-diff-display" style="border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f0efe9;">
+        <div id="cash-diff-display" style="border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f0efe9;margin-bottom:8px;">
           <div style="font-size:12px;font-weight:700;color:var(--muted);">システムとの差異</div>
           <div style="font-size:15px;font-weight:900;color:var(--muted);">－</div>
         </div>
+        <button onclick="applyCoinTotalToSafeBalance()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border-dark);background:#fff;color:var(--text);font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;">✓ 数え終わったら、この金額を金庫残高にする</button>
       </div>
     </div>
 
@@ -2652,11 +2863,13 @@ function renderSales(){
         <div id="expense-list">
           ${(salesData.expenses||[]).length===0
             ? `<div style="text-align:center;padding:10px 0;font-size:13px;color:var(--muted);">支出なし</div>`
-            : (salesData.expenses||[]).map((e,i)=>`
+            : (salesData.expenses||[]).map((e,i)=>{
+              const _isCustomCat = _customCatEditingIdx.has(i) || !!(e.category && !EXPENSE_PRESET_CATEGORIES.includes(e.category));
+              return `
             <div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                 <!-- 勘定科目 -->
-                <select onchange="updateExpenseCategory(${i},this.value)"
+                <select onchange="onExpenseCategorySelectChange(${i},this.value)"
                   style="flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);">
                   <option value="消耗品" ${e.category==='消耗品'?'selected':''}>消耗品</option>
                   <option value="食材費" ${e.category==='食材費'?'selected':''}>食材費</option>
@@ -2664,6 +2877,7 @@ function renderSales(){
                   <option value="通信費" ${e.category==='通信費'?'selected':''}>通信費</option>
                   <option value="雑費"   ${e.category==='雑費'?'selected':''}>雑費</option>
                   <option value="その他" ${e.category==='その他'||!e.category?'selected':''}>その他</option>
+                  <option value="__custom__" ${_isCustomCat?'selected':''}>✏️ 自由入力…</option>
                 </select>
                 <!-- 金額 -->
                 <div style="position:relative;width:108px;flex-shrink:0;">
@@ -2676,6 +2890,10 @@ function renderSales(){
                 </div>
                 <button onclick="confirmRemoveExpense(${i})" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border-dark);background:#fff;cursor:pointer;font-size:13px;color:#C0392B;flex-shrink:0;">✕</button>
               </div>
+              ${_isCustomCat?`
+              <input type="text" id="exp-cat-custom-${i}" value="${e.category||''}" placeholder="勘定科目を入力（例：修繕費）"
+                oninput="updateExpenseCategory(${i},this.value)"
+                style="width:100%;margin-bottom:6px;padding:7px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--ao);font-size:13px;font-family:inherit;background:#fff;color:var(--text);box-sizing:border-box;">`:''}
               <div style="display:flex;flex-direction:column;gap:6px;">
                 <!-- お店名 -->
                 <input type="text" value="${e.shop||''}" placeholder="お店（例：セブンイレブン）"
@@ -2687,7 +2905,7 @@ function renderSales(){
                   style="width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-dark);font-size:13px;font-family:inherit;background:#fff;color:var(--text);box-sizing:border-box;">
               </div>
             </div>
-          `).join('')}
+          `;}).join('')}
         </div>
         ${(salesData.expenses||[]).length>0?`
         <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);margin-top:4px;">
@@ -2746,6 +2964,7 @@ function renderSales(){
 
   </div>`;
   document.getElementById('tab-sales').innerHTML=html;
+  _refreshCashDiff();
   setTimeout(()=>{
     document.querySelectorAll('#tab-sales input').forEach(el=>el.style.fontSize='16px');
   },50);
@@ -2835,12 +3054,14 @@ function doPrint(){
 function addExpense(){
   if(!salesData.expenses) salesData.expenses=[];
   salesData.expenses.push({category:'消耗品',shop:'',item:'',amount:''});
+  _customCatEditingIdx.clear(); // 行数が変わると行番号がずれるため、自由入力中の目印はクリアする
   saveToLocal();
   renderSales();
 }
 function confirmRemoveExpense(i){
   showDelConfirm('支出を削除しますか？','この支出記録を削除します',()=>{
     salesData.expenses.splice(i,1);
+    _customCatEditingIdx.clear(); // 行数が変わると行番号がずれるため、自由入力中の目印はクリアする
     saveToLocal();
     renderSales();
   });
@@ -2858,6 +3079,33 @@ function updateExpenseCategory(i,val){
   salesData.expenses[i].category=val;
   saveToLocal();
 }
+// 「✏️ 自由入力…」を選んだ直後(まだ何も入力していない間)は、勘定科目が空文字のままなので
+// プリセット一覧に該当なしと判定できず「その他」に戻ってしまう。そこで選択中の行番号を
+// ここに覚えておき、テキスト欄を表示し続ける目印にする(行の増減があれば作り直すので、
+// ページ内だけの一時的な目印でよい)。
+let _customCatEditingIdx=new Set();
+// 勘定科目のセレクトを操作した時の処理。「✏️ 自由入力…」を選んだ場合はテキスト欄を表示するため再描画し、
+// プリセットに戻した場合もテキスト欄を消すために再描画する。
+function onExpenseCategorySelectChange(i,val){
+  if(!salesData.expenses) salesData.expenses=[];
+  if(val==='__custom__'){
+    _customCatEditingIdx.add(i);
+    // 選んだ直後は「__custom__」という文字列がそのまま勘定科目として保存されないよう、
+    // 一旦空にしてテキスト欄の入力を待つ
+    salesData.expenses[i].category='';
+  } else {
+    _customCatEditingIdx.delete(i);
+    salesData.expenses[i].category=val;
+  }
+  saveToLocal();
+  renderSales();
+  if(val==='__custom__'){
+    setTimeout(()=>{
+      const el=document.getElementById('exp-cat-custom-'+i);
+      if(el) el.focus();
+    },50);
+  }
+}
 
 const COIN_UNITS={m10000:10000,m5000:5000,m1000:1000,m500:500,m100:100,m50:50,m10:10,m5:5,m1:1};
 function onYenBlur(e){
@@ -2872,17 +3120,46 @@ function onYenFocus(e){
 function calcCoinTotal(coins){
   return Object.entries(COIN_UNITS).reduce((s,[k,u])=>s+(parseInt(coins[k])||0)*u,0);
 }
+// 「本日の手元に残る現金」（現金売上－PayPay）を、renderSales()と同じ計算方法で求め直す。
+// STEP2(現金を数える)側の再計算で使うため、renderSales()内のローカル変数とは別に持っている。
+function _computeTodayNetCash(){
+  const allItems=MASTER.filter(m=>counts[m.id]>0);
+  const cashItems=allItems.filter(m=>!m.kake);
+  const cashTotal=cashItems.reduce((s,m)=>s+(counts[m.id]||0),0);
+  const cashSales=cashTotal*UNIT_PRICE;
+  const paypay=parseInt(salesData.paypay)||0;
+  return cashSales-paypay;
+}
+// 「金庫にもともとあった残高」＋「本日の手元に残る現金」＝ 数え終わった時に手元にあるはずの金額（システム側の想定）
+function _computeExpectedCash(){
+  return cashSafeBalance+_computeTodayNetCash();
+}
+// 「数えた合計」と「手元に残るはずの現金（システム側の想定）」を比べて、差額を表示する
+function _refreshCashDiff(){
+  const diffEl=document.getElementById('cash-diff-display');
+  if(!diffEl) return;
+  const coinTotal=calcCoinTotal(salesData.coins||{});
+  const expected=_computeExpectedCash();
+  const diff=coinTotal-expected;
+  let color='var(--muted)', label='±0円（ぴったり合っています）';
+  if(diff>0){ color='#B8860B'; label=`+${diff.toLocaleString()}円（数えた方が多い）`; }
+  else if(diff<0){ color='#C0392B'; label=`${diff.toLocaleString()}円（数えた方が少ない）`; }
+  diffEl.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--muted);">システムとの差異</div><div style="font-size:15px;font-weight:900;color:${color};">${label}</div>`;
+}
+// 「本日の見込み残高」（金庫残高＋本日の手元に残る現金）の表示を更新する
+function _refreshSafeExpectedDisplay(){
+  const el=document.getElementById('safe-expected-display');
+  if(!el) return;
+  const expectedSafeTotal=cashSafeBalance+_computeTodayNetCash();
+  el.textContent=expectedSafeTotal.toLocaleString()+'円';
+}
 function updateCoin(key,val){
   if(!salesData.coins) salesData.coins={};
   salesData.coins[key]=val;
   const total=calcCoinTotal(salesData.coins);
   const el=document.getElementById('coin-total');
   if(el) el.textContent=total.toLocaleString()+'円';
-  const diffEl=document.getElementById('cash-diff-display');
-  if(diffEl){
-    diffEl.style.background='var(--bg)';
-    diffEl.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--muted);">システムとの差異</div><div style="font-size:16px;font-weight:900;color:var(--muted);">－</div>`;
-  }
+  _refreshCashDiff();
   saveToLocal();
 }
 function updateSalesCalc(cashSales){
@@ -2893,7 +3170,27 @@ function updateSalesCalc(cashSales){
     el.textContent=actual.toLocaleString()+'円';
     el.style.color=actual>=0?'var(--midori)':'#C0392B';
   }
+  _refreshCashDiff(); // PayPay金額が変わると「システム側の想定」も変わるため、差異表示も更新する
+  _refreshSafeExpectedDisplay(); // 「本日の見込み残高」もPayPay金額に応じて変わるため更新する
   saveToLocal();
+}
+// 金庫残高（店舗ごとに1つだけ持つ、日付をまたいで続く残高）を更新する
+function updateSafeBalance(val){
+  cashSafeBalance=parseInt(val)||0;
+  _refreshSafeExpectedDisplay();
+  _refreshCashDiff(); // 金庫残高が変わると「システムとの差異」の想定も変わるため更新する
+  saveToLocal();
+}
+// STEP2で数えた合計を、そのまま金庫残高欄にコピーする（数え終わった後の書き換えの手間を減らすための補助ボタン）
+function applyCoinTotalToSafeBalance(){
+  const coinTotal=calcCoinTotal(salesData.coins||{});
+  cashSafeBalance=coinTotal;
+  const input=document.getElementById('safe-balance-input');
+  if(input) input.value=coinTotal>0?coinTotal.toLocaleString():'';
+  _refreshSafeExpectedDisplay();
+  _refreshCashDiff();
+  saveToLocal();
+  toast('金庫残高を更新しました');
 }
 function updateAfterDeposit(){
   const coinTotal=calcCoinTotal(salesData.coins||{});
@@ -3812,7 +4109,7 @@ async function sendInvoice(id){
     : `<tr><td colspan="4" style="padding:14px 8px;text-align:center;color:#999;">この期間の実績データがありません</td></tr>`;
 
   const html=`
-    <div id="invoice-print-area" style="font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;">
+    <div id="invoice-print-area" style="width:640px;box-sizing:border-box;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;">
       <!-- ヘッダー -->
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:22px;font-weight:900;letter-spacing:.1em;margin-bottom:4px;">請　求　書</div>
@@ -3882,10 +4179,9 @@ function closeInvoiceModal(){
   _closeModal('invoice-modal');
   document.getElementById('invoice-modal').style.display='none';
 }
-// プレビュー(#invoice-print-area)の見た目をそのまま画像化してPDFに埋め込む。
+// 指定した要素の見た目をそのまま画像化してPDFに埋め込む（共通処理）。
 // 日本語フォントをPDF側に個別組み込みする必要がなく、画面と同じ見た目で保存できる。
-async function _renderPrintAreaToPdf(){
-  const area=document.getElementById('invoice-print-area');
+async function _renderElementToPdf(area){
   if(!area) return null;
   const canvas=await html2canvas(area, {scale:2, backgroundColor:'#ffffff'});
   const imgData=canvas.toDataURL('image/png');
@@ -3896,6 +4192,10 @@ async function _renderPrintAreaToPdf(){
   const pdf=new jsPDF('p','mm','a4');
   pdf.addImage(imgData,'PNG',10,10,imgWidth, Math.min(imgHeight, pageHeight-20));
   return pdf;
+}
+// プレビュー(#invoice-print-area)の見た目をそのまま画像化してPDFに埋め込む。
+async function _renderPrintAreaToPdf(){
+  return _renderElementToPdf(document.getElementById('invoice-print-area'));
 }
 async function downloadInvoicePdf(){
   if(typeof html2canvas==='undefined' || !window.jspdf){ toast('PDF機能の読み込みに失敗しました。通信環境を確認してください'); return; }
@@ -3923,7 +4223,7 @@ function mailInvoice(){
 
 // ── 請求書メールの自動送信（Brevo経由・Google Apps Script中継） ──
 // Google Apps ScriptをWebアプリとして公開した時に発行されるURLをここに貼り付ける
-const INVOICE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbz3MGTGf88wYkrzOkv1aUejtnnH680rvywnUQpJIeuHlaClrZZTd5xmIEjHLTQP7ZYQ/exec';
+const INVOICE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzxRrQJ0mGIEF37RnnfX2W7F7tlpZcq9oSwHZwnvr-s3oYXtGARmzpKPsY8DSrLnGK-/exec';
 // Google Apps Script側のSHARED_SECRETと必ず同じ値にする（本人がAppsScript側の値を変えない限り、ここも変更不要）
 const SEND_INVOICE_SECRET = 'raG3G239DLDiKIsQhkfODfMAsG6rlQxp';
 
@@ -3983,6 +4283,199 @@ async function execAutoSendInvoice(){
   }finally{
     if(btn){ btn.disabled=false; btn.style.opacity='1'; }
   }
+}
+
+// ── 領収書（電子）の自動送信：配達完了チェックを入れた瞬間に送る ──
+// 領収書PDFを組み立てて画像化し、既存の請求書と同じGoogle Apps Script中継経由でメール送信する。
+// (Apps Script側は宛先・件名・本文・PDFを受け取って送るだけの汎用の仕組みなので、
+//  請求書用に作った同じWebアプリ・同じ合言葉をそのまま使い回せる)
+async function _buildReceiptPdfAndSend(m, todayKey, qty, price){
+  const total=qty*price;
+  const tax=Math.round(total*8/108); // 弁当はすべて軽減税率(8%)対象という前提
+  const receiptNo=`${todayKey.replace(/-/g,'')}-${m.id}`;
+  const billName=m.billname||m.name;
+  const dateJp=fmtDateJp(todayKey);
+
+  const html=`
+    <div style="width:640px;box-sizing:border-box;font-family:'Hiragino Kaku Gothic ProN',sans-serif;color:#1a1a1a;font-size:13px;background:#fff;padding:8px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:22px;font-weight:900;letter-spacing:.1em;margin-bottom:4px;">領　収　書</div>
+        <div style="font-size:11px;color:#666;">No. ${receiptNo}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;border-bottom:2px solid #1a1a1a;padding-bottom:4px;margin-bottom:4px;">${billName} 様</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#666;">
+          <div>発行日：${dateJp}</div>
+        </div>
+      </div>
+      <div style="background:#f0f4ff;border:2px solid #1A6FD4;border-radius:10px;padding:14px 18px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#1A6FD4;margin-bottom:4px;">領収金額（税込）</div>
+        <div style="font-size:28px;font-weight:900;color:#1A6FD4;">¥ ${total.toLocaleString()}<span style="font-size:14px;">円</span></div>
+      </div>
+      <div style="font-size:12px;margin-bottom:16px;">但し、お弁当代として（${dateJp}分・${qty}食）上記正に領収いたしました。</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px;">
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:6px 8px;">8％対象（軽減税率）</td>
+            <td style="padding:6px 8px;text-align:right;">¥${total.toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 8px;color:#666;">内消費税等（8％）</td>
+            <td style="padding:6px 8px;text-align:right;color:#666;">¥${tax.toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align:right;font-size:11px;color:#444;line-height:1.9;border-top:1px solid #eee;padding-top:12px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${GLOBAL_SETTINGS.companyName}</div>
+        <div>${GLOBAL_SETTINGS.postalCode} ${GLOBAL_SETTINGS.address}</div>
+        <div>TEL ${GLOBAL_SETTINGS.phone}　登録番号：${GLOBAL_SETTINGS.registrationNumber}</div>
+      </div>
+    </div>
+  `;
+
+  // 画面には表示せず(画面外に置いて)画像化するための一時的な入れ物
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:-9999px;top:0;background:#fff;';
+  wrap.innerHTML=html;
+  document.body.appendChild(wrap);
+  let pdf=null;
+  try{
+    pdf=await _renderElementToPdf(wrap.firstElementChild);
+  } finally {
+    wrap.remove();
+  }
+  if(!pdf) return false;
+
+  const dataUri=pdf.output('datauristring');
+  const base64=dataUri.substring(dataUri.indexOf('base64,')+7);
+  const subject=`【${GLOBAL_SETTINGS.companyName}】領収書のご送付（${dateJp}）`;
+  const bodyText=`${billName} 様\n\nいつもお世話になっております。\n本日（${dateJp}）分のお弁当代の領収書をお送りいたします。\nご利用金額：${total.toLocaleString()}円\n\n添付のPDFをご確認ください。\n\nよろしくお願いいたします。\n${GLOBAL_SETTINGS.companyName}`;
+  const payload={
+    secretToken: SEND_INVOICE_SECRET,
+    shop: currentShop,
+    toEmail: m.receiptEmail,
+    toName: billName,
+    subject,
+    bodyText,
+    pdfBase64: base64,
+    pdfFilename: `領収書_${billName}_${todayKey}.pdf`,
+  };
+  try{
+    const res=await fetch(INVOICE_WEBAPP_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+    });
+    const result=await res.json();
+    if(!result.success) console.error('領収書メールの送信に失敗しました', result.error);
+    return !!result.success;
+  }catch(e){
+    console.error('領収書メール送信エラー', e);
+    return false;
+  }
+}
+// 配達完了チェックを入れた瞬間に呼ばれる。領収書「電子」＋メールアドレス登録済みの
+// お客様だけを対象に、その日の分の領収書を自動でメール送信する。
+async function maybeSendReceiptOnDelivery(id){
+  const m=MASTER.find(x=>x.id===id);
+  if(!m || m.receiptType!=='electronic' || !m.receiptEmail) return; // 対象外（紙・なし、またはメール未登録）
+  if(receiptSent.has(id)) return; // 本日すでに送信済み（二重送信防止）
+  if(!INVOICE_WEBAPP_URL || INVOICE_WEBAPP_URL.indexOf('PASTE_YOUR')===0) return;
+  if(!window.__fb || !window.__fb.ready) return; // 通信できていない時は静かに諦める（紙の控え等は別途運用）
+  const todayKey=fmtDate(new Date());
+  const qty=counts[id]||0;
+  if(qty<=0) return; // 食数が0のときは送らない
+  const price=priceOnDate(todayKey);
+  // 送信中に連打・別端末からの操作で二重に走らないよう、先に「送信済み」の印をつけておく
+  receiptSent.add(id);
+  saveToLocal();
+  const ok=await _buildReceiptPdfAndSend(m, todayKey, qty, price);
+  if(ok){
+    toast(m.name+'様に領収書メールを送信しました');
+  } else {
+    // 失敗した場合は印を戻し、もう一度チェックを入れ直せば再送を試せるようにする
+    receiptSent.delete(id);
+    saveToLocal();
+    toast(m.name+'様への領収書メール送信に失敗しました');
+  }
+}
+// 本日の注文画面の「⋯」メニューから、好きなタイミングで手動送信するためのボタン。
+// 自動送信(配達完了チェック時)が失敗した時の予備や、送り直したい時に使う。
+// 二重送信防止のチェックはしない(手動での送り直しが目的のため)が、本日分として送った場合はreceiptSentの印も更新しておく。
+async function manualSendReceiptFromInput(id){
+  const m=MASTER.find(x=>x.id===id);
+  if(!m) return;
+  if(m.receiptType!=='electronic' || !m.receiptEmail){ toast('この方は領収書「電子」の設定がありません'); return; }
+  if(!INVOICE_WEBAPP_URL || INVOICE_WEBAPP_URL.indexOf('PASTE_YOUR')===0){ toast('自動送信の設定がまだ完了していません'); return; }
+  const dateKey=fmtDate(selectedDate);
+  const qty=counts[id]||0;
+  if(qty<=0){ toast('この日の食数が0のため送信できません'); return; }
+  const price=priceOnDate(dateKey);
+  toast('領収書メールを送信しています…');
+  const ok=await _buildReceiptPdfAndSend(m, dateKey, qty, price);
+  if(ok){
+    if(dateKey===fmtDate(new Date())){ receiptSent.add(id); saveToLocal(); }
+    toast(m.name+'様に領収書メールを送信しました');
+  } else {
+    toast(m.name+'様への領収書メール送信に失敗しました');
+  }
+}
+
+// ── 本日の注文画面から、既存のお客様に「その日だけのメモ」を追加・編集する ──
+// 予約タブの日別メモ(bulkMemos)と同じデータをそのまま使うので、予約・配達タブとも連動する。
+// 日付が変われば「本日の注文」には出てこなくなるが、カレンダーでその日に戻れば残っている(完全削除ではない)。
+let _dailyMemoCustId=null;
+function openDailyMemoModal(id,name){
+  _dailyMemoCustId=id;
+  const dateKey=fmtDate(selectedDate);
+  const d=selectedDate;
+  const days=['日','月','火','水','木','金','土'];
+  document.getElementById('daily-memo-modal-title').textContent=`${name}さんのメモ`;
+  document.getElementById('daily-memo-date').textContent=`${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）だけのメモです`;
+  const existing=bulkMemos[dateKey]?bulkMemos[dateKey][id]||'':'';
+  document.getElementById('daily-memo-input').value=existing;
+  document.getElementById('daily-memo-del-btn').style.display=existing?'block':'none';
+  _openModal('daily-memo-modal');
+  setTimeout(()=>document.getElementById('daily-memo-input').focus(),100);
+}
+function closeDailyMemoModal(e){
+  if(e&&e.target!==document.getElementById('daily-memo-modal'))return;
+  blurAll();
+  _closeModal('daily-memo-modal');
+  _dailyMemoCustId=null;
+}
+function _refreshInputListAfterMemoChange(){
+  const area=document.getElementById('input-list-area');
+  if(area) delete area.dataset.built; // 📝バッジの表示更新のため、次回描画時にDOMを作り直す
+  renderInputList();
+}
+function saveDailyMemo(){
+  blurAll();
+  const id=_dailyMemoCustId;
+  if(!id){ closeDailyMemoModal(); return; }
+  const dateKey=fmtDate(selectedDate);
+  const memo=document.getElementById('daily-memo-input').value.trim();
+  if(memo){
+    if(!bulkMemos[dateKey]) bulkMemos[dateKey]={};
+    bulkMemos[dateKey][id]=memo;
+  } else if(bulkMemos[dateKey]){
+    delete bulkMemos[dateKey][id];
+  }
+  saveToLocal();
+  closeDailyMemoModal();
+  _refreshInputListAfterMemoChange();
+  toast('メモを保存しました');
+}
+function deleteDailyMemo(){
+  const id=_dailyMemoCustId;
+  const dateKey=fmtDate(selectedDate);
+  if(id && bulkMemos[dateKey]) delete bulkMemos[dateKey][id];
+  saveToLocal();
+  closeDailyMemoModal();
+  _refreshInputListAfterMemoChange();
+  toast('メモを削除しました');
 }
 
 function printInvoice(){
@@ -4069,9 +4562,26 @@ function recalcNextId(){
     });
   };
   scan(MASTER,'c');
+  scan(MASTER,'w');
   scan(STAFF,'s');
   scan(PINK_STAFF,'ps');
   nextId=max+1;
+}
+// 本日限りのお客様(一元さん)は、追加された日と違う日になったら顧客一覧から自動的に削除する
+function pruneExpiredOnetimeCustomers(){
+  const todayKey=fmtDate(new Date());
+  let changed=false;
+  for(let i=MASTER.length-1;i>=0;i--){
+    const m=MASTER[i];
+    if(m.temporary && m.addedDate && m.addedDate!==todayKey){
+      delete counts[m.id];
+      done.delete(m.id);
+      receiptSent.delete(m.id);
+      MASTER.splice(i,1);
+      changed=true;
+    }
+  }
+  return changed;
 }
 function saveToLocal(){
   try{
@@ -4088,6 +4598,9 @@ function saveToLocal(){
     const todayKey = fmtDate(new Date());
     localStorage.setItem(lsKey('bentoDone'), JSON.stringify([...done]));
     localStorage.setItem(lsKey('bentoDoneDate'), todayKey);
+    localStorage.setItem(lsKey('bentoReceiptSent'), JSON.stringify([...receiptSent]));
+    localStorage.setItem(lsKey('bentoReceiptSentDate'), todayKey);
+    localStorage.setItem(lsKey('bentoSafeBalance'), String(cashSafeBalance));
   }catch(e){}
   pushToFirestore();
   pushDailyHistory(currentShop, fmtDate(selectedDate), counts);
@@ -4171,6 +4684,11 @@ function pushDailySalesRecord(shop, dateKey, salesObj){
 // 今まさに画面に表示中の日付(selectedDate)だけは、間引きの対象から必ず除外する
 // (表示中にデータが消えて空欄に見えてしまう事故を防ぐため)。
 function archiveAndPruneDailyRecords(){
+  if(pruneExpiredOnetimeCustomers()){
+    const _area=document.getElementById('input-list-area');
+    if(_area) delete _area.dataset.built;
+    try{ renderCurrentTab(); }catch(e){}
+  }
   if(!window.__fb || !window.__fb.ready || !currentShop) return;
   const shop=currentShop;
   const currentKey=fmtDate(selectedDate);
@@ -4209,6 +4727,173 @@ function _fetchArchivedSalesIfMissing(dateKey){
     salesData=salesDataByDate[dateKey];
     if(currentTab==='sales') renderCurrentTab();
   }).catch(()=>{});
+}
+
+// ── 経理向けデータのCSV書き出し ──
+// 指定店舗・指定期間の日別実績(orderHistory)を、日付をキーにした「食数の内訳」オブジェクトで返す
+async function fetchShopOrderHistoryRangeCounts(shop,startKey,endKey){
+  if(!window.__fb || !window.__fb.ready) return {};
+  const fb=window.__fb;
+  try{
+    const col=fb.collection(fb.db,'shops',shop,'orderHistory');
+    const q=fb.query(col, fb.where('dateKey','>=',startKey), fb.where('dateKey','<=',endKey));
+    const snap=await fb.getDocs(q);
+    const byDate={};
+    snap.forEach(d=>{
+      const data=d.data();
+      byDate[data.dateKey||d.id]=data.counts||{};
+    });
+    return byDate;
+  }catch(e){ console.error('CSV書き出し用データ(日別実績)の取得に失敗しました', e); return {}; }
+}
+// 指定店舗・指定期間の日別売上記録(salesRecords：PayPay金額・支出記録)を、日付をキーにしたオブジェクトで返す
+async function fetchShopSalesRecordsRangeData(shop,startKey,endKey){
+  if(!window.__fb || !window.__fb.ready) return {};
+  const fb=window.__fb;
+  try{
+    const col=fb.collection(fb.db,'shops',shop,'salesRecords');
+    const q=fb.query(col, fb.where('dateKey','>=',startKey), fb.where('dateKey','<=',endKey));
+    const snap=await fb.getDocs(q);
+    const byDate={};
+    snap.forEach(d=>{
+      const data=d.data();
+      byDate[data.dateKey||d.id]={paypay:data.paypay||'', expenses:data.expenses||[]};
+    });
+    return byDate;
+  }catch(e){ console.error('CSV書き出し用データ(売上記録)の取得に失敗しました', e); return {}; }
+}
+// 指定店舗の顧客マスタ(現金／掛けの区別に使う)を取得する。今表示中の店舗なら、通信せずメモリ上のMASTERをそのまま使う
+async function fetchShopMasterForCsv(shop){
+  if(shop===currentShop) return MASTER;
+  if(!window.__fb || !window.__fb.ready) return [];
+  const fb=window.__fb;
+  try{
+    const snap=await fb.getDoc(fb.doc(fb.db,'shops',shop));
+    if(!snap.exists()) return [];
+    return snap.data().master||[];
+  }catch(e){ console.error('CSV書き出し用の顧客マスタ取得に失敗しました', e); return []; }
+}
+// 期間内の日付キー(YYYY-MM-DD)を、開始日から終了日まで1日ずつ並べた配列で返す
+function _dateKeyRange(startKey,endKey){
+  const out=[];
+  let d=parseDateKey(startKey);
+  const end=parseDateKey(endKey);
+  while(d<=end){
+    out.push(fmtDate(d));
+    d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);
+  }
+  return out;
+}
+// 選んだ期間(今月分／先月分／カスタム)に応じて、開始日・終了日(YYYY-MM-DD)を決める
+function onCsvPeriodChange(val){
+  const box=document.getElementById('csv-custom-range');
+  if(box) box.classList.toggle('hidden', val!=='custom');
+  if(val==='custom'){
+    const now=new Date();
+    const {start,end}=_monthRangeKeys(now.getFullYear(), now.getMonth());
+    if(!document.getElementById('csv-start-date').value) document.getElementById('csv-start-date').value=start;
+    if(!document.getElementById('csv-end-date').value) document.getElementById('csv-end-date').value=end;
+  }
+}
+function openCsvExportModal(){
+  const sel=document.getElementById('csv-period-select');
+  if(sel) sel.value='thisMonth';
+  const box=document.getElementById('csv-custom-range');
+  if(box) box.classList.add('hidden');
+  const status=document.getElementById('csv-status');
+  if(status) status.textContent='';
+  _openModal('csv-export-modal');
+}
+function closeCsvExportModal(){
+  _closeModal('csv-export-modal');
+}
+async function generateAndDownloadCsv(){
+  const periodSel=document.getElementById('csv-period-select')?.value||'thisMonth';
+  const now=new Date();
+  let startKey, endKey;
+  if(periodSel==='thisMonth'){
+    ({start:startKey, end:endKey}=_monthRangeKeys(now.getFullYear(), now.getMonth()));
+  } else if(periodSel==='lastMonth'){
+    let y=now.getFullYear(), m=now.getMonth()-1;
+    if(m<0){ m=11; y--; }
+    ({start:startKey, end:endKey}=_monthRangeKeys(y, m));
+  } else {
+    startKey=document.getElementById('csv-start-date')?.value;
+    endKey=document.getElementById('csv-end-date')?.value;
+    if(!startKey || !endKey){ toast('開始日と終了日を選んでください'); return; }
+    if(startKey>endKey){ toast('開始日は終了日より前にしてください'); return; }
+  }
+
+  const btn=document.getElementById('csv-download-btn');
+  const status=document.getElementById('csv-status');
+  if(btn) btn.disabled=true;
+  if(status) status.textContent='データを集めています…';
+
+  try{
+    const SHOP_NAMES=['甲子園','杭瀬','立花'];
+    const perShop={};
+    for(const shop of SHOP_NAMES){
+      const [counts, sales, master]=await Promise.all([
+        fetchShopOrderHistoryRangeCounts(shop, startKey, endKey),
+        fetchShopSalesRecordsRangeData(shop, startKey, endKey),
+        fetchShopMasterForCsv(shop),
+      ]);
+      const kakeSet=new Set((master||[]).filter(m=>m.kake).map(m=>m.id));
+      perShop[shop]={counts, sales, kakeSet};
+    }
+
+    if(typeof XLSX==='undefined'){
+      if(status) status.textContent='書き出し機能の読み込みに失敗しました。通信環境を確認してください';
+      toast('Excel書き出し機能の読み込みに失敗しました');
+      return;
+    }
+
+    const dateKeys=_dateKeyRange(startKey, endKey);
+    const header=['日付','現金売上（円）','現金食数','掛け売上（円）','掛け食数','PayPay金額（円）','支出合計（円）','支出内訳'];
+    const wb=XLSX.utils.book_new();
+
+    SHOP_NAMES.forEach(shop=>{
+      const {counts, sales, kakeSet}=perShop[shop];
+      const rows=[header];
+      dateKeys.forEach(dk=>{
+        const price=priceOnDate(dk);
+        const dayCounts=counts[dk]||{};
+        let cashQty=0, kakeQty=0;
+        Object.keys(dayCounts).forEach(custId=>{
+          const q=parseInt(dayCounts[custId])||0;
+          if(q<=0) return;
+          if(kakeSet.has(custId)) kakeQty+=q; else cashQty+=q;
+        });
+        const daySales=sales[dk]||{};
+        const paypay=parseInt(daySales.paypay)||0;
+        const expenses=daySales.expenses||[];
+        const expenseTotal=expenses.reduce((s,e)=>s+(parseInt(e.amount)||0),0);
+        const expenseDetail=expenses.filter(e=>e.category||e.amount).map(e=>(e.category||'（分類なし）')+':'+(parseInt(e.amount)||0)+'円').join(' / ');
+        rows.push([
+          dk,
+          cashQty*price, cashQty,
+          kakeQty*price, kakeQty,
+          paypay, expenseTotal, expenseDetail,
+        ]);
+      });
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:12},{wch:13},{wch:9},{wch:13},{wch:9},{wch:13},{wch:13},{wch:40}];
+      // シート名（タブの名前）には / \ ? * [ ] : が使えないため、店舗名をそのまま使う（該当記号を含まないため問題なし）
+      XLSX.utils.book_append_sheet(wb, ws, shop);
+    });
+
+    const fileName='経理データ_'+startKey+'_'+endKey+'.xlsx';
+    XLSX.writeFile(wb, fileName);
+
+    if(status) status.textContent='ダウンロードしました（'+startKey+'〜'+endKey+'）';
+    toast('Excelファイルをダウンロードしました');
+  }catch(e){
+    console.error('経理データの書き出しに失敗しました', e);
+    if(status) status.textContent='書き出しに失敗しました。通信環境を確認してもう一度お試しください';
+    toast('Excelファイルの作成に失敗しました');
+  }finally{
+    if(btn) btn.disabled=false;
+  }
 }
 
 // ── 共通設定（単価履歴・振込先・会社情報）：全店舗共通、settings/global に保存 ──
@@ -4434,11 +5119,18 @@ function buildStateSnapshot(){
     courseAssign: COURSE_ASSIGN,
     done: [...done],
     doneDate: fmtDate(new Date()),
+    receiptSent: [...receiptSent],
+    receiptSentDate: fmtDate(new Date()),
+    safeBalance: cashSafeBalance,
   };
 }
 // 店舗ごとに個別のタイマーを持つ（甲子園の送信待ちが、直後に杭瀬へ切り替えた操作で
 // キャンセルされてしまう、といった事故を防ぐため）
 let _fbPushTimers={};
+// 直前に自分自身がFirestoreへ送信した内容(updatedAtを除く)。
+// 自分の書き込みがそのまま跳ね返ってきただけ(内容は同じ)の時に、
+// 無駄なフル再描画（＝ボタン操作直後に一瞬画面が揺れて見える不具合）をしないための目印。
+let _lastPushedSnapshotJson=null;
 function pushToFirestore(immediate){
   if(!window.__fb || !window.__fb.ready) return; // 未初期化ならローカル保存のみ（次回保存時に再送される）
   const shopAtCall=currentShop;
@@ -4451,6 +5143,7 @@ function pushToFirestore(immediate){
     delete _fbPushTimers[shopAtCall];
     if(!window.__fb || !window.__fb.ready) return;
     const fb=window.__fb;
+    _lastPushedSnapshotJson=JSON.stringify(payload);
     payload.updatedAt=fb.serverTimestamp();
     fb.setDoc(shopDocRef(shopAtCall), payload).catch(err=>{
       console.error('Firestoreへのクラウド保存に失敗しました', err);
@@ -4500,6 +5193,16 @@ function applyRemoteState(data){
   //  それが「開いた瞬間からずっと画面がガクガクする」不具合の原因になっていた)
   const _remoteTs=(data.updatedAt && typeof data.updatedAt.toMillis==='function') ? data.updatedAt.toMillis() : null;
   if(_remoteTs!==null && _remoteTs===_lastAppliedRemoteTs) return;
+  // 自分自身が直前に送信した内容がそのまま跳ね返ってきただけ(＝内容は既に画面に反映済み)であれば、
+  // 中身は同じなのに画面だけ丸ごと作り直してしまう(＝ボタン操作の直後に一瞬揺れて見える)のを防ぐ。
+  if(_lastPushedSnapshotJson!==null){
+    const _cmp=Object.assign({}, data);
+    delete _cmp.updatedAt;
+    if(JSON.stringify(_cmp)===_lastPushedSnapshotJson){
+      _lastAppliedRemoteTs=_remoteTs;
+      return;
+    }
+  }
   if(!_canSafeRerenderNow()){
     // 入力欄にフォーカス中：最新のデータだけ覚えておき、反映は入力が終わってから行う
     _pendingRemoteData=data;
@@ -4543,6 +5246,13 @@ function applyRemoteState(data){
   } else if(data.doneDate && data.doneDate!==todayKey){
     done.clear();
   }
+  if(Array.isArray(data.receiptSent) && data.receiptSentDate===todayKey){
+    receiptSent.clear();
+    data.receiptSent.forEach(id=>receiptSent.add(id));
+  } else if(data.receiptSentDate && data.receiptSentDate!==todayKey){
+    receiptSent.clear();
+  }
+  if(data.safeBalance!==undefined) cashSafeBalance=Number(data.safeBalance)||0;
   recalcNextId();
   if(_loadedCountsDate !== fmtDate(selectedDate)){
     initCounts(selectedDate);
@@ -4684,6 +5394,18 @@ function loadFromLocal(){
     }
   }catch(e){ try{localStorage.removeItem(lsKey('bentoDone'));}catch(_){} }
   try{
+    const savedReceiptSentDate = localStorage.getItem(lsKey('bentoReceiptSentDate'));
+    const todayKey2 = fmtDate(new Date());
+    if(savedReceiptSentDate === todayKey2){
+      const rs = localStorage.getItem(lsKey('bentoReceiptSent'));
+      if(rs){ JSON.parse(rs).forEach(id=>receiptSent.add(id)); }
+    }
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoReceiptSent'));}catch(_){} }
+  try{
+    const sb = localStorage.getItem(lsKey('bentoSafeBalance'));
+    if(sb!==null) cashSafeBalance=Number(sb)||0;
+  }catch(e){ try{localStorage.removeItem(lsKey('bentoSafeBalance'));}catch(_){} }
+  try{
     const st = localStorage.getItem(lsKey('bentoStaff'));
     if(st){ const parsed=JSON.parse(st); if(Array.isArray(parsed)){ STAFF.splice(0,STAFF.length,...parsed); } }
   }catch(e){ try{localStorage.removeItem(lsKey('bentoStaff'));}catch(_){} }
@@ -4731,6 +5453,8 @@ function selectShop(shop){
   Object.keys(COURSE_ASSIGN).forEach(k=>delete COURSE_ASSIGN[k]);
   Object.assign(COURSE_ASSIGN, COURSE_ASSIGN_DEFAULT());
   done.clear();
+  receiptSent.clear();
+  cashSafeBalance=0;
   loadFromLocal();
   // 起動時ブートストラップと同じ判定：保存されていたcountsが本日分ならそのまま使い、
   // 別の日付のものであれば(または保存がなければ)MASTER/bulkOrdersを元に再計算する
@@ -5049,18 +5773,15 @@ if(savedShop){
 }
 
 loadFromLocal();
+// 本日限りのお客様(一元さん)で、追加された日と違う日になっているものを削除する
+// (前回保存時のcountsを再計算するinitCounts()より必ず先に行う)
+const _onetimePruned=pruneExpiredOnetimeCustomers();
 // 前回保存時と表示日付が違う場合のみ、MASTER/bulkOrdersを元に食数を再計算する
 // (同じ日のうちに閉じて開き直した場合は、手動で調整した個数をそのまま維持する)
-// ※yomi自動生成のsaveToLocal()より必ず先に行う(先にsaveすると、まだ再計算前の古いcountsが
-//   「本日分」として保存されてしまい、次回起動時に再計算がスキップされてしまうため)
 if(_loadedCountsDate !== fmtDate(selectedDate)){
   initCounts(selectedDate);
 }
-// 既存顧客でyomiが空のものを自動生成
-let _yomiBatchChanged=false;
-MASTER.forEach(m=>{ if(!m.yomi){ m.yomi=kanjiToHira(m.name); _yomiBatchChanged=true; } });
-if(_yomiBatchChanged) saveToLocal();
-
+if(_onetimePruned) saveToLocal();
 
 if(savedRole === 'admin'){
   currentRole = 'admin';
